@@ -78,7 +78,7 @@ export default function Wallets({ onEdit, go }) {
                         <div className="text-xs text-slate-500 truncate">
                           {cycles[a.id] ? <>บิลรอบนี้ <Money value={cycles[a.id].billDue} decimals={false} /> · จ่ายภายใน {shortDate(cycles[a.id].dueDate)}{a.limit > 0 && <> · วงเงินเหลือ <Money value={a.limit - owed - linkedOwed(a)} decimals={false} /></>}</> :
                           a.type === 'credit' && a.limit > 0 ? <>วงเงินเหลือ <Money value={a.limit - owed - linkedOwed(a)} /></> :
-                            a.type === 'loan' && a.viaCard ? <>ผ่อนผ่าน {accById[a.viaCard]?.name} · <Money value={a.installment} decimals={false} />/เดือน · เหลือ {instLeft(a)} งวด</> :
+                            a.type === 'loan' && a.viaCard ? (instLeft(a) === 0 ? <>ผ่อนครบแล้ว 🎉 · เก็บถาวรได้</> : <>ผ่อนผ่าน {accById[a.viaCard]?.name} · <Money value={a.installment} decimals={false} />/เดือน · เหลือ {instLeft(a)} งวด</>) :
                           a.type === 'loan' && a.installment > 0 ? <>ค่างวด <Money value={a.installment} /> · ทุกวันที่ {a.dueDay}</> :
                               ACCOUNT_TYPES[a.type]?.desc}
                         </div>
@@ -160,6 +160,46 @@ function AccountDetail({ id, onClose, onEditAcc, onEditTxn }) {
         </div>
         <Button variant="ghost" className="!py-2 text-sm" onClick={() => onEditAcc(a)}><Pencil size={15} /> แก้ไข</Button>
       </div>
+
+      {a.type === 'credit' && (() => {
+        const loans = accounts.filter((l) => l.viaCard === a.id && !l.archived)
+        const owedCard = Math.max(0, -b)
+        const owedLoans = loans.reduce((t, l) => t + Math.max(0, -(balances[l.id] || 0)), 0)
+        const avail = (a.limit || 0) - owedCard - owedLoans
+        return (
+          <div className="mt-5 card p-4">
+            <div className="text-sm font-semibold mb-2">วงเงินบัตร</div>
+            {a.limit > 0 ? (
+              <>
+                <div className="flex h-3 rounded-full overflow-hidden bg-slate-100">
+                  <div className="bg-rose-400" style={{ width: `${Math.min(100, (owedCard / a.limit) * 100)}%` }} />
+                  <div className="bg-orange-300" style={{ width: `${Math.min(100, (owedLoans / a.limit) * 100)}%` }} />
+                </div>
+                <div className="mt-2 space-y-1 text-xs">
+                  <div className="flex justify-between"><span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-rose-400" />ยอดใช้บัตร (ขึ้นบิลแล้ว + รอบใหม่)</span><Money value={owedCard} decimals={false} /></div>
+                  <div className="flex justify-between"><span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-orange-300" />เงินสดผ่อนที่ยังไม่ขึ้นบิล</span><Money value={owedLoans} decimals={false} /></div>
+                  <div className="flex justify-between font-semibold text-sm pt-1"><span>วงเงินคงเหลือ</span><Money value={avail} decimals={false} className={avail < 0 ? 'text-rose' : 'text-emerald-600'} /></div>
+                  <div className="text-[11px] text-slate-500">วงเงินจะคืนกลับเมื่อบันทึกชำระบิลบัตร (รวมค่างวดผ่อนที่อยู่ในบิล)</div>
+                </div>
+              </>
+            ) : <div className="text-xs text-slate-500">ยังไม่ได้ใส่วงเงินบัตร กด “แก้ไข” เพื่อใส่</div>}
+            <div className="mt-4 text-sm font-semibold">เงินสดผ่อนผ่านบัตรนี้ ({loans.length})</div>
+            <div className="mt-1 space-y-1">
+              {loans.map((l) => (
+                <button key={l.id} onClick={() => onEditAcc(l)} className="w-full flex items-center gap-2 py-1.5 text-left text-sm">
+                  <IconBadge name={l.icon} color={l.color} size={28} icon={14} />
+                  <span className="flex-1 truncate">{l.name}</span>
+                  <span className="text-xs text-slate-500"><Money value={l.installment} decimals={false} />/งวด</span>
+                  <Money value={Math.max(0, -(balances[l.id] || 0))} decimals={false} className="w-20 text-right" />
+                </button>
+              ))}
+            </div>
+            <Button variant="ghost" className="w-full mt-2 !py-2 text-sm" onClick={() => onEditAcc({ type: 'loan', name: `ผ่อนบัตร ก้อนที่ ${loans.length + 1}`, icon: 'bank', color: '#f97316', viaCard: a.id, instStart: shiftMonth(todayISO().slice(0, 7), 1) })}>
+              <Plus size={15} /> เพิ่มเงินสดผ่อนอีกก้อน
+            </Button>
+          </div>
+        )
+      })()}
 
       <div className="mt-5 card p-4">
         <div className="flex items-center gap-2 text-sm font-medium"><Scale size={16} className="text-sky" /> ปรับยอดให้ตรงความจริง</div>
