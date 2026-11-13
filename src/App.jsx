@@ -1,22 +1,32 @@
-import { useEffect, useState } from 'react'
-import { LayoutDashboard, List, Plus, Wallet, Settings as Cog, Swords } from 'lucide-react'
-import { useStore } from './store'
+import { useEffect, useRef, useState } from 'react'
+import { LayoutDashboard, List, Plus, Wallet, Settings as Cog, Swords, LineChart, Repeat } from 'lucide-react'
+import { useStore, selectList } from './store'
 import Home from './screens/Home'
 import Transactions from './screens/Transactions'
 import Wallets from './screens/Wallets'
 import Settings from './screens/Settings'
 import VaultRpg from './screens/VaultRpg'
+import Portfolio from './screens/Portfolio'
+import Subscriptions from './screens/Subscriptions'
 import TxnForm from './components/TxnForm'
+import TradeForm from './components/TradeForm'
 import AuthPanel from './components/AuthPanel'
+import { LockScreen } from './components/Lock'
 import { Toast, Avatar } from './components/ui'
+import { fetchQuotes, streamCrypto, stopStream } from './lib/prices'
+import { symbolsToPoll } from './lib/portfolio'
+import { processDueSubs } from './lib/subs'
 
 const NAV = [
-  { id: 'home', label: 'หน้าแรก', icon: LayoutDashboard },
-  { id: 'txns', label: 'รายการ', icon: List },
-  { id: 'wallets', label: 'กระเป๋า', icon: Wallet },
-  { id: 'vault', label: 'Vault', icon: Swords },
+  { id: 'home', label: 'หน้าแรก', icon: LayoutDashboard, mobile: true },
+  { id: 'txns', label: 'รายการ', icon: List, mobile: true },
+  { id: 'portfolio', label: 'พอร์ต', icon: LineChart, mobile: true },
+  { id: 'wallets', label: 'กระเป๋า', icon: Wallet, mobile: true },
+  { id: 'subs', label: 'Subscription', icon: Repeat },
+  { id: 'vault', label: 'Vault', icon: Swords, mobile: true },
   { id: 'settings', label: 'ตั้งค่า', icon: Cog },
 ]
+const MOBILE = NAV.filter((n) => n.mobile)
 
 function Welcome() {
   const setUi = useStore((s) => s.setUi)
@@ -35,14 +45,51 @@ function Welcome() {
   )
 }
 
+/** Keeps market prices fresh: crypto over a websocket, everything else polled every minute while visible. */
+function useMarketData(ready) {
+  const items = useStore((s) => s.items)
+  const assetsKey = JSON.stringify(selectList(items, 'asset').map((a) => [a.symbol, a.source, a.type]))
+  useEffect(() => {
+    if (!ready) return
+    const assets = selectList(useStore.getState().items, 'asset')
+    const poll = () => { if (document.visibilityState === 'visible') fetchQuotes(symbolsToPoll(assets)) }
+    poll()
+    streamCrypto(assets)
+    const iv = setInterval(poll, 60_000)
+    const vis = () => { if (document.visibilityState === 'visible') { poll(); streamCrypto(assets) } else stopStream() }
+    document.addEventListener('visibilitychange', vis)
+    return () => { clearInterval(iv); document.removeEventListener('visibilitychange', vis) }
+  }, [ready, assetsKey])
+}
+
 export default function App() {
   const ready = useStore((s) => s.ready)
   const session = useStore((s) => s.session)
   const offline = useStore((s) => s.ui.offlineMode)
+  const lock = useStore((s) => s.ui.lock)
+  const [locked, setLocked] = useState(true)
+  const hiddenAt = useRef(0)
   const [tab, setTab] = useState(() => (location.hash.slice(1) || 'home'))
   const [form, setForm] = useState(null) // null | {} | txn
+  const [trade, setTrade] = useState(null)
 
   useEffect(() => { useStore.getState().init() }, [])
+  useMarketData(ready)
+  useEffect(() => {
+    if (!ready) return
+    const run = () => processDueSubs()
+    const t = setTimeout(run, 1500)
+    const iv = setInterval(run, 30 * 60_000)
+    return () => { clearTimeout(t); clearInterval(iv) }
+  }, [ready, session?.user?.id])
+  useEffect(() => {
+    const vis = () => {
+      if (document.visibilityState === 'hidden') hiddenAt.current = Date.now()
+      else if (hiddenAt.current && Date.now() - hiddenAt.current > 60_000) setLocked(true)
+    }
+    document.addEventListener('visibilitychange', vis)
+    return () => document.removeEventListener('visibilitychange', vis)
+  }, [])
   useEffect(() => { if (location.hash.slice(1) !== tab) history.pushState(null, '', '#' + tab); window.scrollTo({ top: 0 }) }, [tab])
   useEffect(() => {
     const onHash = () => { const h = location.hash.slice(1); if (NAV.some((n) => n.id === h)) setTab(h) }
@@ -51,9 +98,10 @@ export default function App() {
   }, [])
   useEffect(() => {
     const onKey = (e) => {
-      if (e.target.closest('input,textarea,select') || e.metaKey || e.ctrlKey) return
+      if (e.target.closest('input,textarea,select') || e.metaKey || e.ctrlKey || document.querySelector('.fixed.inset-0.z-50')) return
       if (e.key === 'n' || e.key === 'N') { e.preventDefault(); setForm({}) }
-      if (e.key >= '1' && e.key <= '5') setTab(NAV[Number(e.key) - 1].id)
+      if (e.key === 't' || e.key === 'T') { e.preventDefault(); setTrade({}) }
+      if (e.key >= '1' && e.key <= '7') setTab(NAV[Number(e.key) - 1].id)
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
@@ -61,14 +109,17 @@ export default function App() {
 
   if (!ready) return <div className="min-h-dvh grid place-items-center"><div className="w-10 h-10 rounded-full grad-bg animate-pulse" /></div>
   if (!session && !offline) return <><Welcome /><Toast /></>
+  if (lock?.enabled && locked) return <LockScreen onUnlock={() => setLocked(false)} />
 
   const onAdd = (init) => setForm(init || {})
-  const onEdit = (t) => setForm(t)
+  const onEdit = (t) => (t.kind === 'trade' ? setTrade(t) : setForm(t))
   const screen = {
-    home: <Home onAdd={onAdd} onEdit={onEdit} go={setTab} />,
+    home: <Home onAdd={onAdd} onEdit={onEdit} go={setTab} onTrade={setTrade} />,
     txns: <Transactions onEdit={onEdit} />,
-    wallets: <Wallets onEdit={onEdit} />,
-    vault: <VaultRpg onAdd={onAdd} />,
+    portfolio: <Portfolio onTrade={setTrade} />,
+    wallets: <Wallets onEdit={onEdit} go={setTab} />,
+    subs: <Subscriptions />,
+    vault: <VaultRpg onAdd={onAdd} go={setTab} />,
     settings: <Settings />,
   }[tab] || null
 
@@ -80,8 +131,11 @@ export default function App() {
           <img src="./icon-192.png" className="w-9 h-9 rounded-xl" alt="" />
           <div className="leading-tight"><div className="text-sm font-semibold">R.R.</div><div className="text-sm font-semibold grad-text">Vault</div></div>
         </div>
-        <button onClick={() => setForm({})} className="mb-4 flex items-center justify-center gap-2 py-3 rounded-2xl grad-bg text-white font-semibold shadow-lg shadow-emerald-500/20 hover:brightness-110">
+        <button onClick={() => setForm({})} className="mb-2 flex items-center justify-center gap-2 py-3 rounded-2xl grad-bg text-white font-semibold shadow-lg shadow-emerald-500/20 hover:brightness-110">
           <Plus size={18} /> บันทึกรายการ <kbd className="ml-1 text-[10px] px-1.5 py-0.5 rounded bg-black/20">N</kbd>
+        </button>
+        <button onClick={() => setTrade({})} className="mb-4 flex items-center justify-center gap-2 py-2.5 rounded-2xl bg-white border border-slate-200 font-semibold text-sm hover:bg-slate-50">
+          <LineChart size={16} /> ซื้อ/ขายสินทรัพย์ <kbd className="ml-1 text-[10px] px-1.5 py-0.5 rounded bg-slate-100">T</kbd>
         </button>
         {NAV.map((n) => (
           <button key={n.id} onClick={() => setTab(n.id)}
@@ -89,7 +143,7 @@ export default function App() {
             <n.icon size={18} className={tab === n.id ? 'text-emerald-600' : ''} /> {n.label}
           </button>
         ))}
-        <div className="mt-auto text-[11px] text-slate-400 px-2">คีย์ลัด: N บันทึก · 1-5 สลับหน้า</div>
+        <div className="mt-auto text-[11px] text-slate-400 px-2">คีย์ลัด: N บันทึก · T ซื้อขาย · 1-7 สลับหน้า</div>
       </aside>
 
       <main className="flex-1 min-w-0 px-4 md:px-8 pt-safe pb-28 md:pb-10">
@@ -97,19 +151,20 @@ export default function App() {
       </main>
 
       {/* mobile bottom nav */}
-      <nav className="md:hidden fixed bottom-0 inset-x-0 z-40 pb-safe bg-white/85 backdrop-blur-xl border-t border-slate-200">
-        <div className="grid grid-cols-5 items-center h-16 px-2">
-          {NAV.slice(0, 2).map((n) => <NavBtn key={n.id} n={n} active={tab === n.id} onClick={() => setTab(n.id)} />)}
+      <nav className="md:hidden fixed bottom-0 inset-x-0 z-40 pb-safe bg-white/90 backdrop-blur-xl border-t border-slate-200">
+        <div className="grid grid-cols-6 items-center h-16 px-1">
+          {MOBILE.slice(0, 2).map((n) => <NavBtn key={n.id} n={n} active={tab === n.id} onClick={() => setTab(n.id)} />)}
           <div className="flex justify-center">
-            <button onClick={() => setForm({})} aria-label="บันทึกรายการ" className="w-14 h-14 -mt-7 rounded-2xl grad-bg text-white grid place-items-center shadow-xl shadow-emerald-500/30 active:scale-95 transition">
+            <button onClick={() => (tab === 'portfolio' ? setTrade({}) : setForm({}))} aria-label="บันทึกรายการ" className="w-14 h-14 -mt-7 rounded-2xl grad-bg text-white grid place-items-center shadow-xl shadow-emerald-500/30 active:scale-95 transition">
               <Plus size={26} strokeWidth={2.4} />
             </button>
           </div>
-          {NAV.slice(2, 4).map((n) => <NavBtn key={n.id} n={n} active={tab === n.id} onClick={() => setTab(n.id)} />)}
+          {MOBILE.slice(2).map((n) => <NavBtn key={n.id} n={n} active={tab === n.id} onClick={() => setTab(n.id)} />)}
         </div>
       </nav>
 
       <TxnForm open={!!form} initial={form} onClose={() => setForm(null)} />
+      <TradeForm open={!!trade} initial={trade} onClose={() => setTrade(null)} />
       <Toast />
     </div>
   )
@@ -117,7 +172,7 @@ export default function App() {
 
 function NavBtn({ n, active, onClick }) {
   return (
-    <button onClick={onClick} className={`flex flex-col items-center gap-1 text-[11px] ${active ? 'text-slate-900' : 'text-slate-500'}`}>
+    <button onClick={onClick} className={`flex flex-col items-center gap-1 text-[10.5px] ${active ? 'text-slate-900' : 'text-slate-500'}`}>
       <n.icon size={21} className={active ? 'text-emerald-600' : ''} strokeWidth={active ? 2.2 : 1.8} />
       {n.label}
     </button>

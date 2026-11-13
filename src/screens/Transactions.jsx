@@ -63,7 +63,7 @@ export default function Transactions({ onEdit, initialAccount }) {
 
       <Segmented value={kind} onChange={setKind} options={[
         { value: 'all', label: 'ทั้งหมด' }, { value: 'expense', label: 'รายจ่าย' }, { value: 'income', label: 'รายรับ' },
-        { value: 'transfer', label: 'โอน' }, { value: 'payment', label: 'ชำระหนี้' },
+        { value: 'transfer', label: 'โอน' }, { value: 'payment', label: 'ชำระหนี้' }, { value: 'trade', label: 'ลงทุน' },
       ]} className="overflow-x-auto no-scrollbar" />
 
       {!q && (

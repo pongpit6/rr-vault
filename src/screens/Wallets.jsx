@@ -10,7 +10,7 @@ import { ICON_KEYS, COLORS } from '../lib/icons'
 import { evalAmount, money, round2, todayISO } from '../lib/format'
 import { postingsOf } from '../lib/ledger'
 
-export default function Wallets({ onEdit }) {
+export default function Wallets({ onEdit, go }) {
   const { accounts, balances, summary, settings, txns, catById, accById } = useVault()
   const put = useStore((s) => s.put)
   const [editAcc, setEditAcc] = useState(null)
@@ -28,7 +28,10 @@ export default function Wallets({ onEdit }) {
     <div className="space-y-5">
       <div className="flex items-center justify-between pt-2">
         <h1 className="text-2xl font-bold">กระเป๋า</h1>
-        <Button variant="ghost" className="!py-2 text-sm" onClick={() => setEditAcc({})}><Plus size={16} /> เพิ่มกระเป๋า</Button>
+        <div className="flex gap-2">
+          <Button variant="ghost" className="!py-2 text-sm md:hidden" onClick={() => go?.('subs')}>Subscription</Button>
+          <Button variant="ghost" className="!py-2 text-sm" onClick={() => setEditAcc({})}><Plus size={16} /> เพิ่มกระเป๋า</Button>
+        </div>
       </div>
 
       {/* total tree */}

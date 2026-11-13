@@ -2,6 +2,9 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Settings as Cog, Eye, EyeOff, ArrowDownLeft, ArrowUpRight, ShieldCheck, ChevronRight, Cloud, CloudOff, RefreshCw, Plus } from 'lucide-react'
 import { Avatar, Money, IconBadge, Progress, Empty, Button } from '../components/ui'
 import TxnRow from '../components/TxnRow'
+import { SubLogo, AssetLogo } from '../components/Logos'
+import { useSubs } from './Subscriptions'
+import { upcoming } from '../lib/subs'
 import { RpgHomeCard } from '../components/RpgBits'
 import { useRpg } from '../lib/rpg'
 import { useStore, useProfile } from '../store'
@@ -46,7 +49,9 @@ export default function Home({ onAdd, onEdit, go }) {
   const profile = useProfile()
   const privacy = useStore((s) => s.ui.privacy)
   const setUi = useStore((s) => s.setUi)
-  const { accounts, txns, balances, summary, catById, accById } = useVault()
+  const { accounts, txns, balances, summary, catById, accById, portfolio } = useVault()
+  const subs = useSubs()
+  const soon = useMemo(() => upcoming(subs, accounts, balances, 10), [subs, accounts, balances])
   const net = useCountUp(summary.net)
   const rpg = useRpg()
 
@@ -65,11 +70,11 @@ export default function Home({ onAdd, onEdit, go }) {
 
   const tiles = [
     { type: 'cash', label: 'เงินใช้ได้', icon: 'wallet', color: '#10b981' },
-    { type: 'invest', label: 'เงินลงทุน', icon: 'trending', color: '#38bdf8' },
+    { type: 'invest', label: 'ลงทุน (พอร์ต + เงินสด)', icon: 'trending', color: '#38bdf8', go: 'portfolio' },
     { type: 'reserve', label: 'กันชำระหนี้', icon: 'shield', color: '#a78bfa' },
     { type: 'debt', label: 'หนี้คงค้าง', icon: 'card', color: '#fb7185' },
   ]
-  const tileValue = (type) => type === 'debt' ? -summary.debts : (summary.byType[type] || 0)
+  const tileValue = (type) => type === 'debt' ? -summary.debts : type === 'invest' ? (summary.byType.invest || 0) + portfolio.value : (summary.byType[type] || 0)
   const recent = txns.slice(0, 6)
 
   return (
@@ -115,7 +120,7 @@ export default function Home({ onAdd, onEdit, go }) {
           {/* wallet tiles */}
           <section className="grid grid-cols-2 gap-3">
             {tiles.map((t, i) => (
-              <button key={t.type} onClick={() => go('wallets')} className="card p-4 text-left hover:bg-slate-900/[.05] transition anim-pop" style={{ animationDelay: `${60 * i}ms` }}>
+              <button key={t.type} onClick={() => go(t.go || 'wallets')} className="card p-4 text-left hover:bg-slate-900/[.05] transition anim-pop" style={{ animationDelay: `${60 * i}ms` }}>
                 <div className="flex items-center justify-between">
                   <IconBadge name={t.icon} color={t.color} size={36} icon={17} />
                   <ChevronRight size={16} className="text-slate-400" />
@@ -156,6 +161,51 @@ export default function Home({ onAdd, onEdit, go }) {
         </div>
 
         <div className="space-y-5">
+          {/* upcoming dues */}
+          {soon.length > 0 && (
+            <section className="card p-4">
+              <div className="flex items-center justify-between mb-2">
+                <div className="font-semibold">ใกล้ครบกำหนด</div>
+                <button onClick={() => go('subs')} className="text-xs text-sky-600 flex items-center">Subscription <ChevronRight size={14} /></button>
+              </div>
+              <div className="space-y-1">
+                {soon.slice(0, 5).map((u, i) => (
+                  <button key={i} onClick={() => u.kind === 'debt' ? onAdd({ kind: 'payment', to: u.account.id }) : go('subs')} className="w-full flex items-center gap-3 py-2 text-left">
+                    {u.kind === 'sub' ? <SubLogo sub={u.sub} size={36} /> : <IconBadge name={u.account.icon} color={u.account.color} size={36} icon={17} />}
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-medium truncate">{u.kind === 'sub' ? u.sub.name : `ครบกำหนด ${u.account.name}`}</div>
+                      <div className={`text-xs ${u.days <= 2 ? 'text-amber-600 font-semibold' : 'text-slate-500'}`}>{u.days <= 0 ? 'วันนี้' : u.days === 1 ? 'พรุ่งนี้' : `อีก ${u.days} วัน`}{u.kind === 'sub' && u.sub.auto ? ' · ตัดอัตโนมัติ' : ''}</div>
+                    </div>
+                    {u.kind === 'sub'
+                      ? <span className="text-sm font-semibold num">{u.sub.currency === 'USD' ? `$${u.sub.amount}` : <Money value={u.sub.amount} decimals={false} />}</span>
+                      : <Money value={u.amount} decimals={false} className="text-sm font-semibold" />}
+                  </button>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* portfolio */}
+          {portfolio.open.length > 0 && (
+            <section className="card p-4">
+              <button onClick={() => go('portfolio')} className="w-full flex items-center justify-between mb-2 text-left">
+                <div>
+                  <div className="font-semibold">พอร์ตลงทุน</div>
+                  <div className="text-xs text-slate-500">มูลค่า <Money value={portfolio.value} decimals={false} /> · <span className={portfolio.pnl >= 0 ? 'text-emerald-600' : 'text-rose'}>{portfolio.pnl >= 0 ? '+' : ''}{(portfolio.pnlPct * 100).toFixed(2)}%</span></div>
+                </div>
+                <ChevronRight size={16} className="text-slate-400" />
+              </button>
+              {portfolio.open.slice(0, 4).map((h) => (
+                <button key={h.asset.id} onClick={() => go('portfolio')} className="w-full flex items-center gap-3 py-1.5 text-left">
+                  <AssetLogo asset={h.asset} size={34} />
+                  <span className="flex-1 text-sm font-medium truncate">{h.asset.source === 'yahoo' ? h.asset.symbol.replace('-USD', '') : h.asset.name}{h.live && <span className="inline-block ml-1.5 w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse align-middle" />}</span>
+                  <Money value={h.value} decimals={false} className="text-sm" />
+                  <span className={`text-xs num w-14 text-right ${h.pnlPct >= 0 ? 'text-emerald-600' : 'text-rose'}`}>{h.pnlPct >= 0 ? '+' : ''}{(h.pnlPct * 100).toFixed(1)}%</span>
+                </button>
+              ))}
+            </section>
+          )}
+
           {/* this month */}
           <section className="card p-4">
             <div className="flex items-center justify-between mb-3">

@@ -3,6 +3,7 @@ import { Camera, Pencil, Eye, EyeOff, Cloud, LogOut, Download, Upload, Tag, Chev
 import { Avatar, Button, Sheet, Label, IconBadge, IconPicker, ColorPicker, Segmented } from '../components/ui'
 import AvatarEditor from '../components/AvatarEditor'
 import AuthPanel from '../components/AuthPanel'
+import { LockSettings } from '../components/Lock'
 import { useStore, useProfile } from '../store'
 import { useVault } from '../lib/useVault'
 import { ICON_KEYS, COLORS } from '../lib/icons'
@@ -37,6 +38,8 @@ export default function Settings() {
   const [catsOpen, setCatsOpen] = useState(false)
   const [authOpen, setAuthOpen] = useState(false)
   const [installOpen, setInstallOpen] = useState(false)
+  const [lockOpen, setLockOpen] = useState(false)
+  const lock = useStore((s) => s.ui.lock)
   const fileRef = useRef(null)
 
   const exportJson = () => {
@@ -95,6 +98,7 @@ export default function Settings() {
         <Row icon="sparkles" color="#a78bfa" title="ซ่อนตัวเลข" sub="เหมาะกับการเปิดแอปในที่สาธารณะ"
           right={<div className={`w-11 h-6 rounded-full p-0.5 transition ${privacy ? 'bg-mint' : 'bg-slate-900/10'}`}><div className={`w-5 h-5 rounded-full bg-white transition ${privacy ? 'translate-x-5' : ''}`} /></div>}
           onClick={() => setUi({ privacy: !privacy })} />
+        <Row icon="shield" color="#10b981" title="ล็อกแอปด้วย PIN / Face ID" sub={lock?.enabled ? `เปิดอยู่${lock.bio ? ' · ใช้ไบโอเมตริกซ์ได้' : ''}` : 'ปิดอยู่ · แนะนำให้เปิดเพื่อความปลอดภัย'} onClick={() => setLockOpen(true)} />
         <Row icon="tag" color="#fbbf24" title="หมวดหมู่รายรับ-รายจ่าย" sub="เพิ่ม แก้ไข หรือลบหมวดหมู่ และเลือกไอคอน" onClick={() => setCatsOpen(true)} />
         <Row icon="phone" color="#10b981" title="ติดตั้งลงมือถือ" sub="Android และ iPhone" onClick={() => setInstallOpen(true)} />
       </section>
@@ -106,7 +110,7 @@ export default function Settings() {
       </section>
       <input ref={fileRef} type="file" accept="application/json" className="hidden" onChange={importJson} />
 
-      <div className="text-center text-xs text-slate-400 pt-2 pb-6">รณกฤต เรืองชินศิริ Vault · Phase 1</div>
+      <div className="text-center text-xs text-slate-400 pt-2 pb-6">รณกฤต เรืองชินศิริ Vault · v2</div>
 
       <AvatarEditor open={avatarOpen} onClose={() => setAvatarOpen(false)}
         onSave={(avatar) => put('profile', { ...profile, avatar })} onReset={() => put('profile', { ...profile, avatar: null })} />
@@ -143,6 +147,7 @@ export default function Settings() {
       </Sheet>
 
       <CategoryManager open={catsOpen} onClose={() => setCatsOpen(false)} />
+      <LockSettings open={lockOpen} onClose={() => setLockOpen(false)} />
     </div>
   )
 }

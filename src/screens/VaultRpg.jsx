@@ -1,4 +1,6 @@
-import { Flame, Swords, Check, Lock, Trophy, ScrollText, Sparkles, MapPin } from 'lucide-react'
+import { Flame, Swords, Check, Lock, Trophy, ScrollText, Sparkles, MapPin, Backpack } from 'lucide-react'
+import { ItemSprite, AssetLogo } from '../components/Logos'
+import { itemOf } from '../lib/portfolio'
 import BattleScene from '../components/BattleScene'
 import { useBattleEvents, SpriteImg, XpBar } from '../components/RpgBits'
 import { Avatar, Icon, Money } from '../components/ui'
@@ -19,7 +21,7 @@ function Section({ icon: I, title, right, children }) {
   )
 }
 
-export default function VaultRpg({ onAdd }) {
+export default function VaultRpg({ onAdd, go }) {
   const rpg = useRpg()
   const profile = useProfile()
   const { events, consume } = useBattleEvents(rpg)
@@ -134,6 +136,29 @@ export default function VaultRpg({ onAdd }) {
         </div>
 
         <div className="space-y-5">
+          {/* inventory */}
+          <Section icon={Backpack} title="INVENTORY · คลังสมบัติ" right={<span className="px-font text-[9px] text-slate-500">{rpg.inventory.length} ITEMS</span>}>
+            <div className="grid grid-cols-4 gap-2">
+              <div className="px-inner p-1.5 text-center" title="เงินสดรอลงทุน">
+                <div className="h-11 grid place-items-center"><ItemSprite name="cash" size={36} /></div>
+                <div className="text-[10px] font-semibold truncate">เงินสด</div>
+                <div className="text-[9px] text-slate-500 num truncate"><Money value={rpg.vault.summary.byType.invest || 0} decimals={false} /></div>
+              </div>
+              {rpg.inventory.map((h) => (
+                <button key={h.asset.id} onClick={() => go?.('portfolio')} className={`px-inner p-1.5 text-center relative ${h.pnl > 0 ? 'px-glow' : ''}`} title={h.asset.name}>
+                  <div className="h-11 grid place-items-center relative">
+                    <ItemSprite name={itemOf(h.asset)} size={36} />
+                    {h.asset.type !== 'gold' && h.asset.type !== 'commodity' && <span className="absolute -bottom-0.5 -right-0.5"><AssetLogo asset={h.asset} size={18} /></span>}
+                  </div>
+                  <div className="text-[10px] font-semibold truncate">{h.asset.source === 'yahoo' ? h.asset.symbol.replace('-USD', '') : h.asset.name}</div>
+                  <div className={`px-font text-[8px] ${h.pnlPct >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>{h.pnlPct >= 0 ? '+' : ''}{(h.pnlPct * 100).toFixed(1)}%</div>
+                </button>
+              ))}
+              {Array.from({ length: Math.max(0, 7 - rpg.inventory.length) }, (_, i) => <div key={i} className="px-inner opacity-40 aspect-square" />)}
+            </div>
+            {rpg.inventory.length === 0 && <div className="text-xs text-slate-500 mt-2">ซื้อสินทรัพย์ในหน้า “พอร์ต” แล้วไอเท็มจะปรากฏในคลัง</div>}
+          </Section>
+
           {/* stats */}
           <Section icon={Sparkles} title="STATUS · ค่าสถานะ">
             <div className="space-y-3">

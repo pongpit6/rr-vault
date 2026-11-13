@@ -49,13 +49,18 @@ export const ACHIEVEMENTS = [
   { id: 'shield_wall', name: 'กำแพงโล่', desc: 'กันเงินชำระหนี้ครบ 100%', icon: 'vault' },
   { id: 'saver20', name: 'นักออม', desc: 'เดือนที่ออมได้ 20% ขึ้นไป', icon: 'piggy' },
   { id: 'investor', name: 'นักลงทุนฝึกหัด', desc: 'ส่งเงินเข้ากระเป๋าลงทุนครั้งแรก', icon: 'trending' },
+  { id: 'first_loot', name: 'นักล่าสมบัติ', desc: 'ซื้อสินทรัพย์ลงทุนครั้งแรก', icon: 'gem' },
+  { id: 'diversified', name: 'คลังหลากหลาย', desc: 'ถือสินทรัพย์ 3 ประเภทขึ้นไป', icon: 'coins' },
+  { id: 'profit10', name: 'มือทอง', desc: 'พอร์ตกำไรเกิน 10%', icon: 'trending' },
   { id: 'txn100', name: 'นักบันทึก', desc: 'บันทึกครบ 100 รายการ', icon: 'book' },
   { id: 'free_land', name: 'พ้นแดนหมอก', desc: 'มูลค่าสุทธิเป็นบวก', icon: 'home' },
   { id: 'nw100k', name: 'ปราสาทแรก', desc: 'มูลค่าสุทธิถึง 100,000', icon: 'building' },
   { id: 'nw1m', name: 'ราชาแห่งเกาะ', desc: 'มูลค่าสุทธิถึง 1,000,000', icon: 'gem' },
 ]
 
-function computeRpg({ accounts, txns, settings, balances, summary, unlocked }) {
+function computeRpg({ accounts, txns, settings, balances, summary, unlocked, portfolio }) {
+  portfolio ||= { open: [], value: 0, pnlPct: 0, byType: {} }
+  const typesHeld = Object.keys(portfolio.byType).filter((k) => portfolio.byType[k] > 0).length
   const accById = Object.fromEntries(accounts.map((a) => [a.id, a]))
   const today = todayISO()
   const chrono = [...txns].sort((a, b) => (a.date + (a.createdAt || '')).localeCompare(b.date + (b.createdAt || '')))
@@ -121,6 +126,9 @@ function computeRpg({ accounts, txns, settings, balances, summary, unlocked }) {
     saver20: goodMonths > 0,
     investor: investIn > 0,
     txn100: txns.length >= 100,
+    first_loot: txns.some((t) => t.kind === 'trade' && t.side === 'buy'),
+    diversified: typesHeld >= 3,
+    profit10: portfolio.cost > 0 && portfolio.pnlPct >= 0.1,
     free_land: txns.length > 0 && summary.net >= 0,
     nw100k: summary.net >= 100000,
     nw1m: summary.net >= 1000000,
@@ -139,6 +147,7 @@ function computeRpg({ accounts, txns, settings, balances, summary, unlocked }) {
   add('เดือนที่มีเงินเหลือ', Object.values(months).filter((m) => m.inc > m.exp && m.inc > 0).length * 100)
   add('เดือนที่ออมได้ 20%+', goodMonths * 100)
   add('ส่งเงินไปลงทุน', investIn / 500)
+  add('ซื้อสินทรัพย์ลงทุน', txns.filter((t) => t.kind === 'trade' && t.side === 'buy').length * 15)
   add('Achievement', unlockedCount * 50)
   const lv = levelFromXp(xp)
   const title = [...TITLES].reverse().find(([min]) => lv.level >= min)
@@ -153,9 +162,9 @@ function computeRpg({ accounts, txns, settings, balances, summary, unlocked }) {
   const stats = [
     { key: 'STR', name: 'พลังออม', value: clamp(rate * 200), hint: 'อัตราการออมเดือนนี้' },
     { key: 'DEF', name: 'ป้องกัน', value: clamp((summary.target > 0 ? summary.coverage : 1) * 60 + Math.min(39, avgExp > 0 ? (cash / avgExp) * 10 : 0)), hint: 'เงินกันหนี้ + เงินสำรองกี่เดือน' },
-    { key: 'INT', name: 'ปัญญา', value: clamp((((summary.byType.invest || 0) + (summary.byType.saving || 0)) / assets) * 250), hint: 'สัดส่วนเงินลงทุน/ออม' },
+    { key: 'INT', name: 'ปัญญา', value: clamp((((summary.byType.invest || 0) + (summary.byType.saving || 0) + portfolio.value) / assets) * 150 + typesHeld * 8), hint: 'สัดส่วนเงินลงทุน/ออม + ความหลากหลายของพอร์ต' },
     { key: 'AGI', name: 'วินัย', value: clamp(streak * 3.3), hint: 'บันทึกต่อเนื่อง (วัน)' },
-    { key: 'LUK', name: 'โชค', value: 50, hint: 'ผลตอบแทนการลงทุน (เต็มรูปแบบใน Phase พอร์ต)' },
+    { key: 'LUK', name: 'โชค', value: clamp(50 + (portfolio.cost > 0 ? portfolio.pnlPct * 200 : 0)), hint: 'ผลตอบแทนพอร์ตลงทุน (50 = เท่าทุน)' },
   ]
 
   // ---------- quests ----------
@@ -182,6 +191,7 @@ function computeRpg({ accounts, txns, settings, balances, summary, unlocked }) {
   const nextRealm = REALMS.find((r) => r.min > summary.net)
 
   return {
+    inventory: portfolio.open, portfolioValue: portfolio.value,
     xp, xpParts, ...lv, title: title[1], titleEn: title[2], stats, bosses, quests, achievements, newlyUnlocked,
     streak, realm, nextRealm, debtFog: Math.min(0.55, summary.debts / Math.max(1, summary.assets + summary.debts)),
   }
@@ -192,7 +202,7 @@ export function useRpg() {
   const put = useStore((s) => s.put)
   const rpgItem = useStore((s) => s.items.rpg)
   const unlocked = (rpgItem && !rpgItem.deleted && rpgItem.data.unlocked) || {}
-  const key = JSON.stringify([v.balances, v.txns.length, v.txns[0]?.id, v.txns[0]?.amount, Object.keys(unlocked).length, todayISO()])
+  const key = JSON.stringify([v.balances, v.txns.length, v.txns[0]?.id, v.txns[0]?.amount, Object.keys(unlocked).length, todayISO(), Math.round(v.portfolio.value / 10)])
   const rpg = useMemo(() => computeRpg({ ...v, unlocked }), [key]) // eslint-disable-line
 
   useEffect(() => {

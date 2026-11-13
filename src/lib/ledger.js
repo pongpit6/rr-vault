@@ -35,6 +35,8 @@ export function postingsOf(t, accById, settings) {
       return [{ acc: t.account, amt: -a }, { acc: t.to, amt: a }]
     case 'adjust':
       return [{ acc: t.account, amt: round2(t.amount) }]
+    case 'trade':
+      return t.account ? [{ acc: t.account, amt: t.side === 'sell' ? a : -a }] : []
     default:
       return []
   }
