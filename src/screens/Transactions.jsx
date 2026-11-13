@@ -51,9 +51,9 @@ export default function Transactions({ onEdit, initialAccount }) {
 
       <div className="flex gap-2">
         <div className="relative flex-1">
-          <Search size={17} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-400" />
+          <Search size={17} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
           <input className="field !pl-10" placeholder="ค้นหาทุกเดือน: บันทึก, หมวด, จำนวน" value={q} onChange={(e) => setQ(e.target.value)} />
-          {q && <button onClick={() => setQ('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-400"><X size={16} /></button>}
+          {q && <button onClick={() => setQ('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500"><X size={16} /></button>}
         </div>
         <select className="field !w-auto max-w-[40%]" value={acc} onChange={(e) => setAcc(e.target.value)}>
           <option value="all">ทุกกระเป๋า</option>
@@ -68,15 +68,15 @@ export default function Transactions({ onEdit, initialAccount }) {
 
       {!q && (
         <div className="card flex items-center justify-between p-2">
-          <button onClick={() => setMonth(shiftMonth(month, -1))} className="p-2 rounded-xl hover:bg-white/5"><ChevronLeft size={20} /></button>
+          <button onClick={() => setMonth(shiftMonth(month, -1))} className="p-2 rounded-xl hover:bg-slate-900/[.04]"><ChevronLeft size={20} /></button>
           <div className="text-center">
             <div className="font-semibold">{monthLabel(month)}</div>
             <div className="text-xs flex gap-3 justify-center">
-              <span className="text-mint-soft"><Money value={totals.inc} sign /></span>
+              <span className="text-emerald-600"><Money value={totals.inc} sign /></span>
               <span className="text-rose"><Money value={-totals.exp} /></span>
             </div>
           </div>
-          <button onClick={() => setMonth(shiftMonth(month, 1))} className="p-2 rounded-xl hover:bg-white/5"><ChevronRight size={20} /></button>
+          <button onClick={() => setMonth(shiftMonth(month, 1))} className="p-2 rounded-xl hover:bg-slate-900/[.04]"><ChevronRight size={20} /></button>
         </div>
       )}
 
@@ -86,7 +86,7 @@ export default function Transactions({ onEdit, initialAccount }) {
         <div className="space-y-4">
           {groups.map((g) => (
             <section key={g.date} className="card p-2">
-              <div className="flex justify-between items-center px-3 pt-1.5 pb-1 text-xs text-ink-400">
+              <div className="flex justify-between items-center px-3 pt-1.5 pb-1 text-xs text-slate-500">
                 <span>{dateLabel(g.date)}</span>
                 {g.net !== 0 && <Money value={g.net} sign />}
               </div>

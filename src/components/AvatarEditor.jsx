@@ -55,7 +55,7 @@ export default function AvatarEditor({ open, onClose, onSave, onReset }) {
       <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={onFile} />
       <div className="flex flex-col items-center">
         <div
-          className="relative rounded-full overflow-hidden bg-ink-800 border border-white/10 touch-none cursor-grab active:cursor-grabbing"
+          className="relative rounded-full overflow-hidden bg-slate-50 border border-slate-200 touch-none cursor-grab active:cursor-grabbing"
           style={{ width: BOX, height: BOX }}
           onPointerDown={img ? down : undefined} onPointerMove={move} onPointerUp={up} onPointerCancel={up}
           onClick={!img ? () => fileRef.current?.click() : undefined}
@@ -63,7 +63,7 @@ export default function AvatarEditor({ open, onClose, onSave, onReset }) {
           {img ? (
             <img src={img.src} alt="" draggable={false} className="absolute max-w-none select-none pointer-events-none" style={{ left: centered.x, top: centered.y, width: w, height: h }} />
           ) : (
-            <div className="absolute inset-0 grid place-items-center text-ink-400 text-sm">
+            <div className="absolute inset-0 grid place-items-center text-slate-500 text-sm">
               <div className="flex flex-col items-center gap-2"><Camera size={28} /> แตะเพื่อเลือกรูป</div>
             </div>
           )}

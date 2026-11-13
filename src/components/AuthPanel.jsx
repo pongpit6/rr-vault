@@ -41,19 +41,19 @@ export default function AuthPanel({ onDone }) {
 
   return (
     <div className="space-y-4">
-      <Button variant="ghost" className="w-full !bg-white !text-ink-900 hover:!bg-white/90" onClick={google} disabled={busy}>
+      <Button variant="ghost" className="w-full !bg-white !text-slate-800 hover:!bg-slate-50" onClick={google} disabled={busy}>
         <GoogleMark /> เข้าสู่ระบบด้วย Google
       </Button>
-      <div className="flex items-center gap-3 text-xs text-ink-400"><div className="h-px flex-1 bg-white/10" />หรือใช้อีเมล<div className="h-px flex-1 bg-white/10" /></div>
+      <div className="flex items-center gap-3 text-xs text-slate-500"><div className="h-px flex-1 bg-slate-900/[.06]" />หรือใช้อีเมล<div className="h-px flex-1 bg-slate-900/[.06]" /></div>
       <Segmented value={mode} onChange={setMode} options={[{ value: 'in', label: 'เข้าสู่ระบบ' }, { value: 'up', label: 'สมัครใหม่' }]} />
       <form onSubmit={submit} className="space-y-2.5">
-        <div className="relative"><Mail size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-400" />
+        <div className="relative"><Mail size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
           <input className="field !pl-10" type="email" required placeholder="อีเมล" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" /></div>
-        <div className="relative"><Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-400" />
+        <div className="relative"><Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
           <input className="field !pl-10" type="password" required minLength={6} placeholder="รหัสผ่าน (6 ตัวขึ้นไป)" value={pw} onChange={(e) => setPw(e.target.value)} autoComplete={mode === 'in' ? 'current-password' : 'new-password'} /></div>
         <Button className="w-full" disabled={busy}><LogIn size={18} /> {mode === 'in' ? 'เข้าสู่ระบบ' : 'สมัครและซิงก์ข้อมูล'}</Button>
       </form>
-      {msg && <div className={`text-sm rounded-xl px-3 py-2 ${msg.err ? 'bg-rose/10 text-rose' : 'bg-mint/10 text-mint-soft'}`}>{msg.text}</div>}
+      {msg && <div className={`text-sm rounded-xl px-3 py-2 ${msg.err ? 'bg-rose/10 text-rose' : 'bg-mint/10 text-emerald-600'}`}>{msg.text}</div>}
     </div>
   )
 }

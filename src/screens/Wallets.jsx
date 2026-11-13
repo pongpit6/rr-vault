@@ -40,7 +40,7 @@ export default function Wallets({ onEdit }) {
             <Money value={summary.net} className="text-3xl font-bold" />
           </div>
         </div>
-        <div className="mt-4 flex h-2.5 rounded-full overflow-hidden bg-black/20">
+        <div className="mt-4 flex h-2.5 rounded-full overflow-hidden bg-white/25">
           {accounts.filter((a) => !a.archived && !isDebt(a) && balances[a.id] > 0).map((a) => (
             <div key={a.id} style={{ width: `${(balances[a.id] / Math.max(1, summary.assets)) * 100}%`, background: a.color }} title={a.name} />
           ))}
@@ -57,19 +57,19 @@ export default function Wallets({ onEdit }) {
           {groups.map((g) => (
             <section key={g.title}>
               <div className="flex justify-between items-center px-1 mb-2 text-sm">
-                <span className="text-ink-400">{g.title}</span>
-                <Money value={g.title === 'หนี้สิน' ? -summary.debts : summary.assets} className="text-ink-300" />
+                <span className="text-slate-500">{g.title}</span>
+                <Money value={g.title === 'หนี้สิน' ? -summary.debts : summary.assets} className="text-slate-600" />
               </div>
-              <div className="card divide-y divide-white/5">
+              <div className="card divide-y divide-slate-100">
                 {g.items.map((a) => {
                   const b = balances[a.id] || 0
                   const owed = Math.max(0, -b)
                   return (
-                    <button key={a.id} onClick={() => setDetail(a.id)} className="w-full flex items-center gap-3 p-4 text-left hover:bg-white/[.03] transition first:rounded-t-[20px] last:rounded-b-[20px]">
+                    <button key={a.id} onClick={() => setDetail(a.id)} className="w-full flex items-center gap-3 p-4 text-left hover:bg-slate-900/[.025] transition first:rounded-t-[20px] last:rounded-b-[20px]">
                       <IconBadge name={a.icon} color={a.color} size={42} icon={19} />
                       <div className="flex-1 min-w-0">
                         <div className="font-medium truncate">{a.name}</div>
-                        <div className="text-xs text-ink-400 truncate">
+                        <div className="text-xs text-slate-500 truncate">
                           {a.type === 'credit' && a.limit > 0 ? <>วงเงินเหลือ <Money value={a.limit - owed} /></> :
                             a.type === 'loan' && a.installment > 0 ? <>ค่างวด <Money value={a.installment} /> · ทุกวันที่ {a.dueDay}</> :
                               ACCOUNT_TYPES[a.type]?.desc}
@@ -84,12 +84,12 @@ export default function Wallets({ onEdit }) {
             </section>
           ))}
           {archived.length > 0 && (
-            <div className="text-xs text-ink-400 px-1">เก็บถาวร: {archived.map((a) => <button key={a.id} className="underline mr-2" onClick={() => setDetail(a.id)}>{a.name}</button>)}</div>
+            <div className="text-xs text-slate-500 px-1">เก็บถาวร: {archived.map((a) => <button key={a.id} className="underline mr-2" onClick={() => setDetail(a.id)}>{a.name}</button>)}</div>
           )}
         </div>
 
         <section>
-          <div className="px-1 mb-2 text-sm text-ink-400">ระบบแบ่งเงินอัตโนมัติ (ค่าเริ่มต้นทุกครั้งที่มีรายรับ)</div>
+          <div className="px-1 mb-2 text-sm text-slate-500">ระบบแบ่งเงินอัตโนมัติ (ค่าเริ่มต้นทุกครั้งที่มีรายรับ)</div>
           <AllocationEditor pct={alloc.pct} cap={alloc.capReserveAtGap} gap={summary.gap}
             onPct={(pct) => saveAlloc({ pct })} onCap={(capReserveAtGap) => saveAlloc({ capReserveAtGap })}
             split={null} />
@@ -97,19 +97,19 @@ export default function Wallets({ onEdit }) {
             <div className="text-sm font-medium">ปลายทางของแต่ละส่วน</div>
             {[['reserve', '① กันชำระหนี้'], ['cash', '② เงินใช้ได้'], ['invest', '③ ลงทุน']].map(([k, label]) => (
               <div key={k} className="flex items-center gap-3">
-                <span className="text-sm text-ink-300 w-28 shrink-0">{label}</span>
+                <span className="text-sm text-slate-600 w-28 shrink-0">{label}</span>
                 <select className="field !py-2" value={alloc.targets[k]} onChange={(e) => saveAlloc({ targets: { ...alloc.targets, [k]: e.target.value } })}>
                   {accounts.filter((a) => !isDebt(a) && !a.archived).map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
                 </select>
               </div>
             ))}
             <div className="flex items-center gap-3">
-              <span className="text-sm text-ink-300 w-28 shrink-0">รูดบัตรแล้วกันเงินจาก</span>
+              <span className="text-sm text-slate-600 w-28 shrink-0">รูดบัตรแล้วกันเงินจาก</span>
               <select className="field !py-2" value={settings.earmarkFrom} onChange={(e) => put('settings', { ...settings, earmarkFrom: e.target.value })}>
                 {accounts.filter((a) => !isDebt(a) && !a.archived).map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
               </select>
             </div>
-            <div className="flex gap-2 text-xs text-ink-400 pt-1"><Info size={14} className="shrink-0 mt-0.5" />
+            <div className="flex gap-2 text-xs text-slate-500 pt-1"><Info size={14} className="shrink-0 mt-0.5" />
               ลำดับการแบ่งคือ ① หนี้ ② ใช้ได้ ③ ลงทุน และปรับเฉพาะครั้งได้ในหน้าบันทึกรายรับ</div>
           </div>
         </section>
@@ -147,7 +147,7 @@ function AccountDetail({ id, onClose, onEditAcc, onEditTxn }) {
       <div className="flex items-center gap-4">
         <IconBadge name={a.icon} color={a.color} size={56} icon={26} />
         <div className="flex-1">
-          <div className="text-xs text-ink-400">{debt ? 'ยอดค้างชำระ' : 'ยอดคงเหลือ'}</div>
+          <div className="text-xs text-slate-500">{debt ? 'ยอดค้างชำระ' : 'ยอดคงเหลือ'}</div>
           <Money value={debt ? -b : b} className={`text-3xl font-bold ${debt && b < 0 ? 'text-rose' : ''}`} />
         </div>
         <Button variant="ghost" className="!py-2 text-sm" onClick={() => onEditAcc(a)}><Pencil size={15} /> แก้ไข</Button>
@@ -155,17 +155,17 @@ function AccountDetail({ id, onClose, onEditAcc, onEditTxn }) {
 
       <div className="mt-5 card p-4">
         <div className="flex items-center gap-2 text-sm font-medium"><Scale size={16} className="text-sky" /> ปรับยอดให้ตรงความจริง</div>
-        <div className="text-xs text-ink-400 mt-1">ใส่{debt ? 'ยอดหนี้คงค้าง' : 'ยอดเงิน'}จริงตอนนี้ ระบบจะสร้างรายการ “ปรับยอด” ให้อัตโนมัติ</div>
+        <div className="text-xs text-slate-500 mt-1">ใส่{debt ? 'ยอดหนี้คงค้าง' : 'ยอดเงิน'}จริงตอนนี้ ระบบจะสร้างรายการ “ปรับยอด” ให้อัตโนมัติ</div>
         <div className="flex gap-2 mt-3">
           <input className="field num" inputMode="decimal" placeholder={String(Math.abs(b))} value={adj} onChange={(e) => setAdj(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && doAdjust()} />
           <Button onClick={doAdjust} disabled={!adj}><Check size={18} /></Button>
         </div>
       </div>
 
-      <div className="mt-5 text-sm text-ink-400 px-1">รายการที่เกี่ยวข้อง</div>
+      <div className="mt-5 text-sm text-slate-500 px-1">รายการที่เกี่ยวข้อง</div>
       <div className="mt-1 -mx-2">
         {related.length ? related.map((t) => <TxnRow key={t.id} t={t} catById={catById} accById={accById} onClick={() => { onClose(); onEditTxn(t) }} />)
-          : <div className="text-sm text-ink-400 px-3 py-6 text-center">ยังไม่มีรายการ</div>}
+          : <div className="text-sm text-slate-500 px-3 py-6 text-center">ยังไม่มีรายการ</div>}
       </div>
     </Sheet>
   )
@@ -227,7 +227,7 @@ export function AccountForm({ open, initial, onClose }) {
       <div className="grid grid-cols-3 gap-2">
         {Object.entries(ACCOUNT_TYPES).map(([k, t]) => (
           <button key={k} disabled={editing && used} onClick={() => set({ type: k, icon: t.icon, color: t.color })}
-            className={`p-2.5 rounded-2xl border text-left transition disabled:opacity-40 ${f.type === k ? 'bg-white/10 border-white/25' : 'border-white/5 hover:bg-white/5'}`}>
+            className={`p-2.5 rounded-2xl border text-left transition disabled:opacity-40 ${f.type === k ? 'bg-slate-900/[.06] border-slate-300' : 'border-slate-200/70 hover:bg-slate-900/[.04]'}`}>
             <div style={{ color: t.color }}><IconBadge name={t.icon} color={t.color} size={28} icon={14} /></div>
             <div className="text-xs mt-1.5 font-medium">{t.label}</div>
           </button>

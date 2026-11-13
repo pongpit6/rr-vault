@@ -16,13 +16,13 @@ export default function TxnRow({ t, catById, accById, onClick }) {
   const signed = t.kind === 'income' ? t.amount : t.kind === 'expense' ? -t.amount : t.kind === 'adjust' ? t.amount : t.amount
   const neutral = t.kind === 'transfer' || t.kind === 'payment'
   return (
-    <button onClick={onClick} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-2xl hover:bg-white/[.04] active:bg-white/[.06] transition text-left">
+    <button onClick={onClick} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-2xl hover:bg-slate-900/[.035] active:bg-slate-900/[.05] transition text-left">
       <IconBadge name={v.icon} color={v.color} size={42} icon={19} />
       <div className="flex-1 min-w-0">
         <div className="text-[15px] font-medium truncate">{t.note || v.title}</div>
-        <div className="text-xs text-ink-400 truncate">{t.note ? `${v.title} · ${v.sub}` : v.sub}</div>
+        <div className="text-xs text-slate-500 truncate">{t.note ? `${v.title} · ${v.sub}` : v.sub}</div>
       </div>
-      <Money value={signed} sign={!neutral} colored={!neutral} className={`text-[15px] font-semibold ${neutral ? 'text-ink-300' : ''}`} />
+      <Money value={signed} sign={!neutral} colored={!neutral} className={`text-[15px] font-semibold ${neutral ? 'text-slate-600' : ''}`} />
     </button>
   )
 }

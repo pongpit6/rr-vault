@@ -25,11 +25,11 @@ export function AccountChips({ accounts, value, onChange, balances, filter }) {
     <div className="flex gap-2 overflow-x-auto no-scrollbar -mx-5 px-5 pb-1">
       {list.map((a) => (
         <button key={a.id} onClick={() => onChange(a.id)}
-          className={`shrink-0 flex items-center gap-2 pl-2 pr-3 py-2 rounded-2xl border transition ${value === a.id ? 'bg-white/10 border-white/25' : 'bg-white/[.03] border-white/5 hover:bg-white/5'}`}>
+          className={`shrink-0 flex items-center gap-2 pl-2 pr-3 py-2 rounded-2xl border transition ${value === a.id ? 'bg-slate-900/[.06] border-slate-300' : 'bg-slate-900/[.025] border-slate-200/70 hover:bg-slate-900/[.04]'}`}>
           <IconBadge name={a.icon} color={a.color} size={30} icon={15} />
           <div className="text-left leading-tight">
             <div className="text-sm font-medium">{a.name}</div>
-            <div className="text-[11px] text-ink-400"><Money value={balances[a.id] || 0} /></div>
+            <div className="text-[11px] text-slate-500"><Money value={balances[a.id] || 0} /></div>
           </div>
         </button>
       ))}
@@ -146,10 +146,10 @@ export default function TxnForm({ open, onClose, initial }) {
             onKeyDown={(e) => e.key === 'Enter' && save()}
             inputMode="decimal"
             placeholder="0"
-            className="num bg-transparent outline-none text-5xl font-bold text-center w-full max-w-[280px] placeholder:text-white/15"
+            className="num bg-transparent outline-none text-5xl font-bold text-center w-full max-w-[280px] placeholder:text-slate-300"
           />
         </div>
-        <div className="h-5 text-xs text-ink-400 num">
+        <div className="h-5 text-xs text-slate-500 num">
           {isExpr && valid ? `= ${money(amount)}` : 'พิมพ์สูตรได้ เช่น 120+45'}
         </div>
       </div>
@@ -161,9 +161,9 @@ export default function TxnForm({ open, onClose, initial }) {
           <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
             {cats.map((c) => (
               <button key={c.id} onClick={() => set({ category: c.id })}
-                className={`flex flex-col items-center gap-1.5 py-2.5 px-1 rounded-2xl border transition ${f.category === c.id ? 'bg-white/10 border-white/20' : 'border-transparent hover:bg-white/5'}`}>
+                className={`flex flex-col items-center gap-1.5 py-2.5 px-1 rounded-2xl border transition ${f.category === c.id ? 'bg-slate-900/[.06] border-slate-300' : 'border-transparent hover:bg-slate-900/[.04]'}`}>
                 <IconBadge name={c.icon} color={c.color} size={36} icon={17} />
-                <span className="text-[11px] leading-tight text-center line-clamp-2 text-ink-300">{c.name}</span>
+                <span className="text-[11px] leading-tight text-center line-clamp-2 text-slate-600">{c.name}</span>
               </button>
             ))}
           </div>
@@ -177,13 +177,13 @@ export default function TxnForm({ open, onClose, initial }) {
           <AccountChips accounts={accounts} balances={balances} value={f.account} onChange={(v) => set({ account: v })} filter={(a) => a.type !== 'loan'} />
           {selAcc?.type === 'credit' && (
             <button onClick={() => set({ earmark: !f.earmark })}
-              className={`mt-3 w-full flex items-center gap-3 p-3 rounded-2xl border text-left transition ${f.earmark ? 'bg-violet-400/10 border-violet-400/30' : 'bg-white/[.03] border-white/5'}`}>
-              <ShieldCheck size={20} className={f.earmark ? 'text-violet-300' : 'text-ink-400'} />
+              className={`mt-3 w-full flex items-center gap-3 p-3 rounded-2xl border text-left transition ${f.earmark ? 'bg-violet-400/10 border-violet-400/30' : 'bg-slate-900/[.025] border-slate-200/70'}`}>
+              <ShieldCheck size={20} className={f.earmark ? 'text-violet-600' : 'text-slate-500'} />
               <div className="flex-1 text-sm">
                 <div className="font-medium">กันเงินชำระบัตรอัตโนมัติ</div>
-                <div className="text-xs text-ink-400">ย้ายยอดนี้จาก “{accById[settings.earmarkFrom]?.name || 'เงินใช้ได้'}” ไป “{accById[T.reserve]?.name}” ทันที</div>
+                <div className="text-xs text-slate-500">ย้ายยอดนี้จาก “{accById[settings.earmarkFrom]?.name || 'เงินใช้ได้'}” ไป “{accById[T.reserve]?.name}” ทันที</div>
               </div>
-              <div className={`w-11 h-6 rounded-full p-0.5 transition ${f.earmark ? 'bg-violet-400' : 'bg-white/15'}`}>
+              <div className={`w-11 h-6 rounded-full p-0.5 transition ${f.earmark ? 'bg-violet-400' : 'bg-slate-900/10'}`}>
                 <div className={`w-5 h-5 rounded-full bg-white transition ${f.earmark ? 'translate-x-5' : ''}`} />
               </div>
             </button>
@@ -210,19 +210,19 @@ export default function TxnForm({ open, onClose, initial }) {
         <div className="mt-4 space-y-2">
           <Label>จาก</Label>
           <AccountChips accounts={accounts} balances={balances} value={f.account} onChange={(v) => set({ account: v })} filter={(a) => f.kind === 'transfer' || !isDebt(a)} />
-          <div className="flex justify-center text-ink-400"><ArrowDown size={18} /></div>
+          <div className="flex justify-center text-slate-500"><ArrowDown size={18} /></div>
           <Label>{f.kind === 'payment' ? 'ชำระให้' : 'ไปที่'}</Label>
           <AccountChips accounts={accounts} balances={balances} value={f.to} onChange={(v) => set({ to: v })}
             filter={(a) => a.id !== f.account && (f.kind === 'transfer' || isDebt(a))} />
           {f.kind === 'payment' && debtTo && (
             <div className="flex flex-wrap gap-2 pt-1">
               {(balances[debtTo.id] || 0) < 0 && (
-                <button onClick={() => set({ amountStr: String(-balances[debtTo.id]) })} className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-xs">
+                <button onClick={() => set({ amountStr: String(-balances[debtTo.id]) })} className="px-3 py-1.5 rounded-xl bg-slate-900/[.04] hover:bg-slate-900/[.06] text-xs">
                   จ่ายเต็ม {money(-balances[debtTo.id])}
                 </button>
               )}
               {debtTo.type === 'loan' && debtTo.installment > 0 && (
-                <button onClick={() => set({ amountStr: String(debtTo.installment) })} className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-xs">
+                <button onClick={() => set({ amountStr: String(debtTo.installment) })} className="px-3 py-1.5 rounded-xl bg-slate-900/[.04] hover:bg-slate-900/[.06] text-xs">
                   ค่างวด {money(debtTo.installment)}
                 </button>
               )}
@@ -250,7 +250,7 @@ export default function TxnForm({ open, onClose, initial }) {
 
 export function AllocationEditor({ pct, cap, onPct, onCap, split, gap, compact = false }) {
   return (
-    <div className={`rounded-2xl bg-white/[.03] border border-white/5 ${compact ? 'p-3' : 'p-4'}`}>
+    <div className={`rounded-2xl bg-slate-900/[.025] border border-slate-200/70 ${compact ? 'p-3' : 'p-4'}`}>
       {/* stacked bar */}
       <div className="flex h-2.5 rounded-full overflow-hidden mb-4">
         {BUCKETS.map((b) => <div key={b.key} style={{ width: `${pct[b.key]}%`, background: b.color }} className="transition-all" />)}
@@ -259,11 +259,11 @@ export function AllocationEditor({ pct, cap, onPct, onCap, split, gap, compact =
         {BUCKETS.map((b) => (
           <div key={b.key}>
             <div className="flex items-center gap-2 mb-1.5">
-              <span className="text-[10px] font-bold w-4 h-4 grid place-items-center rounded-full bg-white/10 text-ink-300">{b.order}</span>
+              <span className="text-[10px] font-bold w-4 h-4 grid place-items-center rounded-full bg-slate-900/[.06] text-slate-600">{b.order}</span>
               <Icon name={b.icon} size={15} className="opacity-90" />
               <span className="text-sm flex-1" style={{ color: b.color }}>{b.label}</span>
               {split && <span className="text-sm font-semibold num">{money(split[b.key])}</span>}
-              <span className="text-xs text-ink-400 w-10 text-right num">{pct[b.key]}%</span>
+              <span className="text-xs text-slate-500 w-10 text-right num">{pct[b.key]}%</span>
             </div>
             <input type="range" min="0" max="100" value={pct[b.key]} className="slider" style={{ '--thumb': b.color }}
               onChange={(e) => onPct(rebalance(pct, b.key, Number(e.target.value)))} />
@@ -271,11 +271,11 @@ export function AllocationEditor({ pct, cap, onPct, onCap, split, gap, compact =
         ))}
       </div>
       <button onClick={() => onCap(!cap)} className="mt-4 w-full flex items-center gap-3 text-left">
-        <Sparkles size={16} className={cap ? 'text-mint-soft' : 'text-ink-400'} />
-        <div className="flex-1 text-xs text-ink-300">
-          กันหนี้เท่าที่ยังขาด {gap !== undefined && <>(ตอนนี้ขาด <span className="num text-white">{money(gap)}</span>)</>} ส่วนเกินแบ่งไปกระเป๋าอื่นอัตโนมัติ
+        <Sparkles size={16} className={cap ? 'text-emerald-600' : 'text-slate-500'} />
+        <div className="flex-1 text-xs text-slate-600">
+          กันหนี้เท่าที่ยังขาด {gap !== undefined && <>(ตอนนี้ขาด <span className="num text-slate-900">{money(gap)}</span>)</>} ส่วนเกินแบ่งไปกระเป๋าอื่นอัตโนมัติ
         </div>
-        <div className={`w-10 h-[22px] rounded-full p-0.5 transition shrink-0 ${cap ? 'bg-mint' : 'bg-white/15'}`}>
+        <div className={`w-10 h-[22px] rounded-full p-0.5 transition shrink-0 ${cap ? 'bg-mint' : 'bg-slate-900/10'}`}>
           <div className={`w-[18px] h-[18px] rounded-full bg-white transition ${cap ? 'translate-x-[18px]' : ''}`} />
         </div>
       </button>

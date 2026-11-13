@@ -24,10 +24,10 @@ function Welcome() {
         <div className="flex flex-col items-center text-center mb-8">
           <Avatar size={96} />
           <h1 className="mt-5 text-2xl font-bold leading-tight">รณกฤต เรืองชินศิริ<br /><span className="grad-text">Vault</span></h1>
-          <p className="mt-2 text-sm text-ink-400">รายรับ-รายจ่าย · กระเป๋าเงิน · การลงทุน</p>
+          <p className="mt-2 text-sm text-slate-500">รายรับ-รายจ่าย · กระเป๋าเงิน · การลงทุน</p>
         </div>
         <div className="card p-5"><AuthPanel /></div>
-        <button onClick={() => setUi({ offlineMode: true })} className="mt-4 w-full text-sm text-ink-400 hover:text-white py-2">ใช้งานแบบออฟไลน์ก่อน (เข้าสู่ระบบทีหลังได้)</button>
+        <button onClick={() => setUi({ offlineMode: true })} className="mt-4 w-full text-sm text-slate-500 hover:text-slate-900 py-2">ใช้งานแบบออฟไลน์ก่อน (เข้าสู่ระบบทีหลังได้)</button>
       </div>
     </div>
   )
@@ -72,21 +72,21 @@ export default function App() {
   return (
     <div className="min-h-dvh md:flex">
       {/* desktop sidebar */}
-      <aside className="hidden md:flex flex-col w-60 lg:w-64 shrink-0 h-dvh sticky top-0 border-r border-white/5 p-5 gap-1">
+      <aside className="hidden md:flex flex-col w-60 lg:w-64 shrink-0 h-dvh sticky top-0 border-r border-slate-200/80 bg-white/60 backdrop-blur p-5 gap-1">
         <div className="flex items-center gap-2.5 px-2 mb-6">
           <img src="./icon-192.png" className="w-9 h-9 rounded-xl" alt="" />
           <div className="leading-tight"><div className="text-sm font-semibold">R.R.</div><div className="text-sm font-semibold grad-text">Vault</div></div>
         </div>
-        <button onClick={() => setForm({})} className="mb-4 flex items-center justify-center gap-2 py-3 rounded-2xl grad-bg font-semibold shadow-lg shadow-emerald-500/20 hover:brightness-110">
+        <button onClick={() => setForm({})} className="mb-4 flex items-center justify-center gap-2 py-3 rounded-2xl grad-bg text-white font-semibold shadow-lg shadow-emerald-500/20 hover:brightness-110">
           <Plus size={18} /> บันทึกรายการ <kbd className="ml-1 text-[10px] px-1.5 py-0.5 rounded bg-black/20">N</kbd>
         </button>
         {NAV.map((n) => (
           <button key={n.id} onClick={() => setTab(n.id)}
-            className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition ${tab === n.id ? 'bg-white/[.07] text-white' : 'text-ink-400 hover:text-white hover:bg-white/[.03]'}`}>
-            <n.icon size={18} className={tab === n.id ? 'text-mint-soft' : ''} /> {n.label}
+            className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition ${tab === n.id ? 'bg-slate-900/[.05] text-slate-900' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-900/[.025]'}`}>
+            <n.icon size={18} className={tab === n.id ? 'text-emerald-600' : ''} /> {n.label}
           </button>
         ))}
-        <div className="mt-auto text-[11px] text-ink-600 px-2">คีย์ลัด: N บันทึก · 1-4 สลับหน้า</div>
+        <div className="mt-auto text-[11px] text-slate-400 px-2">คีย์ลัด: N บันทึก · 1-4 สลับหน้า</div>
       </aside>
 
       <main className="flex-1 min-w-0 px-4 md:px-8 pt-safe pb-28 md:pb-10">
@@ -94,11 +94,11 @@ export default function App() {
       </main>
 
       {/* mobile bottom nav */}
-      <nav className="md:hidden fixed bottom-0 inset-x-0 z-40 pb-safe bg-ink-900/85 backdrop-blur-xl border-t border-white/5">
+      <nav className="md:hidden fixed bottom-0 inset-x-0 z-40 pb-safe bg-white/85 backdrop-blur-xl border-t border-slate-200">
         <div className="grid grid-cols-5 items-center h-16 px-2">
           {NAV.slice(0, 2).map((n) => <NavBtn key={n.id} n={n} active={tab === n.id} onClick={() => setTab(n.id)} />)}
           <div className="flex justify-center">
-            <button onClick={() => setForm({})} aria-label="บันทึกรายการ" className="w-14 h-14 -mt-7 rounded-2xl grad-bg grid place-items-center shadow-xl shadow-emerald-500/30 active:scale-95 transition">
+            <button onClick={() => setForm({})} aria-label="บันทึกรายการ" className="w-14 h-14 -mt-7 rounded-2xl grad-bg text-white grid place-items-center shadow-xl shadow-emerald-500/30 active:scale-95 transition">
               <Plus size={26} strokeWidth={2.4} />
             </button>
           </div>
@@ -114,8 +114,8 @@ export default function App() {
 
 function NavBtn({ n, active, onClick }) {
   return (
-    <button onClick={onClick} className={`flex flex-col items-center gap-1 text-[11px] ${active ? 'text-white' : 'text-ink-400'}`}>
-      <n.icon size={21} className={active ? 'text-mint-soft' : ''} strokeWidth={active ? 2.2 : 1.8} />
+    <button onClick={onClick} className={`flex flex-col items-center gap-1 text-[11px] ${active ? 'text-slate-900' : 'text-slate-500'}`}>
+      <n.icon size={21} className={active ? 'text-emerald-600' : ''} strokeWidth={active ? 2.2 : 1.8} />
       {n.label}
     </button>
   )
