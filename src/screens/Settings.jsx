@@ -4,6 +4,7 @@ import { Avatar, Button, Sheet, Label, IconBadge, IconPicker, ColorPicker, Segme
 import AvatarEditor from '../components/AvatarEditor'
 import AuthPanel from '../components/AuthPanel'
 import { LockSettings } from '../components/Lock'
+import AutoCapture from '../components/AutoCapture'
 import { useStore, useProfile } from '../store'
 import { useVault } from '../lib/useVault'
 import { ICON_KEYS, COLORS } from '../lib/icons'
@@ -21,7 +22,7 @@ function Row({ icon, color = '#38bdf8', title, sub, right, onClick }) {
   )
 }
 
-export default function Settings() {
+export default function Settings({ opt }) {
   const profile = useProfile()
   const put = useStore((s) => s.put)
   const session = useStore((s) => s.session)
@@ -39,6 +40,7 @@ export default function Settings() {
   const [authOpen, setAuthOpen] = useState(false)
   const [installOpen, setInstallOpen] = useState(false)
   const [lockOpen, setLockOpen] = useState(false)
+  const [capOpen, setCapOpen] = useState(opt === 'autocapture')
   const lock = useStore((s) => s.ui.lock)
   const fileRef = useRef(null)
 
@@ -98,6 +100,7 @@ export default function Settings() {
         <Row icon="sparkles" color="#a78bfa" title="ซ่อนตัวเลข" sub="เหมาะกับการเปิดแอปในที่สาธารณะ"
           right={<div className={`w-11 h-6 rounded-full p-0.5 transition ${privacy ? 'bg-mint' : 'bg-slate-900/10'}`}><div className={`w-5 h-5 rounded-full bg-white transition ${privacy ? 'translate-x-5' : ''}`} /></div>}
           onClick={() => setUi({ privacy: !privacy })} />
+        <Row icon="zap" color="#f59e0b" title="บันทึกอัตโนมัติจากแจ้งเตือนธนาคาร" sub="ดึงยอดจากแจ้งเตือน LINE/SMS ของธนาคารเข้ากล่องรอยืนยัน" onClick={() => setCapOpen(true)} />
         <Row icon="shield" color="#10b981" title="ล็อกแอปด้วย PIN / Face ID" sub={lock?.enabled ? `เปิดอยู่${lock.bio ? ' · ใช้ไบโอเมตริกซ์ได้' : ''}` : 'ปิดอยู่ · แนะนำให้เปิดเพื่อความปลอดภัย'} onClick={() => setLockOpen(true)} />
         <Row icon="tag" color="#fbbf24" title="หมวดหมู่รายรับ-รายจ่าย" sub="เพิ่ม แก้ไข หรือลบหมวดหมู่ และเลือกไอคอน" onClick={() => setCatsOpen(true)} />
         <Row icon="phone" color="#10b981" title="ติดตั้งลงมือถือ" sub="Android และ iPhone" onClick={() => setInstallOpen(true)} />
@@ -148,6 +151,7 @@ export default function Settings() {
 
       <CategoryManager open={catsOpen} onClose={() => setCatsOpen(false)} />
       <LockSettings open={lockOpen} onClose={() => setLockOpen(false)} />
+      <AutoCapture open={capOpen} onClose={() => setCapOpen(false)} />
     </div>
   )
 }

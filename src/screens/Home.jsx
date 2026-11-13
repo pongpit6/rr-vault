@@ -6,6 +6,7 @@ import { SubLogo, AssetLogo } from '../components/Logos'
 import { useSubs } from './Subscriptions'
 import { upcoming } from '../lib/subs'
 import { assetLabel } from '../lib/portfolio'
+import { useInbox } from './Inbox'
 import { budgetStatus, goalStatus } from '../lib/plan'
 import { selectList } from '../store'
 import { RpgHomeCard } from '../components/RpgBits'
@@ -55,6 +56,7 @@ export default function Home({ onAdd, onEdit, go }) {
   const { accounts, txns, balances, summary, catById, accById, portfolio, cycles } = useVault()
   const subs = useSubs()
   const items = useStore((s) => s.items)
+  const inbox = useInbox()
   const budgets = useMemo(() => budgetStatus(selectList(items, 'budget'), txns).slice(0, 3), [items, txns])
   const goals = useMemo(() => selectList(items, 'goal').slice(0, 2), [items])
   const soon = useMemo(() => upcoming(subs, accounts, balances, 10, cycles), [subs, accounts, balances, cycles])
@@ -120,6 +122,17 @@ export default function Home({ onAdd, onEdit, go }) {
               </div>
             </div>
           </section>
+
+          {inbox.length > 0 && (
+            <button onClick={() => go('inbox')} className="w-full card p-4 flex items-center gap-3 text-left border-amber-200 bg-amber-50/60 anim-pop">
+              <div className="w-10 h-10 rounded-2xl bg-amber-400 text-white grid place-items-center font-bold">{inbox.length}</div>
+              <div className="flex-1 min-w-0">
+                <div className="font-semibold">รายการจากแจ้งเตือนธนาคาร รอยืนยัน</div>
+                <div className="text-xs text-slate-600 truncate">{inbox.slice(0, 3).map((x) => `${x.p.direction === 'in' ? '+' : '-'}${x.p.amount ? money(x.p.amount, { decimals: false }) : '?'}${x.p.counterparty ? ' ' + x.p.counterparty : ''}`).join(' · ')}</div>
+              </div>
+              <ChevronRight size={18} className="text-slate-400" />
+            </button>
+          )}
 
           <RpgHomeCard rpg={rpg} onOpen={() => go('vault')} />
 

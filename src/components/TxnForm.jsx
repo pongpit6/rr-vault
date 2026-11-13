@@ -121,6 +121,14 @@ export default function TxnForm({ open, onClose, initial }) {
     }
     Object.keys(t).forEach((k) => t[k] === undefined && delete t[k])
     put('txn', t)
+    if (initial?.inboxId) {
+      remove(initial.inboxId, { undo: false })
+      if (initial.learnKey && (t.kind === 'expense' || t.kind === 'income')) {
+        const st = useStore.getState()
+        const cur = st.items.settings?.data || settings
+        put('settings', { ...cur, merchantMap: { ...(cur.merchantMap || {}), [initial.learnKey]: { category: t.category, account: t.account } } })
+      }
+    }
     let msg = editing ? 'แก้ไขรายการแล้ว' : `บันทึก${kindMeta.label} ${money(amount)} แล้ว`
     if (t.kind === 'expense') {
       const st = useStore.getState()

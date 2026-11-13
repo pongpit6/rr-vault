@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { LayoutDashboard, List, Plus, Wallet, Settings as Cog, Swords, LineChart, Repeat, Target } from 'lucide-react'
+import { LayoutDashboard, List, Plus, Wallet, Settings as Cog, Swords, LineChart, Repeat, Target, Inbox as InboxIcon } from 'lucide-react'
 import { useStore, selectList } from './store'
 import Home from './screens/Home'
 import Transactions from './screens/Transactions'
@@ -9,6 +9,7 @@ import VaultRpg from './screens/VaultRpg'
 import Portfolio from './screens/Portfolio'
 import Subscriptions from './screens/Subscriptions'
 import Plan from './screens/Plan'
+import Inbox from './screens/Inbox'
 import { useVault } from './lib/useVault'
 import { usePrices, assetPrice } from './lib/prices'
 import { todayISO } from './lib/format'
@@ -26,6 +27,7 @@ import { processInstallments } from './lib/installments'
 const NAV = [
   { id: 'home', label: 'หน้าแรก', icon: LayoutDashboard, mobile: true },
   { id: 'txns', label: 'รายการ', icon: List, mobile: true },
+  { id: 'inbox', label: 'รอยืนยัน', icon: InboxIcon },
   { id: 'portfolio', label: 'พอร์ต', icon: LineChart, mobile: true },
   { id: 'wallets', label: 'กระเป๋า', icon: Wallet, mobile: true },
   { id: 'subs', label: 'Subscription', icon: Repeat },
@@ -121,6 +123,8 @@ export default function App() {
   const [tab, setTab] = useState(() => (location.hash.slice(1) || 'home'))
   const [form, setForm] = useState(null) // null | {} | txn
   const [trade, setTrade] = useState(null)
+  const [tabOpt, setTabOpt] = useState(null)
+  const go = (t, o = null) => { setTabOpt(o); setTab(t) }
 
   useEffect(() => { useStore.getState().init() }, [])
   useMarketData(ready)
@@ -150,7 +154,7 @@ export default function App() {
       if (e.target.closest('input,textarea,select') || e.metaKey || e.ctrlKey || document.querySelector('.fixed.inset-0.z-50')) return
       if (e.key === 'n' || e.key === 'N') { e.preventDefault(); setForm({}) }
       if (e.key === 't' || e.key === 'T') { e.preventDefault(); setTrade({}) }
-      if (e.key >= '1' && e.key <= '8') setTab(NAV[Number(e.key) - 1].id)
+      if (e.key >= '1' && e.key <= '9') setTab(NAV[Number(e.key) - 1].id)
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
@@ -163,14 +167,15 @@ export default function App() {
   const onAdd = (init) => setForm(init || {})
   const onEdit = (t) => (t.kind === 'trade' ? setTrade(t) : setForm(t))
   const screen = {
-    home: <Home onAdd={onAdd} onEdit={onEdit} go={setTab} onTrade={setTrade} />,
+    home: <Home onAdd={onAdd} onEdit={onEdit} go={go} onTrade={setTrade} />,
+    inbox: <Inbox onAdd={onAdd} go={go} />,
     txns: <Transactions onEdit={onEdit} />,
     portfolio: <Portfolio onTrade={setTrade} />,
     wallets: <Wallets onEdit={onEdit} go={setTab} />,
     subs: <Subscriptions />,
     plan: <Plan onAdd={onAdd} />,
     vault: <VaultRpg onAdd={onAdd} go={setTab} />,
-    settings: <Settings />,
+    settings: <Settings opt={tabOpt} />,
   }[tab] || null
 
   return (
@@ -193,7 +198,7 @@ export default function App() {
             <n.icon size={18} className={tab === n.id ? 'text-emerald-600' : ''} /> {n.label}
           </button>
         ))}
-        <div className="mt-auto text-[11px] text-slate-400 px-2">คีย์ลัด: N บันทึก · T ซื้อขาย · 1-8 สลับหน้า</div>
+        <div className="mt-auto text-[11px] text-slate-400 px-2">คีย์ลัด: N บันทึก · T ซื้อขาย · 1-9 สลับหน้า</div>
       </aside>
 
       <main className="flex-1 min-w-0 px-4 md:px-8 pt-safe pb-28 md:pb-10">
