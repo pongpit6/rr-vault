@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { LayoutDashboard, List, Plus, Wallet, Settings as Cog, Swords, LineChart, Repeat } from 'lucide-react'
+import { LayoutDashboard, List, Plus, Wallet, Settings as Cog, Swords, LineChart, Repeat, Target } from 'lucide-react'
 import { useStore, selectList } from './store'
 import Home from './screens/Home'
 import Transactions from './screens/Transactions'
@@ -8,6 +8,10 @@ import Settings from './screens/Settings'
 import VaultRpg from './screens/VaultRpg'
 import Portfolio from './screens/Portfolio'
 import Subscriptions from './screens/Subscriptions'
+import Plan from './screens/Plan'
+import { useVault } from './lib/useVault'
+import { usePrices, assetPrice } from './lib/prices'
+import { todayISO } from './lib/format'
 import TxnForm from './components/TxnForm'
 import TradeForm from './components/TradeForm'
 import AuthPanel from './components/AuthPanel'
@@ -23,6 +27,7 @@ const NAV = [
   { id: 'portfolio', label: 'พอร์ต', icon: LineChart, mobile: true },
   { id: 'wallets', label: 'กระเป๋า', icon: Wallet, mobile: true },
   { id: 'subs', label: 'Subscription', icon: Repeat },
+  { id: 'plan', label: 'วางแผน', icon: Target },
   { id: 'vault', label: 'Vault', icon: Swords, mobile: true },
   { id: 'settings', label: 'ตั้งค่า', icon: Cog },
 ]
@@ -60,6 +65,48 @@ function useMarketData(ready) {
     document.addEventListener('visibilitychange', vis)
     return () => { clearInterval(iv); document.removeEventListener('visibilitychange', vis) }
   }, [ready, assetsKey])
+}
+
+/** Saves one net-worth snapshot per day (updated at most every 10 minutes) for the history chart. */
+function SnapshotWriter() {
+  const { summary } = useVault()
+  const last = useRef(0)
+  useEffect(() => {
+    const now = Date.now()
+    if (now - last.current < 10 * 60_000) return
+    const t = setTimeout(() => {
+      last.current = Date.now()
+      const date = todayISO()
+      const st = useStore.getState()
+      const prev = st.items[`snap-${date}`]?.data
+      if (prev && Math.abs(prev.net - summary.net) < 1) return
+      st.put('snap', { id: `snap-${date}`, date, net: summary.net, assets: summary.assets, debts: summary.debts, portfolio: summary.portfolio })
+    }, 4000)
+    return () => clearTimeout(t)
+  }, [summary.net]) // eslint-disable-line
+  return null
+}
+
+/** Fires price alerts when a watched asset crosses its target. */
+function AlertWatcher() {
+  const quotes = usePrices((s) => s.quotes)
+  useEffect(() => {
+    const st = useStore.getState()
+    const alerts = selectList(st.items, 'alert').filter((a) => !a.triggeredAt)
+    for (const al of alerts) {
+      const asset = st.items[al.assetId]?.data
+      const p = assetPrice(asset, quotes)
+      if (p == null) continue
+      if ((al.op === '>=' && p >= al.price) || (al.op === '<=' && p <= al.price)) {
+        st.put('alert', { ...al, triggeredAt: new Date().toISOString() })
+        const name = asset.source === 'yahoo' ? asset.symbol.replace('-USD', '') : asset.name
+        const msg = `${name} ${al.op === '>=' ? 'ขึ้นถึง' : 'ลงถึง'} ${al.price.toLocaleString()} แล้ว (ตอนนี้ ${p.toLocaleString(undefined, { maximumFractionDigits: 4 })})`
+        st.showToast('🔔 ' + msg)
+        try { if (Notification.permission === 'granted') new Notification('R.R. Vault · แจ้งเตือนราคา', { body: msg, icon: './icon-192.png' }) } catch { /* not supported */ }
+      }
+    }
+  }, [quotes])
+  return null
 }
 
 export default function App() {
@@ -101,7 +148,7 @@ export default function App() {
       if (e.target.closest('input,textarea,select') || e.metaKey || e.ctrlKey || document.querySelector('.fixed.inset-0.z-50')) return
       if (e.key === 'n' || e.key === 'N') { e.preventDefault(); setForm({}) }
       if (e.key === 't' || e.key === 'T') { e.preventDefault(); setTrade({}) }
-      if (e.key >= '1' && e.key <= '7') setTab(NAV[Number(e.key) - 1].id)
+      if (e.key >= '1' && e.key <= '8') setTab(NAV[Number(e.key) - 1].id)
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
@@ -119,6 +166,7 @@ export default function App() {
     portfolio: <Portfolio onTrade={setTrade} />,
     wallets: <Wallets onEdit={onEdit} go={setTab} />,
     subs: <Subscriptions />,
+    plan: <Plan onAdd={onAdd} />,
     vault: <VaultRpg onAdd={onAdd} go={setTab} />,
     settings: <Settings />,
   }[tab] || null
@@ -143,7 +191,7 @@ export default function App() {
             <n.icon size={18} className={tab === n.id ? 'text-emerald-600' : ''} /> {n.label}
           </button>
         ))}
-        <div className="mt-auto text-[11px] text-slate-400 px-2">คีย์ลัด: N บันทึก · T ซื้อขาย · 1-7 สลับหน้า</div>
+        <div className="mt-auto text-[11px] text-slate-400 px-2">คีย์ลัด: N บันทึก · T ซื้อขาย · 1-8 สลับหน้า</div>
       </aside>
 
       <main className="flex-1 min-w-0 px-4 md:px-8 pt-safe pb-28 md:pb-10">
@@ -163,6 +211,8 @@ export default function App() {
         </div>
       </nav>
 
+      <SnapshotWriter />
+      <AlertWatcher />
       <TxnForm open={!!form} initial={form} onClose={() => setForm(null)} />
       <TradeForm open={!!trade} initial={trade} onClose={() => setTrade(null)} />
       <Toast />

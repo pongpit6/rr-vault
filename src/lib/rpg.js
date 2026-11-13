@@ -52,13 +52,15 @@ export const ACHIEVEMENTS = [
   { id: 'first_loot', name: 'นักล่าสมบัติ', desc: 'ซื้อสินทรัพย์ลงทุนครั้งแรก', icon: 'gem' },
   { id: 'diversified', name: 'คลังหลากหลาย', desc: 'ถือสินทรัพย์ 3 ประเภทขึ้นไป', icon: 'coins' },
   { id: 'profit10', name: 'มือทอง', desc: 'พอร์ตกำไรเกิน 10%', icon: 'trending' },
+  { id: 'goal_done', name: 'ผู้พิชิตเป้าหมาย', desc: 'ออมครบเป้าหมายแรก', icon: 'target' },
+  { id: 'planner', name: 'นักวางแผน', desc: 'ตั้งงบประมาณหรือเป้าหมายการออม', icon: 'scale' },
   { id: 'txn100', name: 'นักบันทึก', desc: 'บันทึกครบ 100 รายการ', icon: 'book' },
   { id: 'free_land', name: 'พ้นแดนหมอก', desc: 'มูลค่าสุทธิเป็นบวก', icon: 'home' },
   { id: 'nw100k', name: 'ปราสาทแรก', desc: 'มูลค่าสุทธิถึง 100,000', icon: 'building' },
   { id: 'nw1m', name: 'ราชาแห่งเกาะ', desc: 'มูลค่าสุทธิถึง 1,000,000', icon: 'gem' },
 ]
 
-function computeRpg({ accounts, txns, settings, balances, summary, unlocked, portfolio }) {
+function computeRpg({ accounts, txns, settings, balances, summary, unlocked, portfolio, goals = [], budgets = [] }) {
   portfolio ||= { open: [], value: 0, pnlPct: 0, byType: {} }
   const typesHeld = Object.keys(portfolio.byType).filter((k) => portfolio.byType[k] > 0).length
   const accById = Object.fromEntries(accounts.map((a) => [a.id, a]))
@@ -126,6 +128,8 @@ function computeRpg({ accounts, txns, settings, balances, summary, unlocked, por
     saver20: goodMonths > 0,
     investor: investIn > 0,
     txn100: txns.length >= 100,
+    goal_done: goals.some((g) => g.target > 0 && (balances[g.account] || 0) >= g.target),
+    planner: goals.length > 0 || budgets.length > 0,
     first_loot: txns.some((t) => t.kind === 'trade' && t.side === 'buy'),
     diversified: typesHeld >= 3,
     profit10: portfolio.cost > 0 && portfolio.pnlPct >= 0.1,
@@ -203,7 +207,10 @@ export function useRpg() {
   const rpgItem = useStore((s) => s.items.rpg)
   const unlocked = (rpgItem && !rpgItem.deleted && rpgItem.data.unlocked) || {}
   const key = JSON.stringify([v.balances, v.txns.length, v.txns[0]?.id, v.txns[0]?.amount, Object.keys(unlocked).length, todayISO(), Math.round(v.portfolio.value / 10)])
-  const rpg = useMemo(() => computeRpg({ ...v, unlocked }), [key]) // eslint-disable-line
+  const items = useStore((s) => s.items)
+  const goals = useMemo(() => Object.values(items).filter((i) => i.kind === 'goal' && !i.deleted).map((i) => i.data), [items])
+  const budgets = useMemo(() => Object.values(items).filter((i) => i.kind === 'budget' && !i.deleted).map((i) => i.data), [items])
+  const rpg = useMemo(() => computeRpg({ ...v, unlocked, goals, budgets }), [key, goals.length, budgets.length]) // eslint-disable-line
 
   useEffect(() => {
     if (!rpg.newlyUnlocked.length) return

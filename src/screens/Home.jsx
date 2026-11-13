@@ -5,6 +5,8 @@ import TxnRow from '../components/TxnRow'
 import { SubLogo, AssetLogo } from '../components/Logos'
 import { useSubs } from './Subscriptions'
 import { upcoming } from '../lib/subs'
+import { budgetStatus, goalStatus } from '../lib/plan'
+import { selectList } from '../store'
 import { RpgHomeCard } from '../components/RpgBits'
 import { useRpg } from '../lib/rpg'
 import { useStore, useProfile } from '../store'
@@ -51,6 +53,9 @@ export default function Home({ onAdd, onEdit, go }) {
   const setUi = useStore((s) => s.setUi)
   const { accounts, txns, balances, summary, catById, accById, portfolio } = useVault()
   const subs = useSubs()
+  const items = useStore((s) => s.items)
+  const budgets = useMemo(() => budgetStatus(selectList(items, 'budget'), txns).slice(0, 3), [items, txns])
+  const goals = useMemo(() => selectList(items, 'goal').slice(0, 2), [items])
   const soon = useMemo(() => upcoming(subs, accounts, balances, 10), [subs, accounts, balances])
   const net = useCountUp(summary.net)
   const rpg = useRpg()
@@ -96,7 +101,7 @@ export default function Home({ onAdd, onEdit, go }) {
       <div className="grid lg:grid-cols-[1.25fr_1fr] gap-5">
         <div className="space-y-5">
           {/* hero */}
-          <section className="hero p-5 md:p-6 anim-pop relative overflow-hidden">
+          <section onClick={() => go('plan')} className="hero p-5 md:p-6 anim-pop relative overflow-hidden cursor-pointer">
             <div className="absolute -right-10 -top-10 w-40 h-40 rounded-full border border-white/20" />
             <div className="absolute -right-4 -top-4 w-24 h-24 rounded-full border border-white/20" />
             <div className="text-sm text-white/70">มูลค่าสุทธิ (Net Worth)</div>
@@ -184,6 +189,41 @@ export default function Home({ onAdd, onEdit, go }) {
               </div>
             </section>
           )}
+
+          {/* plan */}
+          <section className="card p-4">
+            <button onClick={() => go('plan')} className="w-full flex items-center justify-between text-left">
+              <div className="font-semibold">งบประมาณ & เป้าหมาย</div>
+              <span className="text-xs text-sky-600 flex items-center">วางแผน <ChevronRight size={14} /></span>
+            </button>
+            {budgets.length === 0 && goals.length === 0 ? (
+              <button onClick={() => go('plan')} className="mt-2 w-full text-left text-sm text-slate-500">ตั้งงบรายหมวด เป้าหมายการออม และดูแผนปลดหนี้ได้ในหน้า “วางแผน” →</button>
+            ) : (
+              <div className="mt-3 space-y-3">
+                {budgets.map((b) => {
+                  const c = catById[b.category]
+                  return (
+                    <div key={b.id}>
+                      <div className="flex justify-between text-xs"><span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full" style={{ background: c?.color }} />{c?.name}</span><span className={`num ${b.status === 'over' ? 'text-rose font-semibold' : b.status === 'warn' ? 'text-amber-600 font-semibold' : 'text-slate-500'}`}>{Math.round(b.ratio * 100)}%</span></div>
+                      <div className="h-1.5 rounded-full bg-slate-100 mt-1 overflow-hidden"><div className={`h-full rounded-full ${b.status === 'over' ? 'bg-rose-500' : b.status === 'warn' ? 'bg-amber-400' : 'bg-emerald-500'}`} style={{ width: `${Math.min(100, b.ratio * 100)}%` }} /></div>
+                    </div>
+                  )
+                })}
+                {goals.map((g) => {
+                  const st = goalStatus(g, balances)
+                  return (
+                    <div key={g.id} className="flex items-center gap-2.5">
+                      <IconBadge name={g.icon} color={g.color} size={30} icon={14} />
+                      <div className="flex-1">
+                        <div className="flex justify-between text-xs"><span>{g.name}</span><span className="num text-slate-500">{Math.round(st.ratio * 100)}%</span></div>
+                        <div className="h-1.5 rounded-full bg-slate-100 mt-1 overflow-hidden"><div className="h-full rounded-full" style={{ width: `${st.ratio * 100}%`, background: g.color }} /></div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </section>
 
           {/* portfolio */}
           {portfolio.open.length > 0 && (

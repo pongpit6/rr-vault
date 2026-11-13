@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Trash2, Check, ShieldCheck, Sparkles, CalendarDays, ArrowDown } from 'lucide-react'
 import { Sheet, Button, Segmented, Icon, IconBadge, Label, Money } from './ui'
-import { useStore } from '../store'
+import { useStore, selectList } from '../store'
+import { budgetStatus } from '../lib/plan'
+import { monthKey } from '../lib/format'
 import { useVault } from '../lib/useVault'
 import { evalAmount, todayISO, round2, money } from '../lib/format'
 import { allocate, computeBalances, summarize, rebalance } from '../lib/ledger'
@@ -119,7 +121,18 @@ export default function TxnForm({ open, onClose, initial }) {
     }
     Object.keys(t).forEach((k) => t[k] === undefined && delete t[k])
     put('txn', t)
-    showToast(editing ? 'แก้ไขรายการแล้ว' : `บันทึก${kindMeta.label} ${money(amount)} แล้ว`)
+    let msg = editing ? 'แก้ไขรายการแล้ว' : `บันทึก${kindMeta.label} ${money(amount)} แล้ว`
+    if (t.kind === 'expense') {
+      const st = useStore.getState()
+      const b = selectList(st.items, 'budget').find((x) => x.category === t.category)
+      if (b && monthKey(t.date) === monthKey(todayISO())) {
+        const [bs] = budgetStatus([b], selectList(st.items, 'txn'))
+        const cname = categories.find((c) => c.id === t.category)?.name
+        if (bs.status === 'over') msg = `⚠️ หมวด${cname}เกินงบแล้ว ${money(-bs.left, { decimals: false })}`
+        else if (bs.status === 'warn') msg = `⚠️ หมวด${cname}ใช้ไป ${Math.round(bs.ratio * 100)}% ของงบ เหลือ ${money(bs.left, { decimals: false })}`
+      }
+    }
+    showToast(msg)
     onClose()
   }
 
