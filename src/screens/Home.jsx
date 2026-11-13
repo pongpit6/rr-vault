@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Eye, EyeOff, ArrowDownLeft, ArrowUpRight, ShieldCheck, ChevronRight, Cloud, CloudOff, RefreshCw, Plus } from 'lucide-react'
+import { Settings as Cog, Eye, EyeOff, ArrowDownLeft, ArrowUpRight, ShieldCheck, ChevronRight, Cloud, CloudOff, RefreshCw, Plus } from 'lucide-react'
 import { Avatar, Money, IconBadge, Progress, Empty, Button } from '../components/ui'
 import TxnRow from '../components/TxnRow'
+import { RpgHomeCard } from '../components/RpgBits'
+import { useRpg } from '../lib/rpg'
 import { useStore, useProfile } from '../store'
 import { useVault } from '../lib/useVault'
 import { greeting, money, todayISO, monthKey, round2 } from '../lib/format'
@@ -46,6 +48,7 @@ export default function Home({ onAdd, onEdit, go }) {
   const setUi = useStore((s) => s.setUi)
   const { accounts, txns, balances, summary, catById, accById } = useVault()
   const net = useCountUp(summary.net)
+  const rpg = useRpg()
 
   const month = monthKey(todayISO())
   const stats = useMemo(() => {
@@ -82,6 +85,7 @@ export default function Home({ onAdd, onEdit, go }) {
         <button onClick={() => setUi({ privacy: !privacy })} className="p-2 rounded-full hover:bg-slate-900/[.04] text-slate-600" title="ซ่อน/แสดงตัวเลข">
           {privacy ? <EyeOff size={20} /> : <Eye size={20} />}
         </button>
+        <button onClick={() => go('settings')} className="md:hidden p-2 -mr-2 rounded-full hover:bg-slate-900/[.04] text-slate-600" title="ตั้งค่า"><Cog size={20} /></button>
       </header>
 
       <div className="grid lg:grid-cols-[1.25fr_1fr] gap-5">
@@ -105,6 +109,8 @@ export default function Home({ onAdd, onEdit, go }) {
               </div>
             </div>
           </section>
+
+          <RpgHomeCard rpg={rpg} onOpen={() => go('vault')} />
 
           {/* wallet tiles */}
           <section className="grid grid-cols-2 gap-3">

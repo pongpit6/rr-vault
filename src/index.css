@@ -80,3 +80,39 @@ input[type=range].slider::-moz-range-thumb { width: 18px; height: 18px; border-r
 .anim-sheet { animation: sheetUp .28s cubic-bezier(.2,.8,.2,1); }
 .anim-fade { animation: fadeIn .2s ease; }
 .anim-pop { animation: popIn .3s cubic-bezier(.2,.8,.2,1) both; }
+
+/* ---------------- Pixel RPG styles ---------------- */
+.px-font { font-family: "Silkscreen", "IBM Plex Sans Thai", monospace; letter-spacing: .02em; }
+.px-card {
+  background: #fff;
+  border: 2px solid #1e293b;
+  box-shadow: 4px 4px 0 0 rgba(15,23,42,.12);
+  clip-path: polygon(0 4px, 4px 4px, 4px 0, calc(100% - 4px) 0, calc(100% - 4px) 4px, 100% 4px, 100% calc(100% - 4px), calc(100% - 4px) calc(100% - 4px), calc(100% - 4px) 100%, 4px 100%, 4px calc(100% - 4px), 0 calc(100% - 4px));
+}
+.px-card { box-shadow: none; filter: drop-shadow(3px 3px 0 rgba(15,23,42,.12)); }
+.px-inner { background: #fff; border: 2px solid #e2e8f0; }
+.px-box { background: rgba(255,255,255,.92); border: 2px solid #1e293b; padding: 4px 6px; color: #0f172a; }
+.px-hp { height: 8px; background: #fecdd3; border: 2px solid #1e293b; }
+.px-hp > div { height: 100%; background: linear-gradient(#fb7185 0 50%, #e11d48 50% 100%); transition: width .6s steps(12); }
+.px-xp { height: 8px; background: #e2e8f0; border: 2px solid #1e293b; }
+.px-xp > div { height: 100%; background: linear-gradient(#5eead4 0 50%, #14b8a6 50% 100%); transition: width .6s steps(12); }
+.px-lv { min-width: 34px; height: 34px; display: grid; place-items: center; font-family: "Silkscreen", monospace; font-size: 13px; color: #fff; background: linear-gradient(135deg, #10b981, #0ea5e9); border: 2px solid #1e293b; }
+.px-seg { display: grid; grid-template-columns: repeat(20, 1fr); gap: 2px; }
+.px-seg > span { height: 8px; background: #e2e8f0; }
+.px-seg > span.on { background: #14b8a6; }
+.px-seg > span.on:nth-child(n+15) { background: #0ea5e9; }
+.px-chip { display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; border: 2px solid #1e293b; background: #fff; font-size: 12px; font-weight: 600; }
+.px-btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 12px; background: #fb7185; color: #fff; font-weight: 700; font-size: 13px; border: 2px solid #1e293b; box-shadow: 0 3px 0 #9f1239; transition: transform .08s; }
+.px-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 #9f1239; }
+.px-avatar { padding: 3px; background: #1e293b; }
+.px-avatar > div { border-radius: 0 !important; }
+.px-avatar img { border-radius: 0 !important; border: 0 !important; image-rendering: auto; }
+.px-stamp { position: absolute; font-family: "Silkscreen", monospace; font-size: 8px; color: #e11d48; border: 2px solid #e11d48; background: #fff; padding: 0 3px; transform: rotate(-12deg); }
+.px-float { position: absolute; transform: translate(-50%, 0); font-family: "Silkscreen", "IBM Plex Sans Thai", monospace; font-weight: 700; pointer-events: none; white-space: nowrap; animation: pxFloat 1.5s steps(14) forwards; text-shadow: 2px 0 #1e293b, -2px 0 #1e293b, 0 2px #1e293b, 0 -2px #1e293b; }
+.px-float.crit { color: #fde047; font-size: clamp(14px, 4.2vw, 22px); }
+.px-float.heal { color: #86efac; font-size: clamp(12px, 3.6vw, 18px); }
+.px-float.block { color: #fff; font-size: 11px; }
+@keyframes pxFloat { 0% { opacity: 0; margin-top: 6px; } 15% { opacity: 1; margin-top: -4px; } 80% { opacity: 1; } 100% { opacity: 0; margin-top: -26px; } }
+.px-banner { text-align: center; padding: 8px 16px; border: 3px solid #1e293b; background: #fff; animation: popIn .25s steps(4) both; }
+.px-banner.gold { background: #fef3c7; color: #92400e; }
+.px-banner.mint { background: #d1fae5; color: #065f46; }

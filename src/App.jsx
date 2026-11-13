@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
-import { LayoutDashboard, List, Plus, Wallet, Settings as Cog } from 'lucide-react'
+import { LayoutDashboard, List, Plus, Wallet, Settings as Cog, Swords } from 'lucide-react'
 import { useStore } from './store'
 import Home from './screens/Home'
 import Transactions from './screens/Transactions'
 import Wallets from './screens/Wallets'
 import Settings from './screens/Settings'
+import VaultRpg from './screens/VaultRpg'
 import TxnForm from './components/TxnForm'
 import AuthPanel from './components/AuthPanel'
 import { Toast, Avatar } from './components/ui'
@@ -13,6 +14,7 @@ const NAV = [
   { id: 'home', label: 'หน้าแรก', icon: LayoutDashboard },
   { id: 'txns', label: 'รายการ', icon: List },
   { id: 'wallets', label: 'กระเป๋า', icon: Wallet },
+  { id: 'vault', label: 'Vault', icon: Swords },
   { id: 'settings', label: 'ตั้งค่า', icon: Cog },
 ]
 
@@ -51,7 +53,7 @@ export default function App() {
     const onKey = (e) => {
       if (e.target.closest('input,textarea,select') || e.metaKey || e.ctrlKey) return
       if (e.key === 'n' || e.key === 'N') { e.preventDefault(); setForm({}) }
-      if (e.key >= '1' && e.key <= '4') setTab(NAV[Number(e.key) - 1].id)
+      if (e.key >= '1' && e.key <= '5') setTab(NAV[Number(e.key) - 1].id)
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
@@ -66,6 +68,7 @@ export default function App() {
     home: <Home onAdd={onAdd} onEdit={onEdit} go={setTab} />,
     txns: <Transactions onEdit={onEdit} />,
     wallets: <Wallets onEdit={onEdit} />,
+    vault: <VaultRpg onAdd={onAdd} />,
     settings: <Settings />,
   }[tab] || null
 
@@ -86,7 +89,7 @@ export default function App() {
             <n.icon size={18} className={tab === n.id ? 'text-emerald-600' : ''} /> {n.label}
           </button>
         ))}
-        <div className="mt-auto text-[11px] text-slate-400 px-2">คีย์ลัด: N บันทึก · 1-4 สลับหน้า</div>
+        <div className="mt-auto text-[11px] text-slate-400 px-2">คีย์ลัด: N บันทึก · 1-5 สลับหน้า</div>
       </aside>
 
       <main className="flex-1 min-w-0 px-4 md:px-8 pt-safe pb-28 md:pb-10">
@@ -102,7 +105,7 @@ export default function App() {
               <Plus size={26} strokeWidth={2.4} />
             </button>
           </div>
-          {NAV.slice(2).map((n) => <NavBtn key={n.id} n={n} active={tab === n.id} onClick={() => setTab(n.id)} />)}
+          {NAV.slice(2, 4).map((n) => <NavBtn key={n.id} n={n} active={tab === n.id} onClick={() => setTab(n.id)} />)}
         </div>
       </nav>
 
