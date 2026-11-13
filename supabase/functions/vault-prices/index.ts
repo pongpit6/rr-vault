@@ -33,6 +33,20 @@ async function quote(symbol: string) {
   return { symbol, error: "not_found" };
 }
 
+// Close price of a symbol on (or just before) a date: ?hist=THB=X&date=2025-03-01
+async function hist(symbol: string, date: string) {
+  const t = Math.floor(new Date(date + "T00:00:00Z").getTime() / 1000);
+  const r = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&period1=${t - 7 * 86400}&period2=${t + 86400}`, { headers: UA });
+  if (!r.ok) return { symbol, date, error: "not_found" };
+  const j = await r.json();
+  const res = j?.chart?.result?.[0];
+  const ts: number[] = res?.timestamp || [];
+  const close: number[] = res?.indicators?.quote?.[0]?.close || [];
+  let best: number | null = null, bestT = 0;
+  ts.forEach((x, i) => { if (close[i] != null && x <= t + 86400 && x >= bestT) { best = close[i]; bestT = x; } });
+  return best == null ? { symbol, date, error: "no_data" } : { symbol, date, price: best, at: bestT * 1000, currency: res?.meta?.currency };
+}
+
 async function search(q: string) {
   const r = await fetch(`https://query2.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(q)}&quotesCount=12&newsCount=0`, { headers: UA });
   if (!r.ok) return [];
@@ -46,6 +60,8 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
   const url = new URL(req.url);
   try {
+    const h = url.searchParams.get("hist");
+    if (h) return json(await hist(h, url.searchParams.get("date") || new Date().toISOString().slice(0, 10)));
     const q = url.searchParams.get("search");
     if (q) return json({ results: await search(q) });
     const syms = (url.searchParams.get("symbols") || "").split(",").map((s) => s.trim()).filter(Boolean).slice(0, 40);

@@ -210,7 +210,7 @@ function AssetDetail({ id, onClose, onTrade }) {
           <div className="flex gap-2">
             {!h.lots.length && !h.sells.length && <Button variant="danger" onClick={() => { remove(a.id, { label: 'ลบสินทรัพย์แล้ว' }); onClose() }}><Trash2 size={16} /></Button>}
             <Button className="flex-1" onClick={() => {
-              put('asset', { ...a, name: edit.name.trim() || a.name, manualPrice: a.source === 'manual' ? evalAmount(edit.manualPrice) || 0 : a.manualPrice, multiplier: a.type === 'derivative' ? evalAmount(edit.multiplier) || 1 : a.multiplier })
+              put('asset', { ...a, name: edit.name.trim() || a.name, manualPrice: a.source === 'manual' ? evalAmount(edit.manualPrice, 8) || 0 : a.manualPrice, multiplier: a.type === 'derivative' ? evalAmount(edit.multiplier) || 1 : a.multiplier })
               setEdit(null)
             }}><Check size={16} /> บันทึก</Button>
           </div>

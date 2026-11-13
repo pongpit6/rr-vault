@@ -45,6 +45,19 @@ export async function searchSymbols(q) {
   return j.results || []
 }
 
+const histCache = {}
+/** Close price of a Yahoo symbol on a past date (cached). */
+export async function histPrice(symbol, date) {
+  const k = `${symbol}@${date}`
+  if (histCache[k] !== undefined) return histCache[k]
+  try {
+    const r = await fetch(`${FN}?hist=${encodeURIComponent(symbol)}&date=${date}`, { headers: { Authorization: `Bearer ${ANON_JWT}`, apikey: ANON_JWT } })
+    const j = await r.json()
+    histCache[k] = j.price ?? null
+  } catch { histCache[k] = null }
+  return histCache[k]
+}
+
 export const fxUSDTHB = (quotes) => quotes['THB=X']?.price || 34
 
 /** Current unit price of an asset in its quote currency. */

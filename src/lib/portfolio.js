@@ -68,7 +68,7 @@ export function computePortfolio(assets, txns, quotes) {
         if (l.qtyOpen <= 0) continue
         const take = Math.min(q, l.qtyOpen)
         costOut += (l.costTHB * take) / l.qty
-        l.qtyOpen = round2(l.qtyOpen - take); q -= take
+        l.qtyOpen = Math.round((l.qtyOpen - take) * 1e10) / 1e10; q -= take
       }
       const pnl = round2(Number(t.amount) - costOut)
       h.realized = round2(h.realized + pnl)

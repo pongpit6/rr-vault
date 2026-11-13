@@ -15,7 +15,7 @@ export function txnVisual(t, catById, accById) {
     const label = a ? (a.symbol && a.source === 'yahoo' ? a.symbol.replace('-USD', '') : a.name) : 'สินทรัพย์'
     const unit = a?.source === 'thaigold' ? 'บาท' : a?.unit || ''
     const ccy = a?.currency === 'USD' ? '$' : '฿'
-    return { asset: a, title: `${t.side === 'sell' ? 'ขาย' : 'ซื้อ'} ${label}`, sub: `${fmtQ(t.qty)} ${unit} @ ${ccy}${fmtQ(t.price)} · ${accById[t.account]?.name || ''}` }
+    return { asset: a, title: `${t.side === 'sell' ? 'ขาย' : 'ซื้อ'} ${label}`, sub: `${fmtQ(t.qty)} ${unit} @ ${ccy}${fmtQ(t.price)} · ${t.backfill ? 'บันทึกย้อนหลัง' : accById[t.account]?.name || ''}` }
   }
   const c = catById[t.category]
   let sub = accById[t.account]?.name || ''

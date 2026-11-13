@@ -62,14 +62,14 @@ export function greeting() {
 }
 
 /** Evaluate a simple calculator expression like "120+35*2". Returns NaN if invalid. */
-export function evalAmount(str) {
+export function evalAmount(str, dp = 2) {
   const s = String(str ?? '').replace(/,/g, '').replace(/[x×]/g, '*').replace(/÷/g, '/').trim()
   if (!s) return NaN
   if (!/^[0-9+\-*/.() ]+$/.test(s)) return NaN
   try {
     // eslint-disable-next-line no-new-func
     const v = Function(`"use strict";return (${s})`)()
-    return Number.isFinite(v) ? round2(v) : NaN
+    return Number.isFinite(v) ? (dp === 2 ? round2(v) : Math.round(v * 10 ** dp) / 10 ** dp) : NaN
   } catch { return NaN }
 }
 

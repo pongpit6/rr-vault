@@ -20,14 +20,15 @@ export function netWorthSeries(accounts, txns, settings, snaps) {
   const start = dates[0] && dates[0] < today ? dates[0] : (() => { const d = new Date(); d.setDate(d.getDate() - 1); return isoOf(d) })()
   let cash = accounts.reduce((s, a) => s + (a.archived ? 0 : (a.opening || 0) * sign(a)), 0)
   for (const t of adjusts) for (const p of postingsOf(t, accById, settings)) if (accById[p.acc] && !accById[p.acc].archived) cash += p.amt
-  let invested = 0
+  // backfilled trades never touched a wallet, so their cost counts from the start
+  let invested = txns.filter((t) => t.kind === 'trade' && !t.account).reduce((s2, t) => s2 + (t.side === 'sell' ? -t.amount : t.amount), 0)
   const out = []
   const snapBy = Object.fromEntries(snaps.map((s) => [s.date, s]))
   for (let d = new Date(start + 'T00:00:00'); isoOf(d) <= today; d.setDate(d.getDate() + 1)) {
     const k = isoOf(d)
     for (const t of byDate[k] || []) {
       for (const p of postingsOf(t, accById, settings)) if (accById[p.acc] && !accById[p.acc].archived) cash += p.amt
-      if (t.kind === 'trade') invested += t.side === 'sell' ? -t.amount : t.amount // cost basis approx.
+      if (t.kind === 'trade' && t.account) invested += t.side === 'sell' ? -t.amount : t.amount // cost basis approx.
     }
     const snap = snapBy[k]
     out.push({ date: k, value: round2(snap ? snap.net : cash + Math.max(0, invested)), real: !!snap })
