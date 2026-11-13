@@ -5,11 +5,15 @@ import { Button, Money, Empty, IconBadge, Label } from '../components/ui'
 import { useStore, selectList } from '../store'
 import { useVault } from '../lib/useVault'
 import { parseNotification, learnKey } from '../lib/notify'
+import { slipToP } from '../lib/slip'
+import { recordInbox } from '../lib/autorecord'
+import { useSlipQueue } from '../lib/slipqueue'
+import { Loader2, CheckCheck } from 'lucide-react'
 import { todayISO, money, round2 } from '../lib/format'
 
 export function useInbox() {
   const items = useStore((s) => s.items)
-  return useMemo(() => selectList(items, 'inbox').sort((a, b) => (b.at || '').localeCompare(a.at || '')).map((x) => ({ ...x, p: parseNotification(x.raw) })), [items])
+  return useMemo(() => selectList(items, 'inbox').sort((a, b) => (b.at || '').localeCompare(a.at || '')).filter((x) => !(x.image && !x.slip)).map((x) => ({ ...x, p: x.slip ? slipToP(x.slip) : parseNotification(x.raw) })), [items])
 }
 
 const localDate = (iso) => { const d = iso ? new Date(iso) : new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}` }
@@ -17,7 +21,7 @@ const localDate = (iso) => { const d = iso ? new Date(iso) : new Date(); return 
 /** Build the TxnForm initial values for an inbox item, using what was learned for this counterparty. */
 export function draftFromInbox(it, { settings, accounts, assets = [] }) {
   const p = it.p
-  const date = localDate(p.time || it.at)
+  const date = p.date || localDate(p.time || it.at)
   const T = settings.allocation.targets
   if (p.kind === 'trade') {
     const symbol = `${p.coin}-USD`
@@ -30,7 +34,7 @@ export function draftFromInbox(it, { settings, accounts, assets = [] }) {
   }
   if (p.kind === 'exchange-in' || p.kind === 'exchange-out') {
     const into = p.kind === 'exchange-in'
-    return { kind: 'transfer', amount: p.amount, date, account: into ? T.cash : T.invest, to: into ? T.invest : T.cash, note: `${into ? 'ฝากเงินเข้า' : 'ถอนเงินจาก'} ${p.exchange}`, inboxId: it.id }
+    return { kind: 'transfer', amount: p.amount, date, account: into ? T.cash : T.invest, to: into ? T.invest : T.cash, note: `${into ? 'ฝากเงินเข้า' : 'ถอนเงินจาก'} ${p.exchange}`, inboxId: it.id, ...(it.slip?.ref ? { slipRef: it.slip.ref } : {}) }
   }
   const key = learnKey(p)
   const learned = key ? settings.merchantMap?.[key] : null
@@ -40,7 +44,7 @@ export function draftFromInbox(it, { settings, accounts, assets = [] }) {
   return {
     kind, amount: p.amount || undefined, date, note: p.counterparty || '',
     category: learned?.category || (kind === 'income' ? 'cat-other-in' : 'cat-other'), account,
-    inboxId: it.id, learnKey: key, learned: !!learned,
+    inboxId: it.id, learnKey: key, learned: !!learned, ...(it.slip?.ref ? { slipRef: it.slip.ref } : {}),
   }
 }
 
@@ -52,6 +56,13 @@ export default function Inbox({ onAdd, onTrade, go, embedded = false }) {
   const showToast = useStore((s) => s.showToast)
   const syncNow = useStore((s) => s.syncNow)
   const [paste, setPaste] = useState('')
+  const q = useSlipQueue()
+  const slips = list.filter((x) => x.slip && x.p.amount)
+  const confirmAll = () => {
+    const n = recordInbox(slips)
+    showToast(`ยืนยันสลิปแล้ว ${n} รายการ${slips.some((x) => (x.p.kind || x.p.direction) && !learnedOf(x)) ? ' · รายการที่ยังไม่มีหมวดไปรอที่ “ใส่หมวด”' : ''}`)
+  }
+  const learnedOf = (x) => { const k = learnKey(x.p); return k && settings.merchantMap?.[k] }
 
   useEffect(() => { syncNow(); const iv = setInterval(syncNow, 15000); return () => clearInterval(iv) }, []) // eslint-disable-line
 
@@ -80,6 +91,20 @@ export default function Inbox({ onAdd, onTrade, go, embedded = false }) {
         <Button variant="ghost" className="!py-2 text-sm" onClick={() => go('settings', 'autocapture')}><Settings2 size={16} /> ตั้งค่าดึงอัตโนมัติ</Button>
       </div>
 
+      {q.busy && (
+        <div className="card p-3 flex items-center gap-3 text-sm"><Loader2 size={18} className="animate-spin text-emerald-600" /> กำลังอ่านสลิป {q.done + 1}/{q.total} …</div>
+      )}
+      {slips.length > 0 && (
+        <section className="card p-3.5 flex items-center gap-3 bg-emerald-50/60 border-emerald-200">
+          <IconBadge name="scan" color="#10b981" size={40} icon={19} />
+          <div className="flex-1 min-w-0">
+            <div className="font-semibold text-sm">สลิปรอยืนยัน {slips.length} รายการ</div>
+            <div className="text-xs text-slate-500">รวมโอนออก {money(slips.filter((x) => x.p.direction === 'out').reduce((s, x) => s + x.p.amount, 0))}</div>
+          </div>
+          <Button className="!py-2 text-sm" onClick={confirmAll}><CheckCheck size={16} /> ยืนยันทั้งหมด</Button>
+        </section>
+      )}
+
       <section className="card p-4">
         <Label>วางข้อความแจ้งเตือนจากธนาคาร (LINE / SMS)</Label>
         <textarea className="field min-h-[72px]" placeholder="เช่น รายการเงินออก จำนวนเงิน 350.00 บาท โอนไปยัง ..." value={paste} onChange={(e) => setPaste(e.target.value)} />
@@ -102,7 +127,7 @@ export default function Inbox({ onAdd, onTrade, go, embedded = false }) {
             return (
               <div key={it.id} className="card p-3.5">
                 <div className="flex items-start gap-3">
-                  {p.kind === 'trade' ? <AssetLogo asset={{ type: 'crypto', symbol: `${p.coin}-USD` }} size={40} /> : (
+                  {it.thumb ? <img src={it.thumb} alt="" className="w-10 h-14 object-cover rounded-lg border shrink-0" /> : p.kind === 'trade' ? <AssetLogo asset={{ type: 'crypto', symbol: `${p.coin}-USD` }} size={40} /> : (
                   <div className={`w-10 h-10 rounded-2xl grid place-items-center shrink-0 ${p.direction === 'transfer' ? 'bg-sky-50 text-sky-600' : isIn ? 'bg-emerald-50 text-emerald-600' : p.direction ? 'bg-rose-50 text-rose-500' : 'bg-slate-100 text-slate-400'}`}>
                     {p.direction === 'transfer' ? <ArrowLeftRight size={19} /> : p.isCard ? <CreditCard size={19} /> : isIn ? <ArrowDownLeft size={19} /> : <ArrowUpRight size={19} />}
                   </div>)}
@@ -112,16 +137,17 @@ export default function Inbox({ onAdd, onTrade, go, embedded = false }) {
                       <span className={`font-bold num ${p.direction === 'transfer' ? 'text-sky-600' : isIn ? 'text-emerald-600' : 'text-rose'}`}>{p.amount ? `${p.direction === 'transfer' ? '' : isIn ? '+' : '-'}${money(p.amount)}` : '—'}</span>
                     </div>
                     <div className="text-xs text-slate-500 mt-0.5">
-                      {[p.bank, p.isCard ? 'บัตรเครดิต' : null, new Date(p.time || it.at).toLocaleString('th-TH', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })].filter(Boolean).join(' · ')}
+                      {[it.slip ? 'สลิป' : null, p.bank, p.isCard ? 'บัตรเครดิต' : null, new Date(p.time || it.at).toLocaleString('th-TH', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })].filter(Boolean).join(' · ')}
                     </div>
-                    <div className="text-[11px] text-slate-400 mt-1 line-clamp-2">{it.raw}</div>
+                    {!it.slip && <div className="text-[11px] text-slate-400 mt-1 line-clamp-2">{it.raw}</div>}
                     {d.learned && <div className="text-[11px] text-emerald-700 mt-1 flex items-center gap-1"><Zap size={11} /> จำไว้แล้ว: {catById[d.category]?.name} · {accById[d.account]?.name}</div>}
                   </div>
                 </div>
                 <div className="flex gap-2 mt-3">
                   <button onClick={() => remove(it.id, { label: 'ทิ้งรายการแล้ว' })} className="px-3 py-2 rounded-xl text-sm text-slate-500 hover:bg-slate-100 flex items-center gap-1"><X size={15} /> ไม่ใช่</button>
                   <Button variant="ghost" className="flex-1 !py-2 text-sm" onClick={open}>{d.isTrade ? 'ตรวจ แล้วบันทึกลงพอร์ต' : d.kind === 'transfer' ? 'ตรวจ แล้วบันทึกการโอน' : 'ตรวจ/แก้ แล้วบันทึก'}</Button>
-                  {d.learned && !p.kind && p.amount && p.direction === 'out' && <Button className="!py-2 text-sm" onClick={() => quickSave(it)}><Check size={15} /> บันทึกเลย</Button>}
+                  {it.slip && p.amount && <Button className="!py-2 text-sm" onClick={() => { recordInbox([it]); showToast('บันทึกแล้ว') }}><Check size={15} /> ยืนยัน</Button>}
+                  {!it.slip && d.learned && !p.kind && p.amount && p.direction === 'out' && <Button className="!py-2 text-sm" onClick={() => quickSave(it)}><Check size={15} /> บันทึกเลย</Button>}
                 </div>
               </div>
             )

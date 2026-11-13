@@ -136,7 +136,8 @@ export default function TxnForm({ open, onClose, initial }) {
   const save = () => {
     if (!valid) return
     const keep = {}
-    if (initial?.id) for (const k of ['subId', 'instOf', 'counterparty', 'fromInbox', 'inDir', 'raw']) if (initial[k] !== undefined) keep[k] = initial[k]
+    if (initial?.id) for (const k of ['subId', 'instOf', 'counterparty', 'fromInbox', 'inDir', 'raw', 'slipRef', 'fromSlip']) if (initial[k] !== undefined) keep[k] = initial[k]
+    if (!initial?.id && initial?.slipRef) Object.assign(keep, { slipRef: initial.slipRef, fromSlip: true, counterparty: initial.note || undefined })
     const base = { ...keep, id: initial?.id, kind: f.kind, amount, date: f.date, note: f.note.trim(), createdAt: initial?.createdAt || new Date().toISOString() }
     let t
     if (f.kind === 'expense') t = { ...base, category: f.category, account: f.account, earmark: isDebt(selAcc) && selAcc.type === 'credit' ? f.earmark : undefined }

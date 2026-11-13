@@ -3,39 +3,10 @@ import { ImagePlus, Loader2, Check, X, ScanLine, AlertTriangle } from 'lucide-re
 import { Sheet, Button, IconBadge, Money } from './ui'
 import { useStore } from '../store'
 import { useVault } from '../lib/useVault'
-import { parseSlipText } from '../lib/slip'
+import { slipToP } from '../lib/slip'
+import { readSlipImage, onOcrProgress } from '../lib/ocr'
 import { parseNotification, learnKey } from '../lib/notify'
 import { todayISO, round2 } from '../lib/format'
-
-let workerP = null
-async function getWorker(onProgress) {
-  if (!workerP) {
-    workerP = (async () => {
-      const T = (await import('tesseract.js')).default
-      return T.createWorker(['tha', 'eng'], 1, { logger: (m) => onProgress?.(m) })
-    })()
-  }
-  return workerP
-}
-
-/** Loads a file into a canvas, downscaled, and also tries to read a QR (slip verification code). */
-async function loadImage(file) {
-  const url = URL.createObjectURL(file)
-  const img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = url })
-  const max = 2000, k = Math.min(1, max / Math.max(img.width, img.height))
-  const c = document.createElement('canvas'); c.width = Math.round(img.width * k); c.height = Math.round(img.height * k)
-  const ctx = c.getContext('2d', { willReadFrequently: true }); ctx.drawImage(img, 0, 0, c.width, c.height)
-  let qr = null
-  try {
-    const jsQR = (await import('jsqr')).default
-    const d = ctx.getImageData(0, 0, c.width, c.height)
-    qr = jsQR(d.data, c.width, c.height)?.data || null
-  } catch { /* no QR */ }
-  const thumb = document.createElement('canvas'); const tk = 240 / Math.max(c.width, c.height)
-  thumb.width = c.width * tk; thumb.height = c.height * tk; thumb.getContext('2d').drawImage(c, 0, 0, thumb.width, thumb.height)
-  URL.revokeObjectURL(url)
-  return { canvas: c, qr, thumb: thumb.toDataURL('image/jpeg', 0.7) }
-}
 
 /** Upload many slips / notification screenshots at once → review → save all. */
 export default function SlipScanner({ open, onClose }) {
@@ -46,6 +17,9 @@ export default function SlipScanner({ open, onClose }) {
   const fileRef = useRef(null)
   const [rows, setRows] = useState([])
   const [busy, setBusy] = useState(null) // { i, n, pct }
+  const [onlyDay, setOnlyDay] = useState(true)
+  const [day, setDay] = useState(todayISO())
+  const [skipped, setSkipped] = useState(0)
   const T = settings.allocation.targets
   const spendAccs = accounts.filter((a) => !a.archived && ['cash', 'bank', 'ewallet', 'credit', 'invest', 'reserve', 'savings'].includes(a.type))
 
@@ -58,14 +32,22 @@ export default function SlipScanner({ open, onClose }) {
     const found = []
     const owner = profile?.name || ''
     const map = settings.merchantMap || {}
+    const off = onOcrProgress((m) => m.status === 'recognizing text' && setBusy((b) => b && { ...b, pct: m.progress, stage: 'อ่านตัวอักษร' }))
+    // pre-filter by file date when it is plausible (saves OCR time); the slip's own date decides in the end
+    let skip = 0
+    if (onlyDay) {
+      const near = (f) => { const d = new Date(f.lastModified); const k = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; return Math.abs(Date.parse(k) - Date.parse(day)) <= 86400000 }
+      const dated = files.filter(near)
+      if (dated.length && dated.length < files.length && files.some((f) => Date.now() - f.lastModified > 120_000)) { skip = files.length - dated.length; files = dated }
+    }
     for (let i = 0; i < files.length; i++) {
       setBusy({ i, n: files.length, pct: 0, stage: 'เตรียมภาพ' })
       try {
-        const { canvas, qr, thumb } = await loadImage(files[i])
-        const w = await getWorker((m) => m.status === 'recognizing text' && setBusy((b) => b && { ...b, pct: m.progress, stage: 'อ่านตัวอักษร' }))
-        setBusy((b) => ({ ...b, stage: 'อ่านตัวอักษร' }))
-        const { data } = await w.recognize(canvas)
-        let items = parseSlipText(data.text, owner)
+        const { text, items: parsed, thumb } = await readSlipImage(files[i], owner)
+        const data = { text }
+        let items = parsed
+        if (onlyDay && items.length && items.every((x) => x.date && x.date !== day)) { skip++; continue }
+        if (onlyDay) items = items.filter((x) => !x.date || x.date === day)
         if (!items.length) {
           const p = parseNotification(data.text)
           if (p.kind === 'trade' || p.kind?.startsWith('exchange')) {
@@ -78,7 +60,7 @@ export default function SlipScanner({ open, onClose }) {
         }
         if (!items.length) { found.push({ key: `${i}-0`, thumb, fail: true }); continue }
         items.forEach((it, k) => {
-          const ref = items.length === 1 ? (it.ref || (qr && qr.length < 120 ? `qr:${qr}` : null)) : it.ref
+          const ref = it.ref
           const learned = it.counterparty ? map[learnKey({ counterparty: it.counterparty })] : null
           const r = {
             key: `${i}-${k}`, thumb, include: true,
@@ -86,6 +68,7 @@ export default function SlipScanner({ open, onClose }) {
             direction: it.direction, counterparty: it.counterparty || '', bank: it.bank, fee: it.fee || 0,
             category: learned?.category || 'cat-uncat', account: learned?.account || T.cash,
             noDate: !it.date,
+            exch: slipToP({ ...it, text: it.text }).kind === 'exchange-in',
           }
           r.dupe = isDupe(r) || found.some((f) => !f.skip && !f.fail && f.ref && f.ref === r.ref)
           r.include = !r.dupe
@@ -96,17 +79,23 @@ export default function SlipScanner({ open, onClose }) {
       }
       setRows([...found])
     }
+    off()
+    setSkipped(skip)
     setBusy(null)
   }
 
   const upd = (key, patch) => setRows((rs) => rs.map((r) => (r.key === key ? { ...r, ...patch } : r)))
   const chosen = rows.filter((r) => r.include && !r.skip && !r.fail && r.amount > 0)
-  const total = useMemo(() => round2(chosen.reduce((s, r) => s + (r.direction === 'in' ? r.amount : -r.amount), 0)), [chosen])
+  const total = useMemo(() => round2(chosen.reduce((s, r) => s + (r.exch ? 0 : r.direction === 'in' ? r.amount : -r.amount), 0)), [chosen])
 
   const save = () => {
     const cur = useStore.getState().items.settings?.data || settings
     const map = { ...(cur.merchantMap || {}) }
     for (const r of chosen) {
+      if (r.exch) {
+        put('txn', { kind: 'transfer', amount: r.amount, date: r.date, account: r.account, to: T.invest, note: 'เติมเงินเข้า Bitkub', slipRef: r.ref || undefined, fromSlip: true, createdAt: new Date().toISOString() })
+        continue
+      }
       const kind = r.direction === 'in' ? 'income' : 'expense'
       put('txn', {
         kind, amount: r.amount, date: r.date, account: r.account, category: r.category,
@@ -130,9 +119,17 @@ export default function SlipScanner({ open, onClose }) {
       )}>
       <input ref={fileRef} type="file" accept="image/*" multiple hidden onChange={(e) => { run(e.target.files); e.target.value = '' }} data-testid="slip-input" />
       {!rows.length && !busy && (
+        <div className="flex items-center gap-2 mb-3 text-sm">
+          <button onClick={() => setOnlyDay(!onlyDay)} className={`w-10 h-6 rounded-full relative transition shrink-0 ${onlyDay ? 'bg-emerald-500' : 'bg-slate-300'}`}><span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all ${onlyDay ? 'left-[18px]' : 'left-0.5'}`} /></button>
+          <span className="text-slate-600">เอาเฉพาะสลิปของวันที่</span>
+          <input type="date" value={day} disabled={!onlyDay} onChange={(e) => setDay(e.target.value)} className="bg-slate-50 rounded-lg px-2 py-1 outline-none disabled:opacity-40" />
+        </div>
+      )}
+      {!rows.length && !busy && (
         <button onClick={() => fileRef.current?.click()} className="w-full card border-dashed border-2 border-emerald-300 bg-emerald-50/50 p-8 flex flex-col items-center gap-3 text-center">
           <IconBadge name="scan" color="#10b981" size={56} icon={26} />
           <div className="font-semibold">เลือกรูปสลิป ได้ทีละหลายรูป</div>
+          {onlyDay && <div className="text-xs text-emerald-700 -mt-1">เปิดอัลบั้ม K PLUS แล้วเลือกรูปล่าสุดมาได้เลย ระบบคัดเฉพาะวันที่เลือกให้</div>}
           <div className="text-sm text-slate-500 max-w-xs">สลิปโอนเงิน, ภาพแชต LINE แจ้งเตือน (KBank, Bitkub ฯลฯ) — อ่านในเครื่องคุณเอง ไม่ส่งรูปออกไปไหน</div>
         </button>
       )}
@@ -146,6 +143,7 @@ export default function SlipScanner({ open, onClose }) {
           </div>
         </div>
       )}
+      {skipped > 0 && !busy && <div className="text-xs text-slate-500 mb-2">ข้าม {skipped} รูปที่ไม่ใช่สลิปของวันที่เลือก</div>}
       <div className="space-y-2.5">
         {rows.map((r) => r.skip || r.fail ? (
           <div key={r.key} className="card p-3 flex items-center gap-3 text-sm">
@@ -182,6 +180,12 @@ export default function SlipScanner({ open, onClose }) {
               </button>
             </div>
             {r.dupe && <div className="text-xs text-amber-600 mt-2 flex items-center gap-1"><AlertTriangle size={13} /> ดูเหมือนบันทึกไปแล้ว (ยอด/วันที่/เลขอ้างอิงซ้ำ) — ข้ามไว้ให้ก่อน</div>}
+            {r.exch ? (
+              <div className="mt-2.5 text-xs flex items-center gap-2 text-sky-700 bg-sky-50 rounded-lg px-2.5 py-1.5">
+                <IconBadge name="trending" color="#0ea5e9" size={20} icon={12} /> เติมเงินเข้า Bitkub → บันทึกเป็น “โอนเข้ากระเป๋าลงทุน” ไม่นับเป็นรายจ่าย
+                <button onClick={() => upd(r.key, { exch: false })} className="ml-auto underline text-slate-500">เป็นรายจ่าย</button>
+              </div>
+            ) : (
             <div className="flex gap-1.5 overflow-x-auto no-scrollbar -mx-3 px-3 mt-2.5 pb-0.5">
               {cats(r.direction).map((c) => (
                 <button key={c.id} onClick={() => upd(r.key, { category: c.id })}
@@ -190,6 +194,7 @@ export default function SlipScanner({ open, onClose }) {
                 </button>
               ))}
             </div>
+            )}
           </div>
         ))}
       </div>

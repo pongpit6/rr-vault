@@ -1,5 +1,6 @@
 import { useStore, selectList } from '../store'
 import { parseNotification, learnKey } from './notify'
+import { slipToP } from './slip'
 import { allocate, computeBalances, summarize } from './ledger'
 import { DEFAULT_SETTINGS } from './defaults'
 import { round2 } from './format'
@@ -22,16 +23,26 @@ export function processInbox() {
   const st = useStore.getState()
   const settings = { ...DEFAULT_SETTINGS, ...(st.items.settings?.data || {}) }
   if (!settings.autoRecord) return 0
+  // slips always wait for the user's confirmation
+  const n = recordInbox(selectList(st.items, 'inbox').filter((x) => !x.slip && !x.image))
+  if (n) st.showToast(`บันทึกจากแจ้งเตือนธนาคารอัตโนมัติ ${n} รายการ`)
+  return n
+}
+
+/** Records the given inbox items as transactions (used by auto-record and "ยืนยันทั้งหมด"). */
+export function recordInbox(list) {
+  const st = useStore.getState()
+  const settings = { ...DEFAULT_SETTINGS, ...(st.items.settings?.data || {}) }
   const T = settings.allocation.targets
   const accounts = selectList(st.items, 'account')
   const assets = selectList(st.items, 'asset')
   const txns = selectList(st.items, 'txn')
   const card = accounts.find((a) => a.type === 'credit' && !a.archived)
-  const inbox = selectList(st.items, 'inbox').sort((a, b) => (a.at || '').localeCompare(b.at || ''))
+  const inbox = [...list].sort((a, b) => (a.at || '').localeCompare(b.at || ''))
   const recent = txns.filter((t) => t.fromInbox && t.createdAt && Date.now() - Date.parse(t.createdAt) < 15 * 60_000)
   let n = 0
   for (const it of inbox) {
-    const p = parseNotification(it.raw)
+    const p = it.slip ? slipToP(it.slip) : parseNotification(it.raw)
     if (!p.amount || !p.direction) continue // needs a human
     const id = `auto-${it.id}`
     if (st.items[id]) { st.remove(it.id, { undo: false }); continue }
@@ -39,8 +50,8 @@ export function processInbox() {
     // same amount & direction from another source (e.g. LINE + K PLUS) within 5 minutes = duplicate
     const dupe = recent.find((t) => Math.abs(t.amount - p.amount) < 0.01 && t.inDir === p.direction && Math.abs(Date.parse(t.createdAt) - Date.parse(at)) < 5 * 60_000)
     if (dupe) { st.remove(it.id, { undo: false }); continue }
-    const date = localDate(p.time || at)
-    const base = { id, date, createdAt: at, fromInbox: true, inDir: p.direction, raw: it.raw.slice(0, 300) }
+    const date = p.date || localDate(p.time || at)
+    const base = { id, date, createdAt: at, fromInbox: true, inDir: p.direction, raw: (it.raw || '').slice(0, 300), ...(it.slip ? { fromSlip: true, slipRef: it.slip.ref || undefined } : {}) }
     let t = null
     if (p.kind === 'trade') {
       const symbol = `${p.coin}-USD`
@@ -80,6 +91,5 @@ export function processInbox() {
     recent.push(t)
     n++
   }
-  if (n) st.showToast(`บันทึกจากแจ้งเตือนธนาคารอัตโนมัติ ${n} รายการ`)
   return n
 }

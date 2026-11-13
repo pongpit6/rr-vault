@@ -23,6 +23,8 @@ import { assetLabel } from './lib/portfolio'
 import { processDueSubs } from './lib/subs'
 import { processInstallments } from './lib/installments'
 import { processInbox } from './lib/autorecord'
+import { processSlipQueue } from './lib/slipqueue'
+import { useSlipSummary } from './lib/slipSummary'
 
 const NAV = [
   { id: 'home', label: 'หน้าแรก', icon: LayoutDashboard },
@@ -129,6 +131,21 @@ export default function App() {
   const inboxCount = useStore((s) => Object.values(s.items).filter((i) => i.kind === 'inbox' && !i.deleted).length)
   const autoRecord = useStore((s) => s.items.settings?.data?.autoRecord)
   useEffect(() => { if (ready && autoRecord && inboxCount) { const t = setTimeout(processInbox, 600); return () => clearTimeout(t) } }, [ready, autoRecord, inboxCount])
+  // slips: uploaded by MacroDroid / Shortcuts, or shared from the gallery
+  const slipPending = useStore((s) => Object.values(s.items).filter((i) => i.kind === 'inbox' && !i.deleted && i.data.image && !i.data.slip).length)
+  useEffect(() => {
+    if (!ready) return
+    const q = new URLSearchParams(location.search)
+    if (q.has('share') || q.get('view') === 'inbox') { go('txns', 'inbox'); history.replaceState(null, '', location.pathname + '#txns') }
+  }, [ready]) // eslint-disable-line
+  useEffect(() => {
+    if (!ready) return
+    const t = setTimeout(processSlipQueue, 1200)
+    const vis = () => document.visibilityState === 'visible' && processSlipQueue()
+    document.addEventListener('visibilitychange', vis)
+    return () => { clearTimeout(t); document.removeEventListener('visibilitychange', vis) }
+  }, [ready, slipPending])
+  useSlipSummary(ready)
   useEffect(() => {
     if (!ready) return
     const run = () => { processDueSubs(); processInstallments() }

@@ -131,16 +131,18 @@ export default function AutoCapture({ open, onClose }) {
   return (
     <Sheet open onClose={onClose} title="บันทึกอัตโนมัติจากแจ้งเตือนธนาคาร" wide>
       {!session ? (
-        <div className="space-y-3">{modeBox}<div className="text-sm text-slate-600">การส่งแจ้งเตือนจากมือถืออัตโนมัติ ต้องเข้าสู่ระบบก่อน (ตั้งค่า → เข้าสู่ระบบเพื่อซิงก์) ระหว่างนี้วางข้อความหรืออ่านจากคลิปบอร์ดในหน้า “รายการ → รอยืนยัน” ได้</div></div>
+        <div className="space-y-3">{modeBox}<SlipSettings /><div className="text-sm text-slate-600">การส่งแจ้งเตือนจากมือถืออัตโนมัติ ต้องเข้าสู่ระบบก่อน (ตั้งค่า → เข้าสู่ระบบเพื่อซิงก์) ระหว่างนี้วางข้อความหรืออ่านจากคลิปบอร์ดในหน้า “รายการ → รอยืนยัน” ได้</div></div>
       ) : !token ? (
         <div className="space-y-3">
           {modeBox}
+          <SlipSettings />
           <div className="text-sm text-slate-600">ขั้นแรก สร้าง <b>ลิงก์ส่วนตัว</b> สำหรับส่งข้อความแจ้งเตือนเข้า Vault ของคุณ (เก็บเป็นความลับ ใครได้ลิงก์ไปจะส่งรายการเข้ามาได้)</div>
           <Button className="w-full" onClick={create} disabled={busy}><KeyRound size={18} /> สร้างลิงก์ส่วนตัว</Button>
         </div>
       ) : (
         <div className="space-y-5">
           {modeBox}
+          <SlipSettings />
           <div className="rounded-2xl bg-emerald-50 border border-emerald-200 p-3 space-y-2">
             <div className="text-sm font-semibold text-emerald-800 flex items-center gap-1.5"><ShieldCheck size={16} /> ลิงก์ส่วนตัวของคุณ</div>
             <CopyBox value={url} />
@@ -151,9 +153,9 @@ export default function AutoCapture({ open, onClose }) {
           </div>
 
           <div className="text-sm font-semibold pt-2">ตั้งค่าตัวส่งแจ้งเตือนบนมือถือ</div>
-          <Segmented value={os} onChange={setOs} options={[{ value: 'android', label: 'Android (อัตโนมัติ)' }, { value: 'ios', label: 'iPhone (แชร์ข้อความ)' }]} />
+          <Segmented value={os} onChange={setOs} options={[{ value: 'android', label: 'แจ้งเตือน Android' }, { value: 'ios', label: 'แจ้งเตือน iPhone' }, { value: 'slip', label: 'สลิป K PLUS' }]} />
 
-          {os === 'android' ? (
+          {os === 'slip' ? <SlipSteps url={url} /> : os === 'android' ? (
             <ol className="space-y-3">
               <Step n={1}>ติดตั้งแอป <b>MacroDroid</b> จาก Play Store (ฟรี)</Step>
               <Step n={2}>เปิด MacroDroid → <b>Add Macro</b> → Trigger: <b>Device Events → Notification → Notification Received</b> → เลือกแอป <b>LINE</b> → Text content: <b>Contains</b> ใส่ <code>บาท</code></Step>
@@ -179,6 +181,66 @@ export default function AutoCapture({ open, onClose }) {
         </div>
       )}
     </Sheet>
+  )
+}
+
+/** Daily slip summary time + notification permission. */
+function SlipSettings() {
+  const settings = useStore((s) => s.items.settings?.data) || {}
+  const put = useStore((s) => s.put)
+  const [perm, setPerm] = useState(() => ('Notification' in window ? Notification.permission : 'unsupported'))
+  const time = settings.slipSummaryTime ?? '20:00'
+  return (
+    <div className="rounded-2xl border border-slate-200 p-3 space-y-2">
+      <div className="text-sm font-semibold">สรุปสลิปประจำวัน</div>
+      <div className="flex items-center gap-2 text-sm">
+        <span className="text-slate-600 flex-1">แจ้งเตือนให้ยืนยันสลิปทุกวันเวลา</span>
+        <input type="time" value={time} onChange={(e) => put('settings', { ...settings, slipSummaryTime: e.target.value })} className="field !w-auto !py-1.5" />
+        {time && <button onClick={() => put('settings', { ...settings, slipSummaryTime: '' })} className="text-xs text-slate-500 underline">ปิด</button>}
+      </div>
+      {perm !== 'granted' && perm !== 'unsupported' && (
+        <Button variant="ghost" className="w-full !py-2 text-sm" onClick={async () => setPerm(await Notification.requestPermission())}>อนุญาตให้ Vault แจ้งเตือน</Button>
+      )}
+      <div className="text-[11px] text-slate-400">แอปบนเว็บแจ้งเตือนเองได้เฉพาะตอนที่แอปยังเปิดค้างอยู่เบื้องหลัง ถ้าปิดแอปไปแล้ว ให้ตั้ง MacroDroid / คำสั่งลัด (ขั้นตอนในแท็บ “สลิป K PLUS”) แจ้งเตือนเวลาเดียวกันแทน</div>
+    </div>
+  )
+}
+
+function SlipSteps({ url }) {
+  const [os, setOs] = useState('android')
+  const slipUrl = url ? `${url}&slip=1` : ''
+  const open = 'https://pongpit6.github.io/rr-vault/?view=inbox'
+  return (
+    <div className="space-y-3">
+      <div className="text-sm text-slate-600">ส่งรูปสลิปจาก K PLUS เข้า Vault อัตโนมัติ แอปจะอ่านให้แล้วรอคุณกดยืนยันใน “รอยืนยัน” · เติมเงิน Bitkub ผ่าน QR จะถูกจัดเป็น “โอนเข้ากระเป๋าลงทุน” ให้เอง</div>
+      <div className="text-xs text-slate-500">ลิงก์สำหรับส่งรูปสลิป:</div>
+      <CopyBox value={slipUrl} />
+      <Segmented value={os} onChange={setOs} options={[{ value: 'android', label: 'Android · MacroDroid' }, { value: 'ios', label: 'iPhone · คำสั่งลัด' }, { value: 'share', label: 'แชร์จากแกลเลอรี' }]} />
+      {os === 'android' ? (
+        <ol className="space-y-3">
+          <Step n={1}>ใน K PLUS เปิด <b>บันทึกสลิปอัตโนมัติ</b> (ตั้งค่า → สลิป) รูปจะไปอยู่ในอัลบั้ม/โฟลเดอร์ <b>K PLUS</b> ใน Pictures หรือ DCIM</Step>
+          <Step n={2}>MacroDroid → Add Macro → Trigger: <b>File Monitor</b> (ตรวจจับไฟล์) → เลือกโฟลเดอร์ K PLUS → เหตุการณ์ <b>สร้างไฟล์ใหม่</b></Step>
+          <Step n={3}>Action: <b>HTTP Request</b> → POST → URL วางลิงก์ด้านบน → Body เลือกแบบ <b>ไฟล์ (File)</b> → เลือกตัวแปร <b>path ของไฟล์</b> ที่ได้จาก Trigger · Content type <code>image/jpeg</code></Step>
+          <Step n={4}>สร้างอีก Macro สำหรับสรุปตอนเย็น: Trigger <b>Day/Time</b> ทุกวัน 20:00 → Action <b>Display Notification</b> “ยืนยันสลิปวันนี้” และตั้งให้แตะแล้ว <b>Open Website</b>:
+            <div className="mt-2"><CopyBox value={open} /></div></Step>
+          <Step n={5}>Samsung: ตั้ง MacroDroid แบตเตอรี่เป็น <b>ไม่จำกัด</b> และอนุญาตเข้าถึง <b>รูปภาพและไฟล์</b></Step>
+          <div className="text-[11px] text-slate-400">ชื่อเมนูอาจต่างกันเล็กน้อยตามเวอร์ชัน MacroDroid ถ้าหาไม่เจอ แคปหน้าจอมาให้ผมดูได้</div>
+        </ol>
+      ) : os === 'ios' ? (
+        <ol className="space-y-3">
+          <Step n={1}>คำสั่งลัด → <b>ระบบอัตโนมัติ</b> → ส่วนตัว → <b>เวลาของวัน</b> 20:00 ทุกวัน → <b>เรียกใช้ทันที</b></Step>
+          <Step n={2}>เพิ่ม <b>ค้นหารูปภาพ (Find Photos)</b>: อัลบั้มคือ K PLUS และ วันที่ถ่าย คือ วันนี้</Step>
+          <Step n={3}>เพิ่ม <b>ทำซ้ำกับแต่ละรายการ</b> → ข้างในใส่ <b>รับเนื้อหาของ URL</b> → วางลิงก์ด้านบน → POST → เนื้อหาคำขอ <b>ไฟล์</b> = รายการที่ทำซ้ำ</Step>
+          <Step n={4}>หลังวนเสร็จ เพิ่ม <b>เปิด URL</b>:<div className="mt-2"><CopyBox value={open} /></div></Step>
+        </ol>
+      ) : (
+        <ol className="space-y-3">
+          <Step n={1}>ต้อง <b>ติดตั้ง Vault เป็นแอป</b> ก่อน (Chrome → ⋮ → เพิ่มลงในหน้าจอหลัก)</Step>
+          <Step n={2}>เปิดแกลเลอรี → อัลบั้ม K PLUS → <b>เลือกสลิปของวันนี้หลายรูป</b> → แชร์ → <b>R.R. Vault</b></Step>
+          <Step n={3}>Vault เปิดขึ้นมาอ่านสลิปให้ แล้วไปรอที่ “รอยืนยัน” · ไม่ต้องตั้งค่าอะไร และใช้ได้แม้ยังไม่ได้ตั้ง MacroDroid</Step>
+        </ol>
+      )}
+    </div>
   )
 }
 

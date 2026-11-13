@@ -22,6 +22,12 @@ export default defineConfig({
         start_url: './',
         scope: './',
         lang: 'th',
+        share_target: {
+          action: './share-target',
+          method: 'POST',
+          enctype: 'multipart/form-data',
+          params: { files: [{ name: 'slips', accept: ['image/*'] }] },
+        },
         icons: [
           { src: 'icon-192.png', sizes: '192x192', type: 'image/png' },
           { src: 'icon-512.png', sizes: '512x512', type: 'image/png' },
@@ -31,6 +37,7 @@ export default defineConfig({
       workbox: {
         globPatterns: ['**/*.{js,css,html,png,jpg,svg,woff2}'],
         navigateFallback: 'index.html',
+        importScripts: ['share-target.js'],
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/fonts\.(googleapis|gstatic)\.com\/.*/i,

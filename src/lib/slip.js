@@ -92,3 +92,16 @@ export function parseSlipText(raw, ownerName = '') {
   return blocks.map(({ lines: ls, d }) => ({ ...parseBlock(ls, ownerWords), date: d?.date || null, time: d?.time || null, text: ls.join('\n') }))
     .filter((x) => x.amount && x.amount > 0)
 }
+
+const EXCH_RE = /bitkub|บิทคับ|binance\s*th|orbix|upbit/i
+/** Is this OCR text a payment slip (not just any picture with numbers)? */
+export const looksLikeSlip = (text) => /สำเร็จ|โอนเงิน|ชำระ|เลขที่รายการ|รหัสอ้างอิง|transfer|successful|ref/i.test(text)
+
+/** Same shape as parseNotification() so the inbox / auto-record code can treat slips like notifications. */
+export function slipToP(sl) {
+  const exch = EXCH_RE.test(`${sl.counterparty || ''} ${sl.text || ''}`) && sl.direction !== 'in'
+  const exchange = /binance/i.test(sl.counterparty || sl.text || '') ? 'Binance TH' : 'Bitkub'
+  const time = sl.date ? `${sl.date}T${sl.time || '12:00'}:00` : null
+  if (exch) return { kind: 'exchange-in', exchange, amount: sl.amount, direction: 'transfer', bank: sl.bank, counterparty: exchange, time, date: sl.date, fromSlip: true }
+  return { amount: sl.amount, direction: sl.direction, counterparty: sl.counterparty || null, bank: sl.bank, isCard: false, time, date: sl.date, ref: sl.ref, fromSlip: true }
+}
