@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Settings as Cog, Eye, EyeOff, ChevronRight, ChevronDown, Cloud, CloudOff, RefreshCw, Plus } from 'lucide-react'
+import { Settings as Cog, Eye, EyeOff, ChevronRight, ChevronDown, Cloud, CloudOff, RefreshCw, Plus, ScanLine } from 'lucide-react'
 import { Avatar, Money, IconBadge, Empty, Button } from '../components/ui'
 import TxnRow from '../components/TxnRow'
 import { SubLogo, AssetLogo } from '../components/Logos'
@@ -116,6 +116,7 @@ export default function Home({ onAdd, onEdit, go }) {
           <div className="font-semibold truncate">{profile.name}</div>
         </div>
         <SyncDot />
+        <button onClick={() => setUi({ slipOpen: true })} className="p-2 rounded-full hover:bg-slate-900/[.04] text-slate-600" title="สแกนสลิป"><ScanLine size={20} /></button>
         <button onClick={() => setUi({ privacy: !privacy })} className="p-2 rounded-full hover:bg-slate-900/[.04] text-slate-600" title="ซ่อน/แสดงตัวเลข">{privacy ? <EyeOff size={20} /> : <Eye size={20} />}</button>
         <button onClick={() => go('settings')} className="p-2 -mr-2 rounded-full hover:bg-slate-900/[.04] text-slate-600" title="ตั้งค่า"><Cog size={20} /></button>
       </header>

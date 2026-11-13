@@ -8,6 +8,7 @@ import Settings from './screens/Settings'
 import VaultRpg from './screens/VaultRpg'
 import Portfolio from './screens/Portfolio'
 import Onboarding from './components/Onboarding'
+import SlipScanner from './components/SlipScanner'
 import { useVault } from './lib/useVault'
 import { usePrices, assetPrice } from './lib/prices'
 import { todayISO } from './lib/format'
@@ -217,6 +218,7 @@ export default function App() {
       </nav>
 
       <Onboarding />
+      <SlipHost />
       <SnapshotWriter />
       <AlertWatcher />
       <TxnForm open={!!form} initial={form} onClose={() => setForm(null)} />
@@ -233,4 +235,10 @@ function NavBtn({ n, active, onClick }) {
       {n.label}
     </button>
   )
+}
+
+function SlipHost() {
+  const open = useStore((s) => !!s.ui.slipOpen)
+  const setUi = useStore((s) => s.setUi)
+  return <SlipScanner open={open} onClose={() => setUi({ slipOpen: false })} />
 }

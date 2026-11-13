@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Search, ChevronLeft, ChevronRight, X } from 'lucide-react'
+import { Search, ChevronLeft, ChevronRight, X, ScanLine } from 'lucide-react'
+import { useStore } from '../store'
 import { Segmented, Money, Empty } from '../components/ui'
 import TxnRow, { txnVisual } from '../components/TxnRow'
 import { useVault } from '../lib/useVault'
@@ -56,6 +57,7 @@ export default function Transactions({ onEdit, onAdd, onTrade, go, opt, initialA
     <div className="space-y-4">
       <div className="flex items-center justify-between pt-2">
         <h1 className="text-2xl font-bold">รายการ</h1>
+        <button onClick={() => useStore.getState().setUi({ slipOpen: true })} className="flex items-center gap-1.5 text-sm font-medium px-3 py-2 rounded-xl bg-emerald-50 text-emerald-700 hover:bg-emerald-100"><ScanLine size={17} /> สแกนสลิป</button>
       </div>
       <Segmented value={view} onChange={setView} options={tabs} />
       {view === 'inbox' && <Inbox onAdd={onAdd} onTrade={onTrade} go={go} embedded />}

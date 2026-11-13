@@ -3,10 +3,11 @@ import {
   Receipt, Film, HeartPulse, GraduationCap, House, Gift, Ellipsis, Briefcase, Award, Laptop, Store, Percent,
   Coins, Plane, Coffee, Smartphone, Zap, Droplet, Wifi, Shirt, Dumbbell, Baby, PawPrint, Gamepad2, Music, Book,
   Fuel, Bus, Banknote, HandCoins, Gem, Bitcoin, Vault, Building2, Target, Tag, Wrench, Scale, Repeat, Stethoscope,
-  Pill, Plug, Tv, Sofa, Bike, Beer, Popcorn, CircleDollarSign, Sparkles,
+  Pill, Plug, Tv, Sofa, Bike, Beer, Popcorn, CircleDollarSign, Sparkles, ScanLine,
 } from 'lucide-react'
 
 export const ICONS = {
+  scan: ScanLine,
   wallet: Wallet, piggy: PiggyBank, trending: TrendingUp, shield: ShieldCheck, card: CreditCard, bank: Landmark,
   food: Utensils, car: Car, bag: ShoppingBag, cart: ShoppingCart, receipt: Receipt, film: Film, health: HeartPulse,
   edu: GraduationCap, home: House, gift: Gift, more: Ellipsis, briefcase: Briefcase, award: Award, laptop: Laptop,
