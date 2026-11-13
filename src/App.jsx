@@ -168,7 +168,7 @@ export default function App() {
   const onEdit = (t) => (t.kind === 'trade' ? setTrade(t) : setForm(t))
   const screen = {
     home: <Home onAdd={onAdd} onEdit={onEdit} go={go} onTrade={setTrade} />,
-    inbox: <Inbox onAdd={onAdd} go={go} />,
+    inbox: <Inbox onAdd={onAdd} onTrade={setTrade} go={go} />,
     txns: <Transactions onEdit={onEdit} />,
     portfolio: <Portfolio onTrade={setTrade} />,
     wallets: <Wallets onEdit={onEdit} go={setTab} />,

@@ -125,11 +125,12 @@ export default function TradeForm({ open, onClose, initial }) {
     if (a.type === 'derivative') { t.dir = f.dir; if (f.side === 'buy') t.margin = amount }
     if (!t.id) delete t.id
     put('txn', t)
+    if (initial?.inboxId) remove(initial.inboxId, { undo: false })
     showToast(`${f.side === 'buy' ? 'ซื้อ' : 'ขาย'} ${a.name} แล้ว`)
     onClose()
   }
 
-  const fmtQ = (p) => (p >= 1000 ? p.toLocaleString(undefined, { maximumFractionDigits: 2 }) : p.toLocaleString(undefined, { maximumFractionDigits: 6 }))
+  const fmtQ = (p) => (p >= 1000 ? p.toLocaleString(undefined, { maximumFractionDigits: 2 }) : p.toLocaleString(undefined, { maximumFractionDigits: Math.abs(p) < 1 ? 8 : 6 }))
   const ccySym = (c) => (c === 'USD' ? '$' : '฿')
 
   return (

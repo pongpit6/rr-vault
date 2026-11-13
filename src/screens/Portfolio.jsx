@@ -10,7 +10,7 @@ import { money, shortDate, evalAmount } from '../lib/format'
 import { GOLD } from '../lib/prices'
 
 const pct = (v) => `${v >= 0 ? '+' : ''}${(v * 100).toFixed(2)}%`
-const fmtQ = (p) => (p == null ? '—' : p >= 1000 ? p.toLocaleString(undefined, { maximumFractionDigits: 2 }) : p.toLocaleString(undefined, { maximumFractionDigits: 6 }))
+const fmtQ = (p) => (p == null ? '—' : p >= 1000 ? p.toLocaleString(undefined, { maximumFractionDigits: 2 }) : p.toLocaleString(undefined, { maximumFractionDigits: Math.abs(p) < 1 ? 8 : 6 }))
 const ccy = (a) => (a.currency === 'USD' ? '$' : '฿')
 const Delta = ({ v, className = '' }) => (
   <span className={`num ${v > 0 ? 'text-emerald-600' : v < 0 ? 'text-rose' : 'text-slate-500'} ${className}`}>{v > 0 ? '▲' : v < 0 ? '▼' : ''} {pct(Math.abs(v)).replace('+', '')}</span>

@@ -5,7 +5,7 @@ import { useStore } from '../store'
 import { assetLabel } from '../lib/portfolio'
 
 const itemData = (id) => { const it = id && useStore.getState().items[id]; return it ? it.data : null }
-const fmtQ = (q) => Number(q).toLocaleString(undefined, { maximumFractionDigits: 6 })
+const fmtQ = (q) => Number(q).toLocaleString(undefined, { maximumFractionDigits: Math.abs(Number(q)) < 1 ? 8 : 6 })
 
 export function txnVisual(t, catById, accById) {
   if (t.kind === 'transfer') return { icon: 'repeat', color: '#38bdf8', title: 'โอนระหว่างกระเป๋า', sub: `${accById[t.account]?.name || '?'} → ${accById[t.to]?.name || '?'}` }

@@ -128,7 +128,7 @@ export default function Home({ onAdd, onEdit, go }) {
               <div className="w-10 h-10 rounded-2xl bg-amber-400 text-white grid place-items-center font-bold">{inbox.length}</div>
               <div className="flex-1 min-w-0">
                 <div className="font-semibold">รายการจากแจ้งเตือนธนาคาร รอยืนยัน</div>
-                <div className="text-xs text-slate-600 truncate">{inbox.slice(0, 3).map((x) => `${x.p.direction === 'in' ? '+' : '-'}${x.p.amount ? money(x.p.amount, { decimals: false }) : '?'}${x.p.counterparty ? ' ' + x.p.counterparty : ''}`).join(' · ')}</div>
+                <div className="text-xs text-slate-600 truncate">{inbox.slice(0, 3).map((x) => x.p.kind === 'trade' ? `${x.p.side === 'buy' ? 'ซื้อ' : 'ขาย'} ${x.p.coin}` : `${x.p.direction === 'in' ? '+' : x.p.direction === 'transfer' ? '' : '-'}${x.p.amount ? money(x.p.amount, { decimals: false }) : '?'}${x.p.counterparty ? ' ' + x.p.counterparty : ''}`).join(' · ')}</div>
               </div>
               <ChevronRight size={18} className="text-slate-400" />
             </button>

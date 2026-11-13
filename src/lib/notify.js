@@ -14,8 +14,35 @@ const BANKS = [
   [/make by kbank|make/i, 'MAKE'], [/line\s?bk/i, 'LINE BK'], [/shopee\s?pay/i, 'ShopeePay'],
 ]
 
+const n = (x) => Number(String(x).replace(/,/g, ''))
+
+/** Crypto exchange messages (Bitkub Connect): trades and THB deposits/withdrawals. */
+function parseExchange(text) {
+  const exch = /bitkub/i.test(text) ? 'Bitkub' : /binance\s*th/i.test(text) ? 'Binance TH' : /orbix|upbit|gulf\s*binance/i.test(text) ? 'Exchange' : null
+  const time = text.match(/(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:[+-]\d{2}:?\d{2}|Z)?)/)?.[1] || null
+  const tr = text.match(/You\s+(Spent|Sold)\s*:?\s*([\d.,]+)\s*([A-Z]{2,10})[\s\S]*?(?:Price\s*:?\s*([\d.,]+)\s*([A-Z]{2,10})\s*\/\s*([A-Z]{2,10}))?[\s\S]*?You\s+Received\s*:?\s*([\d.,]+)\s*([A-Z]{2,10})/i)
+  if (tr) {
+    const [, , outAmt, outCcy, price, , , inAmt, inCcy] = tr
+    const buy = /^(THB|USDT|USD)$/i.test(outCcy)
+    const coin = (buy ? inCcy : outCcy).toUpperCase()
+    const fiat = (buy ? outCcy : inCcy).toUpperCase()
+    const qty = n(buy ? inAmt : outAmt), total = n(buy ? outAmt : inAmt)
+    const pm = text.match(/Price\s*:?\s*([\d.,]+)\s*[A-Z]{2,10}\s*\/\s*[A-Z]{2,10}/i)
+    const px = pm ? n(pm[1]) : price ? n(price) : null
+    const fee = px ? Math.max(0, Math.round((buy ? total - px * qty : px * qty - total) * 100) / 100) : 0
+    return { kind: 'trade', side: buy ? 'buy' : 'sell', coin, fiat, qty, total, price: px, fee, exchange: exch || 'Exchange', time, amount: total, direction: buy ? 'out' : 'in' }
+  }
+  const dep = text.match(/(ฝากเงิน(?:บาท)?|deposit)[^\d]{0,30}?([\d.,]+)\s*(THB|บาท)/i)
+  if (dep && exch) return { kind: 'exchange-in', exchange: exch, amount: n(dep[2]), time, direction: 'transfer' }
+  const wd = text.match(/(ถอนเงิน(?:บาท)?|withdraw(?:al)?)[^\d]{0,30}?([\d.,]+)\s*(THB|บาท)/i)
+  if (wd && exch) return { kind: 'exchange-out', exchange: exch, amount: n(wd[2]), time, direction: 'transfer' }
+  return null
+}
+
 export function parseNotification(raw = '') {
   const text = String(raw).replace(/\s+/g, ' ').trim()
+  const ex = parseExchange(text)
+  if (ex) return { ...ex, bank: ex.exchange, isCard: false, counterparty: ex.exchange, balance: null }
   const bank = BANKS.find(([re]) => re.test(text))?.[1] || null
 
   // pick the transaction amount: prefer a number next to บาท/THB/฿/จำนวน that isn't a balance, account no., date or time
@@ -25,23 +52,26 @@ export function parseNotification(raw = '') {
   while ((m = NUM.exec(text))) {
     const s = m.index, e = s + m[0].length
     const before = text.slice(Math.max(0, s - 18), s), after = text.slice(e, e + 6)
-    if (/[x*•\-/:]$/i.test(text.slice(0, s)) || /^[x*•/:\-]\d/i.test(after) || /^\s*[:.]\d{2}/.test(after)) continue // acct / date / time
+    const prev = text.slice(0, s)
+    const signed = /(^|\s)[-−+]$/.test(prev)
+    if ((!signed && /[x*•\-/:]$/i.test(prev)) || /^[x*•/:\-]\d/i.test(after) || /^\s*[:.]\d{2}/.test(after)) continue // acct / date / time
     const v = Number(m[0].replace(/,/g, ''))
     if (!(v > 0) || v > 1e9) continue
     const unit = /^\s*(บาท|thb|฿|บ\.)/i.test(after) || /(฿|thb|บาท)\s*$/i.test(before)
     const lead = /(จำนวน(เงิน)?|amount|ยอด(เงิน|ชำระ|โอน)?|โอน|ชำระ|จ่าย|ใช้จ่าย|ซื้อ|รับ|เข้า)\s*[:：]?\s*(฿|thb)?\s*$/i.test(before)
     const isBal = BAL_RE.test(before.replace(/(฿|thb)\s*$/i, ''))
     const hasDecimals = m[0].includes('.')
-    cands.push({ v, score: (unit ? 3 : 0) + (lead ? 2 : 0) + (hasDecimals ? 1 : 0) - (isBal ? 10 : 0), s })
+    cands.push({ v, score: (unit ? 3 : 0) + (lead ? 2 : 0) + (hasDecimals ? 1 : 0) + (signed ? 2 : 0) - (isBal ? 10 : 0), s, sign: signed ? prev.slice(-1) : null })
   }
   cands.sort((a, b) => b.score - a.score || a.s - b.s)
   const amount = cands[0] && cands[0].score > -5 ? cands[0].v : null
+  const signHint = cands[0]?.sign ? (cands[0].sign === '+' ? 'in' : 'out') : null
   const balance = (() => { const b = text.match(/(คงเหลือ|balance|ยอดคงเหลือ)\s*[:：]?\s*(฿|thb)?\s*([0-9,]+(?:\.\d{1,2})?)/i); return b ? Number(b[3].replace(/,/g, '')) : null })()
 
   const inAt = text.search(IN_RE), outAt = text.search(OUT_RE)
-  let direction = null
-  if (inAt >= 0 && (outAt < 0 || inAt <= outAt)) direction = 'in'
-  else if (outAt >= 0) direction = 'out'
+  let direction = signHint
+  if (!direction && inAt >= 0 && (outAt < 0 || inAt <= outAt)) direction = 'in'
+  else if (!direction && outAt >= 0) direction = 'out'
   const isCard = CARD_RE.test(text)
   if (isCard && !direction) direction = 'out'
 
