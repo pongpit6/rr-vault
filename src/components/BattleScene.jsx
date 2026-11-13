@@ -11,6 +11,28 @@ function sheet(name) {
   return imgs[name]
 }
 Object.keys(SHEETS).forEach(sheet) // preload
+const statics = {}
+function still(name) {
+  if (!statics[name]) { const im = new Image(); im.src = `./sprites/${name}.png`; statics[name] = im }
+  const im = statics[name]
+  return im.complete && im.naturalWidth ? im : null
+}
+;['pet_fox', 'npc_merchant', 'npc_farmer', 'chest_closed', 'chest_open'].forEach(still)
+/** draw a static sprite, optionally mirrored, scaled to height h, feet at (x, y) */
+function drawStill(g, name, x, y, h, flip = false) {
+  const im = still(name); if (!im) return
+  const w = (im.width / im.height) * h
+  g.save(); g.translate(Math.round(x), Math.round(y - h))
+  if (flip) { g.translate(w, 0); g.scale(-1, 1) }
+  g.drawImage(im, 0, 0, w, h); g.restore()
+}
+const TAUNTS = {
+  dragon: ['ดอกเบี้ยบัตร 16% ต่อปีนะจ๊ะ~', 'รูดอีกสิ รูดอีก! 🔥', 'จ่ายขั้นต่ำก็พอแล้วมั้ง... ฮ่าๆ', 'ข้ากินโปรผ่อน 0% เป็นอาหารเช้า'],
+  golem: ['งวดหน้ามาอีกแล้วนะ', 'ข้าแข็งเหมือนเงินต้น', 'ดอกเบี้ยข้าไม่เคยหลับ', 'ตีเบาไปหน่อยมั้ง?'],
+  slime: ['ปุ๊ย~', 'ฝึกอีกรอบไหม?', 'ไม่มีหนี้ก็มาเล่นกับข้าสิ', 'ปุ๊ยๆ 💧'],
+}
+const QUIPS = ['รับไปเลย!', 'ใกล้หมดแล้ว!', 'ทุกบาทคือดาเมจ!', 'อีกนิดเดียว!']
+const PET_LINES = { storm: ['เดือนนี้ใช้เกินรายรับแล้วนะ…', 'ระวังกระเป๋ารั่ว!'], rain: ['ฝนตกแล้ว อยู่บ้านประหยัดเงิน~'], sun: ['วันนี้อากาศดี บันทึกรายการกัน!', 'เก็บเหรียญกันเถอะ!'], leaves: ['ลมหนาวมาแล้ว~'], night: ['ง่วงแล้ว… zZ'] }
 const tintCache = {}
 /** Frame `i` of an animation (index into its seq), optionally tinted white (hit) or green (regen). */
 function frame(name, i, mode = 'normal') {
@@ -72,18 +94,19 @@ function drawStructures(g, tier, gy, night) {
 }
 
 /* ---------------- component ---------------- */
-export default function BattleScene({ bosses, events = [], onConsumed, tier = 1, fog = 0, big = false, level = 1, hud = true }) {
+export default function BattleScene({ bosses, events = [], onConsumed, tier = 1, fog = 0, big = false, level = 1, hud = true, weather = 'sun', chest = false, onChest }) {
   const W = 400, H = big ? 220 : 176
   const canvasRef = useRef(null)
   const privacy = useStore((s) => s.ui.privacy)
   const [floats, setFloats] = useState([])
   const [banner, setBanner] = useState(null)
+  const [bubble, setBubble] = useState(null)
   const [, force] = useState(0)
 
   const alive = useMemo(() => bosses.filter((b) => b.active).sort((a, b) => b.hp - a.hp), [bosses])
-  const S = useRef({ queue: [], fx: [], hpShown: {}, focus: null, focusUntil: 0, cycleStart: 0, cycle: 0, current: null, dying: 0, heal: 0, shake: 0, flash: 0, heroFlash: 0, levelGlow: 0 })
+  const S = useRef({ queue: [], fx: [], hpShown: {}, focus: null, focusUntil: 0, cycleStart: 0, cycle: 0, current: null, dying: 0, heal: 0, shake: 0, flash: 0, heroFlash: 0, levelGlow: 0, petX: 40, petHop: 0, heroJump: 0, poke: 0, nextTalk: 0, smoke: [], drops: [], bolt: 0 })
   const P = useRef({})
-  P.current = { bosses, alive, tier, fog, privacy }
+  P.current = { bosses, alive, tier, fog, privacy, weather, chest }
 
   // ingest real events: rewind displayed HP to the pre-event value, then replay them as attacks
   useEffect(() => {
@@ -104,6 +127,28 @@ export default function BattleScene({ bosses, events = [], onConsumed, tier = 1,
     setTimeout(() => setFloats((f) => f.filter((v) => v.id !== id)), 1600)
   }
   const showBanner = (b, ms = 2400) => { setBanner(b); setTimeout(() => setBanner(null), ms) }
+  const say = (who, text, x, y, ms = 2600) => { const id = Math.random(); setBubble({ id, who, text, x, y }); setTimeout(() => setBubble((b) => (b?.id === id ? null : b)), ms) }
+  const buzz = (p) => { try { if (document.visibilityState === 'visible') navigator.vibrate?.(p) } catch { /* no haptics */ } }
+
+  // tap the scene: pet → hearts, enemy → poke, chest → open
+  const onTap = (e) => {
+    const r = e.currentTarget.getBoundingClientRect()
+    const x = ((e.clientX - r.left) / r.width) * W, y = ((e.clientY - r.top) / r.height) * H
+    const s = S.current
+    if (P.current.chest && x < 60 && y > H - 70) { onChest?.(); return }
+    if (Math.abs(x - s.petX) < 22 && y > H - 70) {
+      s.petHop = 500; buzz(15)
+      for (let i = 0; i < 5; i++) s.fx.push({ x: s.petX, y: H - 60, vx: Math.random() * 1.6 - 0.8, vy: -1 - Math.random(), life: 900, c: '#fb7185', z: 3, g: -0.02 })
+      say('pet', ['💚', 'ฮิๆ', 'เก็บเงินเก่งมาก!', 'อยากได้เหรียญ~'][Math.floor(Math.random() * 4)], s.petX, H - 74, 1500)
+      return
+    }
+    if (x > W - 150) {
+      s.poke = 260; s.shake = 3; buzz(10)
+      addFloat('จิ้ม!', x, y - 10, 'block')
+      return
+    }
+    s.heroJump = 420; buzz(8)
+  }
 
   useEffect(() => {
     const cv = canvasRef.current
@@ -116,6 +161,13 @@ export default function BattleScene({ bosses, events = [], onConsumed, tier = 1,
     const clouds = [[10, 10, 14], [80, 18, 10], [140, 8, 16]]
     const stars = Array.from({ length: 26 }, () => [Math.random() * BW, Math.random() * (BH * 0.45), Math.random() * 6])
     const gy = H - 30 // feet line (full res)
+    const npcs = [
+      { name: 'npc_merchant', x: 170, dir: 1, sp: 0.018, nat: 1, minTier: 1, pause: 0 },
+      { name: 'npc_farmer', x: 250, dir: -1, sp: 0.014, nat: -1, minTier: 2, pause: 0 },
+    ]
+    const drops = Array.from({ length: 70 }, () => [Math.random() * W, Math.random() * H, 0.5 + Math.random()])
+    const birds = [[-20, 30, 0.03], [-60, 22, 0.026]]
+    s.nextTalk = performance.now() + 3500
     const heroBaseX = 70
 
     const pickEnemy = (now) => {
@@ -163,6 +215,13 @@ export default function BattleScene({ bosses, events = [], onConsumed, tier = 1,
         ex = ex0 - 18 * Math.sin(((t - 1700) / 700) * Math.PI)
       }
 
+      if (now > s.nextTalk && !s.dying) {
+        s.nextTalk = now + 7000 + Math.random() * 5000
+        const w = P.current.weather
+        const r = Math.random()
+        if (r < 0.5 && enemy) { const L = TAUNTS[kind] || TAUNTS.slime; say('boss', L[Math.floor(Math.random() * L.length)], ex0 + sp.w / 2, gy - sp.h - 6) }
+        else { const L = PET_LINES[sky.night > 0.2 && w === 'sun' ? 'night' : w] || PET_LINES.sun; say('pet', L[Math.floor(Math.random() * L.length)], s.petX, gy - 40) }
+      }
       const fire = (key, at) => { if (t >= at && s[key] !== s.cycle) { s[key] = s.cycle; return true } return false }
       const ecx = ex0 + sp.w / 2, etop = gy - sp.h
       if (attacking && fire('_hit', 1060)) {
@@ -171,7 +230,12 @@ export default function BattleScene({ bosses, events = [], onConsumed, tier = 1,
           s.hpShown[ev.boss] = Math.max(0, (s.hpShown[ev.boss] ?? 0) - ev.amount)
           addFloat(privacy ? 'CRITICAL!' : `-${money(ev.amount, { decimals: false })}`, ecx, etop + 18, 'crit')
           for (let i = 0; i < 26; i++) s.fx.push({ x: ecx - 10, y: gy - sp.h / 2, vx: Math.random() * 4 - 1, vy: -Math.random() * 3.5, life: 700, c: i % 2 ? '#fbbf24' : '#ffffff', z: 2 })
-          if (ev.kill) { s.dying = 1500; showBanner({ text: 'DEFEATED!', sub: `ปราบ${enemy?.name || 'บอส'}สำเร็จ`, cls: 'gold' }, 2800) }
+          buzz(ev.kill ? [40, 60, 40, 60, 120] : [25, 40, 50])
+          if (Math.random() < 0.6) say('hero', QUIPS[Math.floor(Math.random() * QUIPS.length)], hx + 34, gy - 74, 1400)
+          if (ev.kill) {
+            s.dying = 1500; showBanner({ text: 'DEFEATED!', sub: `ปราบ${enemy?.name || 'บอส'}สำเร็จ`, cls: 'gold' }, 2800)
+            for (let i = 0; i < 18; i++) s.drops.push({ x: ecx, y: gy - sp.h / 2, vx: Math.random() * 5 - 3.2, vy: -2 - Math.random() * 3, life: 2600 })
+          }
           ev._done = true
         } else {
           s.flash = 140; s.shake = 3
@@ -217,7 +281,17 @@ export default function BattleScene({ bosses, events = [], onConsumed, tier = 1,
       })
       g.fillStyle = sky.hill[0]
       for (let x = 0; x < BW; x++) { const y = bgy - 8 - Math.round(6 + 4 * Math.sin(x / 17) + 3 * Math.sin(x / 7.3)); g.fillRect(x, y, 1, bgy - y + 2) }
+      if (!sky.night && P.current.weather === 'sun') {
+        g.fillStyle = '#334155'
+        birds.forEach((b) => { b[0] += dt * b[2]; if (b[0] > BW + 30) b[0] = -40 - Math.random() * 60; const f = Math.floor(now / 220) % 2; g.fillRect(Math.round(b[0]), b[1] + f, 2, 1); g.fillRect(Math.round(b[0]) + 2, b[1] + 1 - f, 1, 1); g.fillRect(Math.round(b[0]) + 3, b[1] + f, 2, 1) })
+      }
       drawStructures(g, tier, bgy + 2, sky.night)
+      // chimney smoke from houses
+      const chim = tier >= 2 ? [157, 25, 177] : tier >= 1 ? [157] : []
+      if (chim.length && Math.random() < dt / 260) { const cx = chim[Math.floor(Math.random() * chim.length)]; s.smoke.push({ x: cx, y: bgy - 21, life: 2600 }) }
+      s.smoke = s.smoke.filter((p) => (p.life -= dt) > 0)
+      for (const p of s.smoke) { p.y -= dt * 0.006; p.x += dt * 0.003; g.fillStyle = `rgba(226,232,240,${Math.min(0.8, p.life / 2600)})`; const z = p.life > 1500 ? 1 : 2; g.fillRect(Math.round(p.x), Math.round(p.y), z, z) }
+      if (chim.length) { g.fillStyle = '#78716c'; chim.forEach((cx) => g.fillRect(cx, bgy - 21, 2, 3)) }
       g.fillStyle = sky.hill[1]
       for (let x = 0; x < BW; x++) { const y = bgy - Math.round(3 + 3 * Math.sin(x / 11 + 2)); g.fillRect(x, y, 1, bgy - y + 2) }
       g.fillStyle = '#22c55e'; g.fillRect(-4, bgy, BW + 8, 2)
@@ -227,12 +301,33 @@ export default function BattleScene({ bosses, events = [], onConsumed, tier = 1,
 
       // ---- sprites (full res) ----
       g.setTransform(1, 0, 0, 1, shx, shy)
+      const wet = P.current.weather === 'rain' || P.current.weather === 'storm'
+      for (const n of npcs) {
+        if (tier < n.minTier) continue
+        if (n.pause > 0) n.pause -= dt
+        else {
+          n.x += n.dir * n.sp * dt * (wet ? 2.2 : 1)
+          if (n.x > W - 40 || n.x < 140) { n.dir *= -1; n.pause = 800 + Math.random() * 2500 }
+          if (Math.random() < dt / 9000) n.pause = 1200 + Math.random() * 1800
+        }
+        const step = n.pause > 0 ? 0 : (Math.floor(now / 160) % 2)
+        g.globalAlpha = 0.92
+        drawStill(g, n.name, n.x - 13, gy - 22 - step, 26, n.dir !== n.nat)
+        g.globalAlpha = 1
+      }
+      if (P.current.chest) {
+        const cb = Math.sin(now / 250) > 0.6 ? 1 : 0
+        g.fillStyle = `rgba(253,224,71,${0.25 + 0.15 * Math.sin(now / 200)})`; g.beginPath(); g.ellipse(26, gy - 4, 20, 6, 0, 0, Math.PI * 2); g.fill()
+        drawStill(g, 'chest_closed', 10, gy + 2 - cb, 32)
+        if (Math.random() < dt / 300) s.fx.push({ x: 14 + Math.random() * 26, y: gy - 30, vx: 0, vy: -0.4, life: 700, c: '#fde047', z: 2, g: 0 })
+      }
       g.fillStyle = 'rgba(15,23,42,.2)'
       g.beginPath(); g.ellipse(hx + 32, gy + 1, 16, 3, 0, 0, Math.PI * 2); g.fill()
       g.beginPath(); g.ellipse(ex + sp.w / 2, gy + 1, sp.w * 0.32, 4, 0, 0, Math.PI * 2); g.fill()
 
       let mode = 'normal'
       if (s.flash > 0) mode = Math.floor(s.flash / 70) % 2 ? 'flash' : 'normal'
+      if (s.poke > 0) { mode = 'flash'; s.poke -= dt }
       if (s.heal > 0) mode = Math.floor(s.heal / 130) % 2 ? 'heal' : 'normal'
       g.globalAlpha = s.dying > 0 ? (Math.floor(s.dying / 90) % 2 ? 0.25 : Math.min(1, s.dying / 1500)) : 1
       const eimg = frame(enemyAnim, enemyF, mode)
@@ -241,8 +336,20 @@ export default function BattleScene({ bosses, events = [], onConsumed, tier = 1,
       s.flash = Math.max(0, s.flash - dt); s.heal = Math.max(0, s.heal - dt)
       if (s.dying > 0) { s.dying -= dt; if (s.dying <= 0) { s.dying = 0; s.focus = null } }
 
+      // aura grows with the realm
+      if (tier >= 3) { g.fillStyle = `rgba(${tier >= 4 ? '253,224,71' : '45,212,191'},${0.18 + 0.08 * Math.sin(now / 300)})`; g.beginPath(); g.ellipse(hx + 32, gy, 22, 6, 0, 0, Math.PI * 2); g.fill() }
+      const jump = s.heroJump > 0 ? Math.sin((1 - s.heroJump / 420) * Math.PI) * 18 : 0
+      s.heroJump = Math.max(0, s.heroJump - dt)
       const himg = frame(heroAnim, heroF, s.heroFlash > 0 && Math.floor(s.heroFlash / 60) % 2 ? 'flash' : 'normal')
-      if (himg) g.drawImage(himg, Math.round(hx), gy - 64 + 4 + bob)
+      if (himg) g.drawImage(himg, Math.round(hx), gy - 64 + 4 + bob - Math.round(jump))
+      if (tier >= 4 && Math.random() < dt / 400) s.fx.push({ x: hx + 20 + Math.random() * 24, y: gy - 50 + Math.random() * 30, vx: 0, vy: -0.3, life: 600, c: '#fef08a', z: 1, g: 0 })
+      // pet follows the hero, hops when he strikes or when tapped
+      const petTarget = Math.max(6, hx - 30)
+      s.petX += (petTarget + 16 - s.petX) * Math.min(1, dt / 220)
+      const hop = s.petHop > 0 ? Math.sin((1 - s.petHop / 500) * Math.PI) * 10 : (attacking && t > 900 && t < 1250 ? Math.abs(Math.sin((t - 900) / 350 * Math.PI)) * 6 : 0)
+      s.petHop = Math.max(0, s.petHop - dt)
+      g.fillStyle = 'rgba(15,23,42,.15)'; g.beginPath(); g.ellipse(s.petX, gy + 1, 9, 2, 0, 0, Math.PI * 2); g.fill()
+      drawStill(g, 'pet_fox', s.petX - 14, gy + 3 - Math.round(hop) - (Math.floor(now / 400) % 2), 28)
       s.heroFlash = Math.max(0, s.heroFlash - dt)
       if (s.levelGlow > 0) {
         g.fillStyle = `rgba(253,224,71,${(s.levelGlow / 1700) * 0.3})`
@@ -257,8 +364,30 @@ export default function BattleScene({ bosses, events = [], onConsumed, tier = 1,
       }
 
       s.fx = s.fx.filter((p) => (p.life -= dt) > 0)
-      for (const p of s.fx) { p.x += p.vx; p.y += p.vy; p.vy += 0.12; g.fillStyle = p.c; g.fillRect(Math.round(p.x), Math.round(p.y), p.z, p.z) }
+      for (const p of s.fx) { p.x += p.vx; p.y += p.vy; p.vy += p.g ?? 0.12; g.fillStyle = p.c; g.fillRect(Math.round(p.x), Math.round(p.y), p.z, p.z) }
 
+      s.drops = s.drops.filter((d) => (d.life -= dt) > 0)
+      for (const d of s.drops) {
+        d.x += d.vx; d.y += d.vy; d.vy += 0.18
+        if (d.y > gy - 2) { d.y = gy - 2; d.vy *= -0.45; d.vx *= 0.7 }
+        g.fillStyle = '#b45309'; g.fillRect(Math.round(d.x) - 2, Math.round(d.y) - 2, 5, 5)
+        g.fillStyle = Math.floor(now / 120 + d.x) % 3 ? '#fbbf24' : '#fef08a'; g.fillRect(Math.round(d.x) - 1, Math.round(d.y) - 3, 4, 4)
+      }
+      const wx = P.current.weather
+      if (wx === 'rain' || wx === 'storm') {
+        g.fillStyle = wx === 'storm' ? 'rgba(186,230,253,.75)' : 'rgba(186,230,253,.55)'
+        for (const d of drops) { d[1] += dt * 0.32 * d[2]; d[0] -= dt * 0.05; if (d[1] > H) { d[1] = -6; d[0] = Math.random() * (W + 40) } if (d[0] < -4) d[0] = W; g.fillRect(Math.round(d[0]), Math.round(d[1]), 1, 5) }
+        if (wx === 'storm') {
+          g.fillStyle = 'rgba(30,41,59,.18)'; g.fillRect(-10, -10, W + 20, H + 20)
+          if (Math.random() < dt / 7000) s.bolt = 220
+          if (s.bolt > 0) { g.fillStyle = `rgba(255,255,255,${s.bolt / 500})`; g.fillRect(-10, -10, W + 20, H + 20); s.bolt -= dt }
+        }
+      } else if (wx === 'leaves') {
+        for (const d of drops.slice(0, 18)) { d[1] += dt * 0.03 * d[2]; d[0] += Math.sin(now / 500 + d[2] * 9) * 0.5 - 0.15; if (d[1] > gy) { d[1] = -4; d[0] = Math.random() * W } g.fillStyle = d[2] > 1 ? '#f59e0b' : '#ea580c'; g.fillRect(Math.round(d[0]), Math.round(d[1]), 2, 2) }
+      }
+      if (sky.night > 0.2 && wx !== 'rain' && wx !== 'storm') {
+        for (const d of drops.slice(0, 10)) { const fx = (d[0] + Math.sin(now / 900 + d[2] * 7) * 12) % W, fy = gy - 20 - (d[1] % 60); if (Math.sin(now / 300 + d[2] * 11) > 0) { g.fillStyle = '#fef08a'; g.fillRect(Math.round(fx), Math.round(fy), 2, 2) } }
+      }
       if (fog > 0.02) {
         for (let i = 0; i < 4; i++) {
           const fx = ((now / (40 + i * 15)) + i * 100) % (W + 160) - 80
@@ -281,7 +410,7 @@ export default function BattleScene({ bosses, events = [], onConsumed, tier = 1,
   const pct = shown ? Math.max(0, Math.min(1, hpShown / shown.maxHp)) : 0
 
   return (
-    <div className="relative select-none overflow-hidden" style={{ aspectRatio: `${W}/${H}` }}>
+    <div className="relative select-none overflow-hidden touch-manipulation" style={{ aspectRatio: `${W}/${H}` }} onPointerDown={onTap}>
       <canvas ref={canvasRef} width={W} height={H} className="absolute inset-0 w-full h-full" style={{ imageRendering: 'pixelated' }} />
       {hud && (
         <div className="absolute inset-x-0 top-0 p-2 flex justify-between items-start gap-2 pointer-events-none">
@@ -305,6 +434,9 @@ export default function BattleScene({ bosses, events = [], onConsumed, tier = 1,
       {floats.map((f) => (
         <div key={f.id} className={`px-float ${f.cls}`} style={{ left: `${(f.x / W) * 100}%`, top: `${(f.y / H) * 100}%` }}>{f.text}</div>
       ))}
+      {bubble && (
+        <div key={bubble.id} className={`px-bubble ${bubble.who}`} style={{ left: `${Math.min(80, Math.max(16, (bubble.x / W) * 100))}%`, top: `${Math.max(14, (bubble.y / H) * 100)}%` }}>{bubble.text}</div>
+      )}
       {banner && (
         <div className="absolute inset-0 grid place-items-center pointer-events-none">
           <div className={`px-banner ${banner.cls}`}>

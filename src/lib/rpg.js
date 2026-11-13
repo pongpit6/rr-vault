@@ -191,13 +191,20 @@ function computeRpg({ accounts, txns, settings, balances, summary, unlocked, por
     { tier: 'เควสต์หลัก', name: 'สะสมเงินลงทุน 100,000', progress: Math.min(100000, Math.round(summary.byType.invest || 0)), goal: 100000, money: true, xp: 1000 },
   ].map((q) => ({ ...q, done: q.progress >= q.goal }))
 
+  // weather mirrors this month's money: overspending brings storms, otherwise the Thai season
+  const mo = new Date().getMonth() + 1
+  const dayHash = [...today].reduce((h, c) => (h * 31 + c.charCodeAt(0)) % 997, 7) / 997
+  const weather = cur.inc > 0 && cur.exp > cur.inc ? 'storm'
+    : mo >= 6 && mo <= 10 && dayHash < 0.45 ? 'rain'
+    : (mo >= 11 || mo <= 2) ? 'leaves' : 'sun'
+
   const realm = [...REALMS].reverse().find((r) => summary.net >= r.min)
   const nextRealm = REALMS.find((r) => r.min > summary.net)
 
   return {
     inventory: portfolio.open, portfolioValue: portfolio.value,
     xp, xpParts, ...lv, title: title[1], titleEn: title[2], stats, bosses, quests, achievements, newlyUnlocked,
-    streak, realm, nextRealm, debtFog: Math.min(0.55, summary.debts / Math.max(1, summary.assets + summary.debts)),
+    streak, realm, nextRealm, weather, loggedToday: todayCount, debtFog: Math.min(0.55, summary.debts / Math.max(1, summary.assets + summary.debts)),
   }
 }
 
@@ -211,17 +218,40 @@ export function useRpg() {
   const goals = useMemo(() => Object.values(items).filter((i) => i.kind === 'goal' && !i.deleted).map((i) => i.data), [items])
   const budgets = useMemo(() => Object.values(items).filter((i) => i.kind === 'budget' && !i.deleted).map((i) => i.data), [items])
   const rpg = useMemo(() => computeRpg({ ...v, unlocked, goals, budgets }), [key, goals.length, budgets.length]) // eslint-disable-line
+  const data = (rpgItem && !rpgItem.deleted && rpgItem.data) || {}
+  const gems = data.gems || 0
+  const chestReady = rpg.loggedToday > 0 && data.chestLast !== todayISO()
+  const openChest = () => {
+    if (!chestReady) return null
+    const bonus = Math.min(10, rpg.streak)
+    const roll = Math.random()
+    const gain = 5 + bonus + (roll > 0.9 ? 15 : roll > 0.6 ? 5 : 0)
+    const tip = CHEST_TIPS[Math.floor(Math.random() * CHEST_TIPS.length)]
+    put('rpg', { ...data, id: 'rpg', unlocked: data.unlocked || {}, gems: gems + gain, chestLast: todayISO(), chestCount: (data.chestCount || 0) + 1 })
+    return { gain, rare: roll > 0.9, tip, bonus }
+  }
 
   useEffect(() => {
     if (!rpg.newlyUnlocked.length) return
     const now = new Date().toISOString()
     const next = { ...unlocked }
     rpg.newlyUnlocked.forEach((id) => { next[id] = now })
-    put('rpg', { id: 'rpg', unlocked: next })
+    put('rpg', { ...(useStore.getState().items.rpg?.data || {}), id: 'rpg', unlocked: next })
   }, [rpg.newlyUnlocked.join()]) // eslint-disable-line
 
-  return { ...rpg, vault: v }
+  return { ...rpg, vault: v, gems, chestReady, openChest, chestCount: data.chestCount || 0 }
 }
+
+const CHEST_TIPS = [
+  'จ่ายบัตรเต็มจำนวนก่อนวันครบกำหนด = ไม่เสียดอกเลยสักบาท',
+  'กันเงินจ่ายหนี้ไว้ก่อน แล้วค่อยใช้ส่วนที่เหลือ',
+  'ค่าใช้จ่ายเล็ก ๆ ทุกวัน รวมกันทั้งเดือนอาจเท่าค่าโทรศัพท์',
+  'ลงทุนสม่ำเสมอทุกเดือน (DCA) สำคัญกว่าจับจังหวะตลาด',
+  'เงินสำรองฉุกเฉิน 3–6 เดือนของรายจ่าย คือโล่ที่ดีที่สุด',
+  'เช็ก Subscription ที่ไม่ได้ใช้ ยกเลิกได้ = ได้เงินคืนทุกเดือน',
+  'ก่อนซื้อของชิ้นใหญ่ ลองรอ 48 ชั่วโมงก่อนตัดสินใจ',
+  'ผ่อน 0% ยังกินวงเงินบัตร อย่าให้ยอดรวมเกินที่จ่ายไหว',
+]
 
 /** Compare a snapshot with what this device last displayed → battle events to replay. */
 export function diffEvents(prev, snap, bosses) {

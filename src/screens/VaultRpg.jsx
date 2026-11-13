@@ -2,7 +2,7 @@ import { Flame, Swords, Check, Lock, Trophy, ScrollText, Sparkles, MapPin, Backp
 import { ItemSprite, AssetLogo } from '../components/Logos'
 import { itemOf, assetLabel } from '../lib/portfolio'
 import BattleScene from '../components/BattleScene'
-import { useBattleEvents, SpriteImg, XpBar } from '../components/RpgBits'
+import { useBattleEvents, SpriteImg, XpBar, ChestCard } from '../components/RpgBits'
 import { Avatar, Icon, Money } from '../components/ui'
 import { useProfile } from '../store'
 import { useRpg, REALMS } from '../lib/rpg'
@@ -39,7 +39,7 @@ export default function VaultRpg({ onAdd, go }) {
         <div className="space-y-5">
           {/* hero + battle */}
           <section className="px-card overflow-hidden">
-            <BattleScene big bosses={rpg.bosses} events={events} onConsumed={consume} tier={rpg.realm.tier} fog={rpg.debtFog} level={rpg.level} />
+            <BattleScene big bosses={rpg.bosses} events={events} onConsumed={consume} tier={rpg.realm.tier} fog={rpg.debtFog} level={rpg.level} weather={rpg.weather} chest={rpg.chestReady} onChest={() => document.getElementById('daily-chest')?.scrollIntoView({ behavior: 'smooth', block: 'center' })} />
             <div className="p-4 flex items-center gap-4">
               <div className="px-avatar"><Avatar size={64} ring={false} /></div>
               <div className="flex-1 min-w-0">
@@ -68,6 +68,9 @@ export default function VaultRpg({ onAdd, go }) {
               )}
             </div>
           </section>
+
+          <div id="daily-chest"><ChestCard rpg={rpg} onAdd={onAdd} /></div>
+          <div className="text-[11px] text-slate-400 -mt-3 px-1">{({ storm: '⛈ พายุเข้า — เดือนนี้ใช้จ่ายเกินรายรับ', rain: '🌧 ฤดูฝน', leaves: '🍂 ลมหนาวมาแล้ว', sun: '☀️ ท้องฟ้าแจ่มใส' })[rpg.weather]} · แตะน้องจิ้งจอก แตะบอส หรือแตะฮีโร่ในฉากได้</div>
 
           {/* bosses */}
           <Section icon={Swords} title="BOSS · หนี้ที่ต้องปราบ">

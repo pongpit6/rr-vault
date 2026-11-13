@@ -237,7 +237,15 @@ function NavBtn({ n, active, onClick }) {
   )
 }
 
+function useTimeOfDay() {
+  useEffect(() => {
+    const set = () => { const h = new Date().getHours(); document.documentElement.dataset.tod = h < 5 ? 'night' : h < 10 ? 'morning' : h < 17 ? 'day' : h < 19 ? 'evening' : 'night' }
+    set(); const iv = setInterval(set, 10 * 60_000); return () => clearInterval(iv)
+  }, [])
+}
+
 function SlipHost() {
+  useTimeOfDay()
   const open = useStore((s) => !!s.ui.slipOpen)
   const setUi = useStore((s) => s.setUi)
   return <SlipScanner open={open} onClose={() => setUi({ slipOpen: false })} />
