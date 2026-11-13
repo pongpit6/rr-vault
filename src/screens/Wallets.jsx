@@ -7,7 +7,7 @@ import { useStore } from '../store'
 import { useVault } from '../lib/useVault'
 import { ACCOUNT_TYPES, isDebt } from '../lib/defaults'
 import { ICON_KEYS, COLORS } from '../lib/icons'
-import { evalAmount, money, round2, todayISO, shortDate } from '../lib/format'
+import { evalAmount, money, round2, todayISO, shortDate, monthLabel, shiftMonth } from '../lib/format'
 import { postingsOf } from '../lib/ledger'
 
 export default function Wallets({ onEdit, go }) {
@@ -21,6 +21,9 @@ export default function Wallets({ onEdit, go }) {
     { title: 'หนี้สิน', items: accounts.filter((a) => !a.archived && isDebt(a)) },
   ]
   const archived = accounts.filter((a) => a.archived)
+  // card installment loans still use the card's credit line until each installment is billed
+  const linkedOwed = (card) => accounts.filter((l) => l.viaCard === card.id && !l.archived).reduce((t, l) => t + Math.max(0, -(balances[l.id] || 0)), 0)
+  const instLeft = (l) => { const owed = Math.max(0, -(balances[l.id] || 0)); return l.instPrincipal > 0 ? Math.ceil(owed / l.instPrincipal - 1e-9) : '-' }
   const alloc = settings.allocation
   const saveAlloc = (patch) => put('settings', { ...settings, allocation: { ...alloc, ...patch } })
 
@@ -73,9 +76,10 @@ export default function Wallets({ onEdit, go }) {
                       <div className="flex-1 min-w-0">
                         <div className="font-medium truncate">{a.name}</div>
                         <div className="text-xs text-slate-500 truncate">
-                          {cycles[a.id] ? <>บิลรอบนี้ <Money value={cycles[a.id].billDue} decimals={false} /> · จ่ายภายใน {shortDate(cycles[a.id].dueDate)}{a.limit > 0 && <> · วงเงินเหลือ <Money value={a.limit - owed} decimals={false} /></>}</> :
-                          a.type === 'credit' && a.limit > 0 ? <>วงเงินเหลือ <Money value={a.limit - owed} /></> :
-                            a.type === 'loan' && a.installment > 0 ? <>ค่างวด <Money value={a.installment} /> · ทุกวันที่ {a.dueDay}</> :
+                          {cycles[a.id] ? <>บิลรอบนี้ <Money value={cycles[a.id].billDue} decimals={false} /> · จ่ายภายใน {shortDate(cycles[a.id].dueDate)}{a.limit > 0 && <> · วงเงินเหลือ <Money value={a.limit - owed - linkedOwed(a)} decimals={false} /></>}</> :
+                          a.type === 'credit' && a.limit > 0 ? <>วงเงินเหลือ <Money value={a.limit - owed - linkedOwed(a)} /></> :
+                            a.type === 'loan' && a.viaCard ? <>ผ่อนผ่าน {accById[a.viaCard]?.name} · <Money value={a.installment} decimals={false} />/เดือน · เหลือ {instLeft(a)} งวด</> :
+                          a.type === 'loan' && a.installment > 0 ? <>ค่างวด <Money value={a.installment} /> · ทุกวันที่ {a.dueDay}</> :
                               ACCOUNT_TYPES[a.type]?.desc}
                         </div>
                         {a.type === 'credit' && a.limit > 0 && <Progress value={owed / a.limit} className="mt-2 !h-1.5" color="bg-rose" />}
@@ -193,6 +197,7 @@ export function AccountForm({ open, initial, onClose }) {
   const set = (p) => setF((s) => ({ ...s, ...p }))
   const editing = !!initial?.id
   const debt = f.type === 'credit' || f.type === 'loan'
+  const cards = accounts.filter((a) => a.type === 'credit' && !a.archived)
   const used = editing && txns.some((t) => postingsOf(t, accById, settings).some((p) => p.acc === initial.id))
   const isTarget = editing && (Object.values(settings.allocation.targets).includes(initial.id) || settings.earmarkFrom === initial.id)
 
@@ -206,7 +211,14 @@ export function AccountForm({ open, initial, onClose }) {
       archived: !!f.archived,
     }
     if (f.type === 'credit') { data.limit = evalAmount(f.limit) || 0; data.dueDay = Number(f.dueDay) || undefined; data.statementDay = Number(f.statementDay) || undefined }
-    if (f.type === 'loan') { data.installment = evalAmount(f.installment) || 0; data.dueDay = Number(f.dueDay) || undefined }
+    if (f.type === 'loan') {
+      data.installment = evalAmount(f.installment) || 0; data.dueDay = Number(f.dueDay) || undefined
+      if (f.viaCard) {
+        Object.assign(data, { viaCard: f.viaCard, instPrincipal: evalAmount(f.instPrincipal) || 0, instInterest: evalAmount(f.instInterest) || 0, instCount: Number(f.instCount) || 0, instStart: f.instStart || undefined })
+        data.installment = data.instPrincipal + data.instInterest
+        const card = accounts.find((c) => c.id === f.viaCard); data.dueDay = card?.dueDay
+      }
+    }
     Object.keys(data).forEach((k) => data[k] === undefined && delete data[k])
     put('account', data)
     onClose()
@@ -240,10 +252,10 @@ export function AccountForm({ open, initial, onClose }) {
 
       <div className="grid grid-cols-2 gap-2 mt-4">
         <div className={debt ? '' : 'col-span-2'}>
-          <Label>{debt ? 'ยอดหนี้เริ่มต้น' : 'ยอดเงินเริ่มต้น'}</Label>
+          <Label>{f.viaCard ? 'เงินต้นคงเหลือ (ที่ยังไม่ขึ้นบิล)' : debt ? 'ยอดหนี้เริ่มต้น' : 'ยอดเงินเริ่มต้น'}</Label>
           <input className="field num" inputMode="decimal" placeholder="0" value={f.openingStr} onChange={(e) => set({ openingStr: e.target.value })} />
         </div>
-        {debt && (
+        {debt && !f.viaCard && (
           <div>
             <Label>{f.type === 'credit' ? 'ครบกำหนดชำระทุกวันที่' : 'ครบกำหนดทุกวันที่'}</Label>
             <input className="field num" inputMode="numeric" placeholder="25" value={f.dueDay || ''} onChange={(e) => set({ dueDay: e.target.value.replace(/\D/g, '').slice(0, 2) })} />
@@ -264,8 +276,43 @@ export function AccountForm({ open, initial, onClose }) {
         )}
         {f.type === 'loan' && (
           <div className="col-span-2">
+            <Label>รูปแบบการผ่อน</Label>
+            <Segmented value={f.viaCard ? 'card' : 'direct'} onChange={(v) => set({ viaCard: v === 'card' ? (cards[0]?.id || '') : '' })}
+              options={[{ value: 'card', label: 'ผ่อนผ่านบิลบัตรเครดิต' }, { value: 'direct', label: 'จ่ายค่างวดแยก' }]} />
+          </div>
+        )}
+        {f.type === 'loan' && !f.viaCard && (
+          <div className="col-span-2">
             <Label>ค่างวดต่อเดือน (ใช้คำนวณเงินที่ต้องกันไว้)</Label>
             <input className="field num" inputMode="decimal" placeholder="เช่น 3500" value={f.installment || ''} onChange={(e) => set({ installment: e.target.value })} />
+          </div>
+        )}
+        {f.type === 'loan' && f.viaCard !== undefined && f.viaCard !== '' && (
+          <div className="col-span-2 rounded-2xl bg-slate-50 border border-slate-200 p-3 space-y-2.5">
+            <div>
+              <Label>เรียกเก็บผ่านบัตร</Label>
+              <select className="field" value={f.viaCard} onChange={(e) => set({ viaCard: e.target.value })}>
+                {cards.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div><Label>เงินต้นต่องวด</Label><input className="field num" inputMode="decimal" placeholder="เช่น 1000" value={f.instPrincipal || ''} onChange={(e) => set({ instPrincipal: e.target.value })} /></div>
+              <div><Label>ดอกเบี้ยต่องวด</Label><input className="field num" inputMode="decimal" placeholder="เช่น 72" value={f.instInterest || ''} onChange={(e) => set({ instInterest: e.target.value })} /></div>
+              <div><Label>จำนวนงวดที่เหลือ</Label><input className="field num" inputMode="numeric" placeholder="เช่น 10" value={f.instCount || ''} onChange={(e) => set({ instCount: e.target.value.replace(/\D/g, '').slice(0, 3) })} /></div>
+              <div><Label>งวดถัดไปขึ้นบิลเดือน</Label><input type="month" className="field" value={f.instStart || ''} onChange={(e) => set({ instStart: e.target.value })} /></div>
+            </div>
+            {(() => {
+              const card = cards.find((c) => c.id === f.viaCard)
+              const p = evalAmount(f.instPrincipal) || 0, i = evalAmount(f.instInterest) || 0, n = Number(f.instCount) || 0
+              if (!p || !n || !f.instStart) return <div className="text-[11px] text-slate-500">กรอกให้ครบ แล้วระบบจะลงค่างวดเข้าบิลบัตรให้เองทุกเดือน</div>
+              return (
+                <div className="text-[11px] text-slate-600 leading-relaxed">
+                  ค่างวด <b>{money(p + i)}</b>/เดือน (ต้น {money(p, { decimals: false })} + ดอก {money(i, { decimals: false })}) ลงบิล “{card?.name}” วันที่ {card?.statementDay || card?.dueDay || 1} ของทุกเดือน
+                  · งวดสุดท้าย {monthLabel(shiftMonth(f.instStart, n - 1))} · ดอกเบี้ยรวม {money(i * n, { decimals: false })}
+                  {!card?.statementDay && <div className="text-amber-700 mt-1">แนะนำให้ตั้ง “วันตัดรอบบัญชี” ของบัตรนี้ด้วย</div>}
+                </div>
+              )
+            })()}
           </div>
         )}
       </div>

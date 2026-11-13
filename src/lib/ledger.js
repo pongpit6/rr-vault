@@ -30,7 +30,15 @@ export function postingsOf(t, accById, settings) {
       }
       return [{ acc: t.account, amt: a }]
     }
-    case 'transfer':
+    case 'transfer': {
+      const p = [{ acc: t.account, amt: -a }, { acc: t.to, amt: a }]
+      // an installment billed onto a credit card is new card debt: set the same amount aside, like card spending
+      if (t.earmark && accById[t.account]?.type === 'credit') {
+        const from = settings?.earmarkFrom, reserve = settings?.allocation?.targets?.reserve
+        if (from && reserve && accById[from] && accById[reserve] && from !== reserve) p.push({ acc: from, amt: -a }, { acc: reserve, amt: a })
+      }
+      return p
+    }
     case 'payment':
       return [{ acc: t.account, amt: -a }, { acc: t.to, amt: a }]
     case 'adjust':
@@ -60,7 +68,8 @@ export function debtTarget(accounts, bal) {
     if (a.archived) continue
     const owed = Math.max(0, -(bal[a.id] || 0))
     if (a.type === 'credit') target += owed
-    if (a.type === 'loan') target += Math.min(owed, Number(a.installment) || owed)
+    // a loan billed through a credit card is reserved when each installment lands on the card
+    if (a.type === 'loan' && !a.viaCard) target += Math.min(owed, Number(a.installment) || owed)
   }
   return round2(target)
 }

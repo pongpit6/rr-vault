@@ -21,6 +21,7 @@ import { fetchQuotes, streamCrypto, stopStream } from './lib/prices'
 import { symbolsToPoll } from './lib/portfolio'
 import { assetLabel } from './lib/portfolio'
 import { processDueSubs } from './lib/subs'
+import { processInstallments } from './lib/installments'
 
 const NAV = [
   { id: 'home', label: 'หน้าแรก', icon: LayoutDashboard, mobile: true },
@@ -125,7 +126,7 @@ export default function App() {
   useMarketData(ready)
   useEffect(() => {
     if (!ready) return
-    const run = () => processDueSubs()
+    const run = () => { processDueSubs(); processInstallments() }
     const t = setTimeout(run, 1500)
     const iv = setInterval(run, 30 * 60_000)
     return () => { clearTimeout(t); clearInterval(iv) }

@@ -80,7 +80,7 @@ export function upcoming(subs, accounts, balances, days = 10, cycles = {}) {
     if (dt <= end) out.push({ kind: 'sub', date: s.nextDate, days: Math.round((dt - today) / 864e5), sub: s })
   }
   for (const a of accounts) {
-    if (a.archived || !(a.type === 'credit' || a.type === 'loan') || !a.dueDay) continue
+    if (a.archived || !(a.type === 'credit' || a.type === 'loan') || !a.dueDay || a.viaCard) continue
     const owed = -(balances[a.id] || 0)
     if (owed <= 0) continue
     const cy = cycles[a.id]
