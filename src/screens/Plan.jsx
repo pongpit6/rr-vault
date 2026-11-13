@@ -7,6 +7,7 @@ import { useStore, selectList } from '../store'
 import { useVault } from '../lib/useVault'
 import { netWorthSeries, monthlyStats, budgetStatus, goalStatus, debtPlan } from '../lib/plan'
 import { assetPrice } from '../lib/prices'
+import { assetLabel } from '../lib/portfolio'
 import { evalAmount, money, monthLabel, round2, todayISO } from '../lib/format'
 import { ICON_KEYS, COLORS } from '../lib/icons'
 
@@ -343,7 +344,7 @@ function Alerts() {
               <button key={al.id} onClick={() => setEdit({ ...al, priceStr: String(al.price) })} className={`w-full flex items-center gap-3 p-3 rounded-2xl border text-left ${al.triggeredAt ? 'bg-amber-50 border-amber-200' : 'border-slate-200'}`}>
                 {a && <AssetLogo asset={a} size={36} />}
                 <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium truncate">{a ? (a.source === 'yahoo' ? a.symbol.replace('-USD', '') : a.name) : '—'} {al.op === '>=' ? 'ขึ้นถึง' : 'ลงถึง'} {ccy(a)}{al.price.toLocaleString()}</div>
+                  <div className="text-sm font-medium truncate">{a ? assetLabel(a) : '—'} {al.op === '>=' ? 'ขึ้นถึง' : 'ลงถึง'} {ccy(a)}{al.price.toLocaleString()}</div>
                   <div className="text-xs text-slate-500">ตอนนี้ {p != null ? `${ccy(a)}${p.toLocaleString(undefined, { maximumFractionDigits: 4 })}` : '—'}{al.triggeredAt ? ' · แจ้งเตือนแล้ว' : ''}</div>
                 </div>
                 {al.triggeredAt ? <BellRing size={18} className="text-amber-500" /> : <Bell size={18} className="text-slate-300" />}
@@ -366,7 +367,7 @@ function Alerts() {
           <div className="flex gap-2 overflow-x-auto no-scrollbar -mx-5 px-5 pb-1">
             {held.map((a) => (
               <button key={a.id} onClick={() => setEdit({ ...edit, assetId: a.id })} className={`shrink-0 flex items-center gap-2 pl-2 pr-3 py-2 rounded-2xl border ${edit.assetId === a.id ? 'bg-slate-100 border-slate-300' : 'border-slate-200'}`}>
-                <AssetLogo asset={a} size={28} /><span className="text-sm">{a.source === 'yahoo' ? a.symbol.replace('-USD', '') : a.name}</span>
+                <AssetLogo asset={a} size={28} /><span className="text-sm">{assetLabel(a)}</span>
               </button>
             ))}
           </div>

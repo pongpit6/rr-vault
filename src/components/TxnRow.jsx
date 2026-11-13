@@ -2,6 +2,7 @@ import { IconBadge, Money } from './ui'
 import { AssetLogo, SubLogo } from './Logos'
 import { TXN_KINDS } from '../lib/defaults'
 import { useStore } from '../store'
+import { assetLabel } from '../lib/portfolio'
 
 const itemData = (id) => { const it = id && useStore.getState().items[id]; return it ? it.data : null }
 const fmtQ = (q) => Number(q).toLocaleString(undefined, { maximumFractionDigits: 6 })
@@ -12,7 +13,7 @@ export function txnVisual(t, catById, accById) {
   if (t.kind === 'adjust') return { icon: 'scale', color: '#94a3b8', title: 'ปรับยอดให้ตรง', sub: accById[t.account]?.name || '' }
   if (t.kind === 'trade') {
     const a = itemData(t.assetId)
-    const label = a ? (a.symbol && a.source === 'yahoo' ? a.symbol.replace('-USD', '') : a.name) : 'สินทรัพย์'
+    const label = a ? assetLabel(a) : 'สินทรัพย์'
     const unit = a?.source === 'thaigold' ? 'บาท' : a?.unit || ''
     const ccy = a?.currency === 'USD' ? '$' : '฿'
     return { asset: a, title: `${t.side === 'sell' ? 'ขาย' : 'ซื้อ'} ${label}`, sub: `${fmtQ(t.qty)} ${unit} @ ${ccy}${fmtQ(t.price)} · ${t.backfill ? 'บันทึกย้อนหลัง' : accById[t.account]?.name || ''}` }

@@ -19,6 +19,7 @@ import { LockScreen } from './components/Lock'
 import { Toast, Avatar } from './components/ui'
 import { fetchQuotes, streamCrypto, stopStream } from './lib/prices'
 import { symbolsToPoll } from './lib/portfolio'
+import { assetLabel } from './lib/portfolio'
 import { processDueSubs } from './lib/subs'
 
 const NAV = [
@@ -99,7 +100,7 @@ function AlertWatcher() {
       if (p == null) continue
       if ((al.op === '>=' && p >= al.price) || (al.op === '<=' && p <= al.price)) {
         st.put('alert', { ...al, triggeredAt: new Date().toISOString() })
-        const name = asset.source === 'yahoo' ? asset.symbol.replace('-USD', '') : asset.name
+        const name = assetLabel(asset)
         const msg = `${name} ${al.op === '>=' ? 'ขึ้นถึง' : 'ลงถึง'} ${al.price.toLocaleString()} แล้ว (ตอนนี้ ${p.toLocaleString(undefined, { maximumFractionDigits: 4 })})`
         st.showToast('🔔 ' + msg)
         try { if (Notification.permission === 'granted') new Notification('R.R. Vault · แจ้งเตือนราคา', { body: msg, icon: './icon-192.png' }) } catch { /* not supported */ }

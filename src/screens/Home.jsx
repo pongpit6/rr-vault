@@ -5,6 +5,7 @@ import TxnRow from '../components/TxnRow'
 import { SubLogo, AssetLogo } from '../components/Logos'
 import { useSubs } from './Subscriptions'
 import { upcoming } from '../lib/subs'
+import { assetLabel } from '../lib/portfolio'
 import { budgetStatus, goalStatus } from '../lib/plan'
 import { selectList } from '../store'
 import { RpgHomeCard } from '../components/RpgBits'
@@ -246,7 +247,7 @@ export default function Home({ onAdd, onEdit, go }) {
               {portfolio.open.slice(0, 4).map((h) => (
                 <button key={h.asset.id} onClick={() => go('portfolio')} className="w-full flex items-center gap-3 py-1.5 text-left">
                   <AssetLogo asset={h.asset} size={34} />
-                  <span className="flex-1 text-sm font-medium truncate">{h.asset.source === 'yahoo' ? h.asset.symbol.replace('-USD', '') : h.asset.name}{h.live && <span className="inline-block ml-1.5 w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse align-middle" />}</span>
+                  <span className="flex-1 text-sm font-medium truncate">{assetLabel(h.asset)}{h.live && <span className="inline-block ml-1.5 w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse align-middle" />}</span>
                   <Money value={h.value} decimals={false} className="text-sm" />
                   <span className={`text-xs num w-14 text-right ${h.pnlPct >= 0 ? 'text-emerald-600' : 'text-rose'}`}>{h.pnlPct >= 0 ? '+' : ''}{(h.pnlPct * 100).toFixed(1)}%</span>
                 </button>

@@ -58,6 +58,12 @@ export async function histPrice(symbol, date) {
   return histCache[k]
 }
 
+export async function searchFunds(q) {
+  const r = await fetch(`${FN}?funds=${encodeURIComponent(q)}`, { headers: { Authorization: `Bearer ${ANON_JWT}`, apikey: ANON_JWT } })
+  const j = await r.json()
+  return j.results || []
+}
+
 export const fxUSDTHB = (quotes) => quotes['THB=X']?.price || 34
 
 /** Current unit price of an asset in its quote currency. */

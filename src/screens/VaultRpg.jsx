@@ -1,6 +1,6 @@
 import { Flame, Swords, Check, Lock, Trophy, ScrollText, Sparkles, MapPin, Backpack } from 'lucide-react'
 import { ItemSprite, AssetLogo } from '../components/Logos'
-import { itemOf } from '../lib/portfolio'
+import { itemOf, assetLabel } from '../lib/portfolio'
 import BattleScene from '../components/BattleScene'
 import { useBattleEvents, SpriteImg, XpBar } from '../components/RpgBits'
 import { Avatar, Icon, Money } from '../components/ui'
@@ -150,7 +150,7 @@ export default function VaultRpg({ onAdd, go }) {
                     <ItemSprite name={itemOf(h.asset)} size={36} />
                     {h.asset.type !== 'gold' && h.asset.type !== 'commodity' && <span className="absolute -bottom-0.5 -right-0.5"><AssetLogo asset={h.asset} size={18} /></span>}
                   </div>
-                  <div className="text-[10px] font-semibold truncate">{h.asset.source === 'yahoo' ? h.asset.symbol.replace('-USD', '') : h.asset.name}</div>
+                  <div className="text-[10px] font-semibold truncate">{assetLabel(h.asset)}</div>
                   <div className={`px-font text-[8px] ${h.pnlPct >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>{h.pnlPct >= 0 ? '+' : ''}{(h.pnlPct * 100).toFixed(1)}%</div>
                 </button>
               ))}

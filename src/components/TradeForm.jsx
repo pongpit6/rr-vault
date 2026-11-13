@@ -5,8 +5,8 @@ import { AssetLogo, ItemSprite } from './Logos'
 import { AccountChips } from './TxnForm'
 import { useStore } from '../store'
 import { useVault } from '../lib/useVault'
-import { ASSET_TYPES, POPULAR_CRYPTO, GOLD_PRESETS, COMMODITY_PRESETS } from '../lib/portfolio'
-import { searchSymbols, fetchQuotes, assetPrice, fxUSDTHB, GOLD, histPrice } from '../lib/prices'
+import { ASSET_TYPES, POPULAR_CRYPTO, GOLD_PRESETS, COMMODITY_PRESETS, assetLabel } from '../lib/portfolio'
+import { searchSymbols, searchFunds, fetchQuotes, assetPrice, fxUSDTHB, GOLD, histPrice } from '../lib/prices'
 import { evalAmount, todayISO, money, round2 } from '../lib/format'
 import { isDebt } from '../lib/defaults'
 
@@ -39,7 +39,7 @@ export default function TradeForm({ open, onClose, initial }) {
       account: initial?.account || investAcc,
       note: initial?.note || '', goldUnit: initial?.goldUnit || 'baht', dir: initial?.dir || 'long',
       marginStr: initial?.margin ? String(initial.margin) : '', amountOverride: '',
-      mode: initial?.mode || (a && (a.type === 'crypto' || a.type === 'gold') ? 'total' : 'unit'),
+      mode: initial?.mode || (a && ['crypto', 'gold', 'fund'].includes(a.type) ? 'total' : 'unit'),
       totalStr: initial?.total ? String(initial.total) : '', totalCcy: initial?.totalCcy || 'THB',
       backfill: !!initial?.backfill, histFx: null, histPx: null,
     })
@@ -62,7 +62,7 @@ export default function TradeForm({ open, onClose, initial }) {
   if (!open || !f) return null
   const set = (p) => setF((s) => ({ ...s, ...p }))
 
-  if (step === 'pick') return <AssetPicker onClose={onClose} assets={assets} portfolio={portfolio} onPick={(a) => { setAsset(a); set({ entryCcy: a.currency || 'THB', priceStr: '', mode: a.type === 'crypto' || a.type === 'gold' ? 'total' : 'unit' }); setStep('form'); if (a.symbol && a.source !== 'manual') fetchQuotes([a.symbol, 'THB=X', a.source === 'thaigold' ? 'GC=F' : null]) }} />
+  if (step === 'pick') return <AssetPicker onClose={onClose} assets={assets} portfolio={portfolio} onPick={(a) => { setAsset(a); set({ entryCcy: a.currency || 'THB', priceStr: '', mode: ['crypto', 'gold', 'fund'].includes(a.type) ? 'total' : 'unit' }); setStep('form'); if (a.symbol && a.source !== 'manual') fetchQuotes([a.symbol, 'THB=X', a.source === 'thaigold' ? 'GC=F' : null]) }} />
 
   // ---------- trade form ----------
   const a = asset
@@ -143,7 +143,7 @@ export default function TradeForm({ open, onClose, initial }) {
         <AssetLogo asset={a} size={46} />
         <div className="flex-1 min-w-0">
           <div className="font-semibold truncate">{a.name}</div>
-          <div className="text-xs text-slate-500 truncate">{a.symbol && a.source !== 'manual' ? `${a.symbol} · ` : ''}{T.label}</div>
+          <div className="text-xs text-slate-500 truncate">{a.code ? `${a.code} · ` : a.symbol && a.source !== 'manual' ? `${a.symbol} · ` : ''}{T.label}</div>
         </div>
         <div className="text-right">
           {livePrice ? <div className="font-semibold num">{ccySym(a.currency)}{fmtQ(livePrice)}</div> : <div className="text-xs text-slate-400">ไม่มีราคาตลาด</div>}
@@ -315,8 +315,13 @@ function AssetPicker({ onClose, assets, portfolio, onPick }) {
     timer.current = setTimeout(async () => {
       setLoading(true)
       try {
-        const r = await searchSymbols(q.trim())
-        setResults(type === 'crypto' ? r.filter((x) => x.type === 'CRYPTOCURRENCY' && x.symbol.endsWith('-USD')) : r.filter((x) => x.type !== 'CRYPTOCURRENCY'))
+        if (type === 'fund') {
+          const [th, glob] = await Promise.all([searchFunds(q.trim()), searchSymbols(q.trim()).catch(() => [])])
+          setResults([...th, ...glob.filter((x) => x.type === 'MUTUALFUND' || x.type === 'ETF')])
+        } else {
+          const r = await searchSymbols(q.trim())
+          setResults(type === 'crypto' ? r.filter((x) => x.type === 'CRYPTOCURRENCY' && x.symbol.endsWith('-USD')) : r.filter((x) => x.type !== 'CRYPTOCURRENCY'))
+        }
       } catch { setResults([]) }
       setLoading(false)
     }, 350)
@@ -324,6 +329,7 @@ function AssetPicker({ onClose, assets, portfolio, onPick }) {
 
   const owned = assets.filter((a) => portfolio.holdings.some((h) => h.asset.id === a.id && h.qty > 0))
   const pickYahoo = (r, t) => {
+    if (r.type === 'THFUND') return onPick({ type: 'fund', symbol: r.symbol, code: r.code, name: r.name, source: 'yahoo', currency: 'THB', unit: 'หน่วย', exchange: 'กองทุนรวมไทย' })
     const ccy = r.symbol.endsWith('.BK') ? 'THB' : 'USD'
     onPick({ type: t, symbol: r.symbol, name: r.name, source: 'yahoo', currency: ccy, unit: t === 'crypto' ? r.symbol.replace('-USD', '') : ASSET_TYPES[t].unit, exchange: r.exchange })
   }
@@ -338,7 +344,7 @@ function AssetPicker({ onClose, assets, portfolio, onPick }) {
               <div className="flex gap-2 overflow-x-auto no-scrollbar -mx-5 px-5 pb-2">
                 {owned.map((a) => (
                   <button key={a.id} onClick={() => onPick(a)} className="shrink-0 flex items-center gap-2 pl-2 pr-3 py-2 rounded-2xl border border-slate-200 hover:bg-slate-50">
-                    <AssetLogo asset={a} size={32} /><span className="text-sm font-medium max-w-[120px] truncate">{a.symbol && a.source !== 'manual' ? a.symbol.replace('-USD', '') : a.name}</span>
+                    <AssetLogo asset={a} size={32} /><span className="text-sm font-medium max-w-[120px] truncate">{assetLabel(a)}</span>
                   </button>
                 ))}
               </div>
@@ -399,16 +405,16 @@ function AssetPicker({ onClose, assets, portfolio, onPick }) {
         <>
           <div className="relative">
             <Search size={17} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
-            <input className="field !pl-10" autoFocus placeholder={type === 'stock' ? 'ค้นหา เช่น PTT, KBANK, AAPL, NVDA, VOO' : type === 'crypto' ? 'ค้นหาเหรียญอื่น' : 'ค้นหาสัญลักษณ์ (ถ้ามี)'} value={q} onChange={(e) => setQ(e.target.value)} />
+            <input className="field !pl-10" autoFocus placeholder={type === 'stock' ? 'ค้นหา เช่น PTT, KBANK, AAPL, NVDA, VOO' : type === 'crypto' ? 'ค้นหาเหรียญอื่น' : type === 'fund' ? 'ค้นหากองทุนไทย เช่น K-GSELECT, SCBSET, SSF' : 'ค้นหาสัญลักษณ์ (ถ้ามี)'} value={q} onChange={(e) => setQ(e.target.value)} />
             {loading && <Loader2 size={16} className="absolute right-3.5 top-1/2 -translate-y-1/2 animate-spin text-slate-400" />}
           </div>
           <div className="mt-2 -mx-2">
             {results.map((r) => {
-              const a = { type, symbol: r.symbol, name: r.name, source: 'yahoo' }
+              const a = { type, symbol: r.symbol, code: r.code, name: r.name, source: 'yahoo' }
               return (
                 <button key={r.symbol} onClick={() => pickYahoo(r, type)} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-2xl hover:bg-slate-50 text-left">
                   <AssetLogo asset={a} size={36} />
-                  <div className="flex-1 min-w-0"><div className="text-sm font-semibold">{r.symbol}</div><div className="text-xs text-slate-500 truncate">{r.name}</div></div>
+                  <div className="flex-1 min-w-0"><div className="text-sm font-semibold">{r.code || r.symbol}</div><div className="text-xs text-slate-500 truncate">{r.name}</div></div>
                   <span className="text-[11px] text-slate-400">{r.exchange}</span>
                 </button>
               )

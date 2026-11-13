@@ -29,6 +29,16 @@ export const COMMODITY_PRESETS = [
   { symbol: 'PA=F', name: 'Palladium', unit: 'ออนซ์', item: 'silver' },
 ].map((p) => ({ ...p, source: 'yahoo', currency: 'USD' }))
 
+/** Short display label: fund code, ticker without "-USD", or the asset name. */
+export const assetLabel = (a) => !a ? '' : a.code || (a.source === 'yahoo' && a.symbol ? a.symbol.replace('-USD', '') : a.name)
+
+const AMC = [['KTAM', 'KT', '#00A6E6'], ['KT-', 'KT', '#00A6E6'], ['KF', 'KS', '#FFC20E', '#3d2b00'], ['KKP', 'KKP', '#594A9E'], ['K-', 'K', '#00A950'],
+  ['SCB', 'SCB', '#4E2E7F'], ['ES-', 'ES', '#E4002B'], ['TMB', 'ES', '#E4002B'], ['TTB', 'ES', '#E4002B'], ['BBL', 'BBL', '#1E3C96'], ['B-', 'BBL', '#1E3C96'],
+  ['UOB', 'UOB', '#005EB8'], ['PRINCIPAL', 'P', '#0061A0'], ['ONE-', 'ONE', '#E5007E'], ['LH', 'LH', '#7AB800'], ['TISCO', 'TIS', '#1F3B7A'],
+  ['MFC', 'MFC', '#00539F'], ['ASP', 'A+', '#F37021'], ['DAOL', 'DL', '#E60012'], ['XSPRING', 'XS', '#111827'], ['MEGA', 'M', '#0F766E']]
+/** Fund-house badge (initials + house color) for Thai mutual funds. */
+export const fundBadge = (code = '') => { const c = code.toUpperCase(); const m = AMC.find(([p]) => c.startsWith(p)); return m ? { text: m[1], bg: m[2], fg: m[3] || '#fff' } : { text: c.slice(0, 2) || 'F', bg: '#14b8a6', fg: '#fff' } }
+
 export const itemOf = (asset) => asset?.item || ASSET_TYPES[asset?.type]?.item || 'cash'
 
 /** Logo URL candidates for a real-world icon; the UI falls back to the pixel item sprite. */
@@ -40,6 +50,7 @@ export function logoCandidates(asset) {
     const base = sym.replace('-USD', '').toLowerCase()
     return [`https://assets.coincap.io/assets/icons/${base}@2x.png`]
   }
+  if (sym.startsWith('FUND:')) return []
   if (asset.type === 'stock' || (asset.type === 'fund' && sym) || (asset.type === 'derivative' && sym && !sym.includes('='))) {
     return [`https://financialmodelingprep.com/image-stock/${encodeURIComponent(sym)}.png`, `https://assets.parqet.com/logos/symbol/${encodeURIComponent(sym.replace('.BK', ''))}?format=png`]
   }

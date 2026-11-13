@@ -5,7 +5,7 @@ import { AssetLogo, ItemSprite } from '../components/Logos'
 import { useStore } from '../store'
 import { useVault } from '../lib/useVault'
 import { usePrices, fetchQuotes } from '../lib/prices'
-import { ASSET_TYPES, symbolsToPoll } from '../lib/portfolio'
+import { ASSET_TYPES, symbolsToPoll, assetLabel } from '../lib/portfolio'
 import { money, shortDate, evalAmount } from '../lib/format'
 import { GOLD } from '../lib/prices'
 
@@ -87,7 +87,7 @@ export default function Portfolio({ onTrade }) {
                   <AssetLogo asset={h.asset} size={44} />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5">
-                      <span className="font-semibold truncate">{h.asset.symbol && h.asset.source !== 'manual' && h.asset.source !== 'thaigold' ? h.asset.symbol.replace('-USD', '') : h.asset.name}</span>
+                      <span className="font-semibold truncate">{assetLabel(h.asset)}</span>
                       {h.live && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" title="Realtime" />}
                     </div>
                     <div className="text-xs text-slate-500 truncate">
@@ -135,7 +135,7 @@ function AssetDetail({ id, onClose, onTrade }) {
         <AssetLogo asset={a} size={56} />
         <div className="flex-1 min-w-0">
           <div className="text-lg font-bold truncate">{a.name}</div>
-          <div className="text-xs text-slate-500">{a.symbol && a.source === 'yahoo' ? `${a.symbol} · ` : ''}{T.label}{a.exchange ? ` · ${a.exchange}` : ''}</div>
+          <div className="text-xs text-slate-500">{a.code ? `${a.code} · ` : a.symbol && a.source === 'yahoo' ? `${a.symbol} · ` : ''}{T.label}{a.exchange ? ` · ${a.exchange}` : ''}</div>
         </div>
         <div className="text-right">
           <div className="font-bold num">{ccy(a)}{fmtQ(h.price)}</div>
