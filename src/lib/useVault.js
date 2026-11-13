@@ -1,9 +1,9 @@
 import { useMemo } from 'react'
 import { useAccounts, useTxns, useSettings, useCategories, useStore, selectList } from '../store'
-import { computeBalances, summarize } from './ledger'
+import { computeBalances, summarize, cardCycle } from './ledger'
 import { computePortfolio } from './portfolio'
 import { usePrices } from './prices'
-import { round2 } from './format'
+import { round2, todayISO } from './format'
 
 export function useVault() {
   const accounts = useAccounts()
@@ -23,8 +23,14 @@ export function useVault() {
     const pv = portfolio.value
     return { ...s, cashAssets: s.assets, portfolio: pv, assets: round2(s.assets + pv), net: round2(s.net + pv), byType: { ...s.byType, portfolio: pv } }
   }, [accKey, balances, portfolio.value]) // eslint-disable-line
+  const cycles = useMemo(() => {
+    const byId = Object.fromEntries(accounts.map((a) => [a.id, a]))
+    const out = {}
+    for (const a of accounts) { const c = cardCycle(a, txns, byId, settings, todayISO()); if (c) out[a.id] = c }
+    return out
+  }, [accKey, txKey, setKey, todayISO()]) // eslint-disable-line
   const accById = useMemo(() => Object.fromEntries(accounts.map((a) => [a.id, a])), [accKey]) // eslint-disable-line
   const catById = useMemo(() => Object.fromEntries(categories.map((c) => [c.id, c])), [JSON.stringify(categories)]) // eslint-disable-line
   const assetById = useMemo(() => Object.fromEntries(assets.map((a) => [a.id, a])), [assets])
-  return { accounts, txns, settings, categories, balances, summary, accById, catById, assets, assetById, portfolio, quotes }
+  return { accounts, txns, settings, categories, balances, summary, cycles, accById, catById, assets, assetById, portfolio, quotes }
 }

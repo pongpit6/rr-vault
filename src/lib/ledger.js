@@ -133,3 +133,42 @@ export function txnSign(t, accById) {
 }
 
 export { isDebt }
+
+/* ---------- credit card billing cycle ---------- */
+const isoD = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+const clampDay = (y, m, d) => new Date(y, m, Math.min(d, new Date(y, m + 1, 0).getDate()))
+const dueAfter = (stmt, sd, dd) => (dd > sd ? clampDay(stmt.getFullYear(), stmt.getMonth(), dd) : clampDay(stmt.getFullYear(), stmt.getMonth() + 1, dd))
+
+/**
+ * Splits a credit card balance into the bill of the latest statement (due on dueDay) and
+ * the new cycle (spending after the statement date, billed next time).
+ * "ปรับยอด" entries count as part of the billed balance.
+ */
+export function cardCycle(a, txns, accById, settings, todayIso) {
+  if (a.type !== 'credit' || !a.statementDay) return null
+  const sd = Number(a.statementDay), dd = Number(a.dueDay) || sd
+  const t = new Date(todayIso + 'T00:00:00')
+  let stmt = clampDay(t.getFullYear(), t.getMonth(), sd)
+  if (stmt > t) stmt = clampDay(t.getFullYear(), t.getMonth() - 1, sd)
+  const due = dueAfter(stmt, sd, dd)
+  const nextStmt = clampDay(stmt.getFullYear(), stmt.getMonth() + 1, sd)
+  const nextDue = dueAfter(nextStmt, sd, dd)
+  const stmtIso = isoD(stmt)
+  let balAtStmt = a.opening || 0, paidAfter = 0, chargedAfter = 0
+  for (const x of txns) {
+    for (const p of postingsOf(x, accById, settings)) {
+      if (p.acc !== a.id) continue
+      if (x.kind === 'adjust' || x.date <= stmtIso) balAtStmt += p.amt
+      else if (p.amt > 0) paidAfter += p.amt
+      else chargedAfter += -p.amt
+    }
+  }
+  const billed = round2(Math.max(0, -balAtStmt))
+  const billDue = round2(Math.max(0, billed - paidAfter))
+  const owed = round2(Math.max(0, -(balAtStmt + paidAfter - chargedAfter)))
+  return {
+    stmtDate: stmtIso, dueDate: isoD(due), nextStmtDate: isoD(nextStmt), nextDueDate: isoD(nextDue),
+    billed, billDue, paidAfter: round2(paidAfter), newCycle: round2(Math.max(0, owed - billDue)), owed,
+    overdue: billDue > 0 && todayIso > isoD(due),
+  }
+}

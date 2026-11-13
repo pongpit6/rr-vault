@@ -43,7 +43,7 @@ export default function TxnForm({ open, onClose, initial }) {
   const put = useStore((s) => s.put)
   const remove = useStore((s) => s.remove)
   const showToast = useStore((s) => s.showToast)
-  const { accounts, txns, settings, categories, balances, accById } = useVault()
+  const { accounts, txns, settings, categories, balances, accById, cycles } = useVault()
   const editing = !!initial?.id
 
   const firstOf = (type) => accounts.find((a) => a.type === type && !a.archived)?.id
@@ -229,6 +229,11 @@ export default function TxnForm({ open, onClose, initial }) {
             filter={(a) => a.id !== f.account && (f.kind === 'transfer' || isDebt(a))} />
           {f.kind === 'payment' && debtTo && (
             <div className="flex flex-wrap gap-2 pt-1">
+              {cycles[debtTo.id]?.billDue > 0 && (
+                <button onClick={() => set({ amountStr: String(cycles[debtTo.id].billDue) })} className="px-3 py-1.5 rounded-xl bg-violet-50 text-violet-700 font-semibold hover:bg-violet-100 text-xs">
+                  ยอดบิลรอบนี้ {money(cycles[debtTo.id].billDue)}
+                </button>
+              )}
               {(balances[debtTo.id] || 0) < 0 && (
                 <button onClick={() => set({ amountStr: String(-balances[debtTo.id]) })} className="px-3 py-1.5 rounded-xl bg-slate-900/[.04] hover:bg-slate-900/[.06] text-xs">
                   จ่ายเต็ม {money(-balances[debtTo.id])}

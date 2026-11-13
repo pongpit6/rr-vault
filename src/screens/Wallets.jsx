@@ -7,11 +7,11 @@ import { useStore } from '../store'
 import { useVault } from '../lib/useVault'
 import { ACCOUNT_TYPES, isDebt } from '../lib/defaults'
 import { ICON_KEYS, COLORS } from '../lib/icons'
-import { evalAmount, money, round2, todayISO } from '../lib/format'
+import { evalAmount, money, round2, todayISO, shortDate } from '../lib/format'
 import { postingsOf } from '../lib/ledger'
 
 export default function Wallets({ onEdit, go }) {
-  const { accounts, balances, summary, settings, txns, catById, accById } = useVault()
+  const { accounts, balances, summary, settings, txns, catById, accById, cycles } = useVault()
   const put = useStore((s) => s.put)
   const [editAcc, setEditAcc] = useState(null)
   const [detail, setDetail] = useState(null)
@@ -73,7 +73,8 @@ export default function Wallets({ onEdit, go }) {
                       <div className="flex-1 min-w-0">
                         <div className="font-medium truncate">{a.name}</div>
                         <div className="text-xs text-slate-500 truncate">
-                          {a.type === 'credit' && a.limit > 0 ? <>วงเงินเหลือ <Money value={a.limit - owed} /></> :
+                          {cycles[a.id] ? <>บิลรอบนี้ <Money value={cycles[a.id].billDue} decimals={false} /> · จ่ายภายใน {shortDate(cycles[a.id].dueDate)}{a.limit > 0 && <> · วงเงินเหลือ <Money value={a.limit - owed} decimals={false} /></>}</> :
+                          a.type === 'credit' && a.limit > 0 ? <>วงเงินเหลือ <Money value={a.limit - owed} /></> :
                             a.type === 'loan' && a.installment > 0 ? <>ค่างวด <Money value={a.installment} /> · ทุกวันที่ {a.dueDay}</> :
                               ACCOUNT_TYPES[a.type]?.desc}
                         </div>
@@ -204,7 +205,7 @@ export function AccountForm({ open, initial, onClose }) {
       order: initial?.order ?? (Math.max(0, ...accounts.map((a) => a.order || 0)) + 1),
       archived: !!f.archived,
     }
-    if (f.type === 'credit') { data.limit = evalAmount(f.limit) || 0; data.dueDay = Number(f.dueDay) || undefined }
+    if (f.type === 'credit') { data.limit = evalAmount(f.limit) || 0; data.dueDay = Number(f.dueDay) || undefined; data.statementDay = Number(f.statementDay) || undefined }
     if (f.type === 'loan') { data.installment = evalAmount(f.installment) || 0; data.dueDay = Number(f.dueDay) || undefined }
     Object.keys(data).forEach((k) => data[k] === undefined && delete data[k])
     put('account', data)
@@ -244,8 +245,15 @@ export function AccountForm({ open, initial, onClose }) {
         </div>
         {debt && (
           <div>
-            <Label>ครบกำหนดทุกวันที่</Label>
+            <Label>{f.type === 'credit' ? 'ครบกำหนดชำระทุกวันที่' : 'ครบกำหนดทุกวันที่'}</Label>
             <input className="field num" inputMode="numeric" placeholder="25" value={f.dueDay || ''} onChange={(e) => set({ dueDay: e.target.value.replace(/\D/g, '').slice(0, 2) })} />
+          </div>
+        )}
+        {f.type === 'credit' && (
+          <div className="col-span-2">
+            <Label>วันตัดรอบบัญชี (วันที่ธนาคารสรุปยอดออกบิล)</Label>
+            <input className="field num" inputMode="numeric" placeholder="เช่น 5" value={f.statementDay || ''} onChange={(e) => set({ statementDay: e.target.value.replace(/\D/g, '').slice(0, 2) })} />
+            {f.statementDay && f.dueDay && <div className="text-[11px] text-slate-500 mt-1">รูดวันที่ {(Number(f.statementDay) % 31) + 1} ถึงวันที่ {f.statementDay} เดือนถัดไป = บิลเดียวกัน · จ่ายภายในวันที่ {f.dueDay}</div>}
           </div>
         )}
         {f.type === 'credit' && (

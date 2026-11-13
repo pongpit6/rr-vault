@@ -68,7 +68,7 @@ export function processDueSubs() {
 }
 
 /** Upcoming money events in the next `days` days: subscriptions + debt due dates. */
-export function upcoming(subs, accounts, balances, days = 10) {
+export function upcoming(subs, accounts, balances, days = 10, cycles = {}) {
   const out = []
   const today = new Date(); today.setHours(0, 0, 0, 0)
   const iso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
@@ -83,6 +83,14 @@ export function upcoming(subs, accounts, balances, days = 10) {
     if (a.archived || !(a.type === 'credit' || a.type === 'loan') || !a.dueDay) continue
     const owed = -(balances[a.id] || 0)
     if (owed <= 0) continue
+    const cy = cycles[a.id]
+    if (cy) {
+      if (cy.billDue <= 0) continue
+      const [y, m, d] = cy.dueDate.split('-').map(Number)
+      const dt = new Date(y, m - 1, d)
+      if (dt <= end) out.push({ kind: 'debt', date: cy.dueDate, days: Math.round((dt - today) / 864e5), account: a, amount: cy.billDue, bill: true })
+      continue
+    }
     let dt = new Date(today.getFullYear(), today.getMonth(), Math.min(a.dueDay, 28))
     if (a.dueDay > 28) dt = new Date(today.getFullYear(), today.getMonth() + 1, 0)
     if (dt < today) dt = new Date(today.getFullYear(), today.getMonth() + 1, Math.min(a.dueDay, 28))

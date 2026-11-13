@@ -11,7 +11,7 @@ import { RpgHomeCard } from '../components/RpgBits'
 import { useRpg } from '../lib/rpg'
 import { useStore, useProfile } from '../store'
 import { useVault } from '../lib/useVault'
-import { greeting, money, todayISO, monthKey, round2 } from '../lib/format'
+import { greeting, money, todayISO, monthKey, round2, shortDate } from '../lib/format'
 
 function useCountUp(target, ms = 900) {
   const [v, setV] = useState(0)
@@ -51,12 +51,12 @@ export default function Home({ onAdd, onEdit, go }) {
   const profile = useProfile()
   const privacy = useStore((s) => s.ui.privacy)
   const setUi = useStore((s) => s.setUi)
-  const { accounts, txns, balances, summary, catById, accById, portfolio } = useVault()
+  const { accounts, txns, balances, summary, catById, accById, portfolio, cycles } = useVault()
   const subs = useSubs()
   const items = useStore((s) => s.items)
   const budgets = useMemo(() => budgetStatus(selectList(items, 'budget'), txns).slice(0, 3), [items, txns])
   const goals = useMemo(() => selectList(items, 'goal').slice(0, 2), [items])
-  const soon = useMemo(() => upcoming(subs, accounts, balances, 10), [subs, accounts, balances])
+  const soon = useMemo(() => upcoming(subs, accounts, balances, 10, cycles), [subs, accounts, balances, cycles])
   const net = useCountUp(summary.net)
   const rpg = useRpg()
 
@@ -155,8 +155,16 @@ export default function Home({ onAdd, onEdit, go }) {
             <Progress value={summary.coverage} className="mt-3" color={summary.coverage >= 1 ? 'bg-mint' : 'grad-bg'} />
             <div className="mt-2 flex justify-between text-[11px] text-slate-500 num">
               <span>กันไว้ <Money value={summary.reserve} /></span>
-              <span>ต้องจ่าย <Money value={summary.target} /></span>
+              <span>{Object.keys(cycles).length ? 'ยอดที่ต้องกันทั้งหมด' : 'ต้องจ่าย'} <Money value={summary.target} /></span>
             </div>
+            {Object.entries(cycles).filter(([, c]) => c.owed > 0).map(([id, c]) => (
+              <div key={id} className="mt-3 rounded-xl bg-slate-50 border border-slate-200 p-3 text-xs space-y-1.5">
+                <div className="font-semibold text-slate-700 text-[13px]">{accById[id]?.name}</div>
+                <div className="flex justify-between"><span className={c.overdue ? 'text-rose font-semibold' : 'text-slate-600'}>บิลรอบนี้ · ครบกำหนด {shortDate(c.dueDate)}{c.overdue ? ' (เลยกำหนด)' : ''}</span><Money value={c.billDue} className={`font-semibold ${c.billDue > 0 ? '' : 'text-emerald-600'}`} /></div>
+                {c.billDue <= 0 && c.billed > 0 && <div className="text-emerald-600">จ่ายบิลรอบนี้ครบแล้ว ✓</div>}
+                <div className="flex justify-between text-slate-500"><span>รอบใหม่ (รูดหลัง {shortDate(c.stmtDate)}) · จ่าย {shortDate(c.nextDueDate)}</span><Money value={c.newCycle} /></div>
+              </div>
+            ))}
             {summary.target > 0 && summary.reserve > 0 && (
               <button onClick={() => onAdd({ kind: 'payment' })} className="mt-3 w-full py-2.5 rounded-xl bg-violet-400/10 hover:bg-violet-400/15 text-violet-600 text-sm font-medium flex items-center justify-center gap-2">
                 <ShieldCheck size={16} /> บันทึกชำระหนี้
@@ -178,8 +186,8 @@ export default function Home({ onAdd, onEdit, go }) {
                   <button key={i} onClick={() => u.kind === 'debt' ? onAdd({ kind: 'payment', to: u.account.id }) : go('subs')} className="w-full flex items-center gap-3 py-2 text-left">
                     {u.kind === 'sub' ? <SubLogo sub={u.sub} size={36} /> : <IconBadge name={u.account.icon} color={u.account.color} size={36} icon={17} />}
                     <div className="flex-1 min-w-0">
-                      <div className="text-sm font-medium truncate">{u.kind === 'sub' ? u.sub.name : `ครบกำหนด ${u.account.name}`}</div>
-                      <div className={`text-xs ${u.days <= 2 ? 'text-amber-600 font-semibold' : 'text-slate-500'}`}>{u.days <= 0 ? 'วันนี้' : u.days === 1 ? 'พรุ่งนี้' : `อีก ${u.days} วัน`}{u.kind === 'sub' && u.sub.auto ? ' · ตัดอัตโนมัติ' : ''}</div>
+                      <div className="text-sm font-medium truncate">{u.kind === 'sub' ? u.sub.name : u.bill ? `จ่ายบิล ${u.account.name}` : `ครบกำหนด ${u.account.name}`}</div>
+                      <div className={`text-xs ${u.days <= 2 ? 'text-amber-600 font-semibold' : 'text-slate-500'}`}>{u.days < 0 ? `เลยกำหนด ${-u.days} วัน` : u.days === 0 ? 'วันนี้' : u.days === 1 ? 'พรุ่งนี้' : `อีก ${u.days} วัน`}{u.bill ? ` · ภายใน ${shortDate(u.date)}` : ''}{u.kind === 'sub' && u.sub.auto ? ' · ตัดอัตโนมัติ' : ''}</div>
                     </div>
                     {u.kind === 'sub'
                       ? <span className="text-sm font-semibold num">{u.sub.currency === 'USD' ? `$${u.sub.amount}` : <Money value={u.sub.amount} decimals={false} />}</span>
