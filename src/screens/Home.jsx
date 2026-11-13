@@ -1,12 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Settings as Cog, Eye, EyeOff, ChevronRight, ChevronDown, Cloud, CloudOff, RefreshCw, Plus, ScanLine } from 'lucide-react'
+import { Settings as Cog, Eye, EyeOff, ChevronRight, ChevronDown, Cloud, CloudOff, RefreshCw, Plus, ScanLine, Check } from 'lucide-react'
 import { Avatar, Money, IconBadge, Empty, Button } from '../components/ui'
 import TxnRow from '../components/TxnRow'
 import { SubLogo, AssetLogo } from '../components/Logos'
 import { RpgHomeCard } from '../components/RpgBits'
 import { useRpg } from '../lib/rpg'
 import { useSubs } from './Subscriptions'
-import { useInbox } from './Inbox'
 import { upcoming } from '../lib/subs'
 import { budgetStatus } from '../lib/plan'
 import { assetLabel } from '../lib/portfolio'
@@ -71,7 +70,6 @@ export default function Home({ onAdd, onEdit, go }) {
   const { accounts, txns, balances, summary, catById, accById, portfolio, cycles, settings } = useVault()
   const subs = useSubs()
   const items = useStore((s) => s.items)
-  const inbox = useInbox()
   const rpg = useRpg()
   const net = useCountUp(summary.net)
   const uncat = useMemo(() => txns.filter((t) => t.category === 'cat-uncat'), [txns])
@@ -91,10 +89,10 @@ export default function Home({ onAdd, onEdit, go }) {
   }, [txns, month])
   const cash = summary.byType.cash || 0
   const recent = txns.slice(0, 5)
+  const slipToday = useMemo(() => txns.filter((t) => t.fromSlip && t.date === todayISO()), [txns])
   const warnBudgets = budgets.filter((b) => b.status === 'over' || b.status === 'warn')
 
   const todos = []
-  if (inbox.length) todos.push({ key: 'inbox', urgent: true, icon: <div className="w-9 h-9 rounded-2xl bg-amber-400 text-white grid place-items-center font-bold">{inbox.length}</div>, title: 'รายการจากธนาคารรอยืนยัน', sub: inbox.slice(0, 3).map((x) => x.p.kind === 'trade' ? `${x.p.side === 'buy' ? 'ซื้อ' : 'ขาย'} ${x.p.coin}` : `${x.p.direction === 'in' ? '+' : x.p.direction === 'transfer' ? '' : '-'}${x.p.amount ? money(x.p.amount, { decimals: false }) : '?'}`).join(' · '), onClick: () => go('txns', 'inbox') })
   if (uncat.length) todos.push({ key: 'uncat', icon: <IconBadge name="tag" color="#f59e0b" size={36} icon={17} />, title: `${uncat.length} รายการยังไม่ใส่หมวด`, sub: 'แตะเพื่อใส่หมวดรวดเดียว', onClick: () => go('txns', 'uncat') })
   for (const u of soon.slice(0, 3)) {
     todos.push(u.kind === 'sub'
@@ -116,7 +114,6 @@ export default function Home({ onAdd, onEdit, go }) {
           <div className="font-semibold truncate">{profile.name}</div>
         </div>
         <SyncDot />
-        <button onClick={() => setUi({ slipOpen: true })} className="p-2 rounded-full hover:bg-slate-900/[.04] text-slate-600" title="สแกนสลิป"><ScanLine size={20} /></button>
         <button onClick={() => setUi({ privacy: !privacy })} className="p-2 rounded-full hover:bg-slate-900/[.04] text-slate-600" title="ซ่อน/แสดงตัวเลข">{privacy ? <EyeOff size={20} /> : <Eye size={20} />}</button>
         <button onClick={() => go('settings')} className="p-2 -mr-2 rounded-full hover:bg-slate-900/[.04] text-slate-600" title="ตั้งค่า"><Cog size={20} /></button>
       </header>
@@ -139,6 +136,19 @@ export default function Home({ onAdd, onEdit, go }) {
               <button onClick={() => go('money', 'plan')} className="rounded-2xl bg-white/15 px-3 py-2 text-left"><div className="text-white/70">มูลค่าสุทธิ</div><span className="font-semibold text-sm num">{privacy ? '••••' : money(net, { decimals: false })}</span></button>
             </div>
           </section>
+
+          {/* the main action: import today's K PLUS slips */}
+          <button onClick={() => setUi({ slipOpen: true })} data-testid="import-slips"
+            className="w-full card p-4 flex items-center gap-4 text-left border-2 border-emerald-200 hover:border-emerald-300 active:scale-[.99] transition">
+            <div className="w-14 h-14 rounded-2xl grad-bg text-white grid place-items-center shrink-0 shadow-lg shadow-emerald-500/25"><ScanLine size={28} /></div>
+            <div className="flex-1 min-w-0">
+              <div className="font-bold text-lg leading-tight">นำเข้าสลิปวันนี้</div>
+              <div className="text-sm text-slate-500 mt-0.5 truncate">
+                {slipToday.length ? <span className="text-emerald-700 inline-flex items-center gap-1"><Check size={14} /> วันนี้นำเข้าแล้ว {slipToday.length} สลิป · เพิ่มได้อีก</span> : 'เลือกรูปจากอัลบั้ม K PLUS แล้วบันทึกรวดเดียว'}
+              </div>
+            </div>
+            <ChevronRight size={20} className="text-slate-300 shrink-0" />
+          </button>
 
           {/* to-do */}
           {todos.length > 0 && (

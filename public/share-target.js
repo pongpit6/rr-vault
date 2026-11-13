@@ -15,10 +15,10 @@ self.addEventListener('fetch', (event) => {
   })())
 })
 
-// tapping the daily slip summary opens the inbox
+// tapping the daily reminder opens the slip importer
 self.addEventListener('notificationclick', (event) => {
   event.notification.close()
-  const target = new URL(event.notification.data?.url || './?view=inbox', self.registration.scope).href
+  const target = new URL(event.notification.data?.url || './?slip=1', self.registration.scope).href
   event.waitUntil((async () => {
     const wins = await self.clients.matchAll({ type: 'window', includeUncontrolled: true })
     for (const w of wins) { if ('focus' in w) { await w.navigate(target).catch(() => {}); return w.focus() } }

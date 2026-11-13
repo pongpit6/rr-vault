@@ -23,9 +23,7 @@ import { symbolsToPoll } from './lib/portfolio'
 import { assetLabel } from './lib/portfolio'
 import { processDueSubs } from './lib/subs'
 import { processInstallments } from './lib/installments'
-import { processInbox } from './lib/autorecord'
-import { processSlipQueue } from './lib/slipqueue'
-import { useSlipSummary } from './lib/slipSummary'
+import { useSlipReminder } from './lib/slipSummary'
 
 const NAV = [
   { id: 'home', label: 'หน้าแรก', icon: LayoutDashboard },
@@ -35,7 +33,7 @@ const NAV = [
   { id: 'vault', label: 'Vault', icon: Swords },
 ]
 const ALL_TABS = [...NAV.map((n) => n.id), 'settings']
-const ALIAS = { wallets: ['money', 'wallets'], subs: ['money', 'subs'], plan: ['money', 'plan'], inbox: ['txns', 'inbox'] }
+const ALIAS = { wallets: ['money', 'wallets'], subs: ['money', 'subs'], plan: ['money', 'plan'] }
 const LAST = 'vault:lastTab'
 
 function Welcome() {
@@ -124,29 +122,33 @@ export default function App() {
   const [tab, setTab] = useState(() => { const h = location.hash.slice(1); return ALL_TABS.includes(h) ? h : ALIAS[h] ? ALIAS[h][0] : (localStorage.getItem(LAST) || 'home') })
   const [form, setForm] = useState(null) // null | {} | txn
   const [trade, setTrade] = useState(null)
+  const [sharedFiles, setSharedFiles] = useState(null)
   const [tabOpt, setTabOpt] = useState(() => (ALIAS[location.hash.slice(1)] || [])[1] || null)
   const go = (t, o = null) => { if (ALIAS[t]) { o = o || ALIAS[t][1]; t = ALIAS[t][0] } setTabOpt(o); setTab(t) }
 
   useEffect(() => { useStore.getState().init() }, [])
   useMarketData(ready)
-  const inboxCount = useStore((s) => Object.values(s.items).filter((i) => i.kind === 'inbox' && !i.deleted).length)
-  const autoRecord = useStore((s) => s.items.settings?.data?.autoRecord)
-  useEffect(() => { if (ready && autoRecord && inboxCount) { const t = setTimeout(processInbox, 600); return () => clearTimeout(t) } }, [ready, autoRecord, inboxCount])
-  // slips: uploaded by MacroDroid / Shortcuts, or shared from the gallery
-  const slipPending = useStore((s) => Object.values(s.items).filter((i) => i.kind === 'inbox' && !i.deleted && i.data.image && !i.data.slip).length)
+  // ?share=1 (images shared from the gallery) or ?slip=1 (tapped the 20:00 reminder) → open the slip importer
   useEffect(() => {
     if (!ready) return
     const q = new URLSearchParams(location.search)
-    if (q.has('share') || q.get('view') === 'inbox') { go('txns', 'inbox'); history.replaceState(null, '', location.pathname + '#txns') }
-  }, [ready]) // eslint-disable-line
-  useEffect(() => {
-    if (!ready) return
-    const t = setTimeout(processSlipQueue, 1200)
-    const vis = () => document.visibilityState === 'visible' && processSlipQueue()
-    document.addEventListener('visibilitychange', vis)
-    return () => { clearTimeout(t); document.removeEventListener('visibilitychange', vis) }
-  }, [ready, slipPending])
-  useSlipSummary(ready)
+    if (!q.has('share') && !q.has('slip') && q.get('view') !== 'inbox') return
+    history.replaceState(null, '', location.pathname + location.hash)
+    ;(async () => {
+      let files = null
+      if (q.has('share')) {
+        try {
+          const cache = await caches.open('vault-share')
+          const keys = await cache.keys()
+          files = []
+          for (const k of keys) { const r = await cache.match(k); if (r) files.push(new File([await r.blob()], k.url.split('/').pop(), { type: r.headers.get('content-type') || 'image/jpeg' })); await cache.delete(k) }
+        } catch { /* no shared files */ }
+      }
+      useStore.getState().setUi({ slipOpen: true })
+      if (files?.length) setSharedFiles(files)
+    })()
+  }, [ready])
+  useSlipReminder(ready)
   useEffect(() => {
     if (!ready) return
     const run = () => { processDueSubs(); processInstallments() }
@@ -236,7 +238,7 @@ export default function App() {
       </nav>
 
       <Onboarding />
-      <SlipHost />
+      <SlipHost shared={sharedFiles} clearShared={() => setSharedFiles(null)} />
       <SnapshotWriter />
       <AlertWatcher />
       <TxnForm open={!!form} initial={form} onClose={() => setForm(null)} />
@@ -262,9 +264,9 @@ function useTimeOfDay() {
   }, [])
 }
 
-function SlipHost() {
+function SlipHost({ shared, clearShared }) {
   useTimeOfDay()
   const open = useStore((s) => !!s.ui.slipOpen)
   const setUi = useStore((s) => s.setUi)
-  return <SlipScanner open={open} onClose={() => setUi({ slipOpen: false })} />
+  return <SlipScanner open={open} shared={shared} onClose={() => { setUi({ slipOpen: false }); clearShared() }} />
 }

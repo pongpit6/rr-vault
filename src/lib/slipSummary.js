@@ -2,8 +2,11 @@ import { useEffect } from 'react'
 import { useStore, selectList } from '../store'
 import { todayISO, money } from './format'
 
-/** Daily slip summary at the time set in settings (default 20:00): notification + toast, once per day. */
-export function useSlipSummary(ready) {
+/**
+ * Daily reminder (default 20:00) to import today's slips — once a day, skipped when slips were
+ * already imported today. A web app can only do this while it is still open in the background.
+ */
+export function useSlipReminder(ready) {
   useEffect(() => {
     if (!ready) return
     const check = async () => {
@@ -13,20 +16,18 @@ export function useSlipSummary(ready) {
       const now = new Date()
       const hhmm = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
       const today = todayISO()
-      if (hhmm < time || st.ui.slipSummaryDay === today) return
+      if (hhmm < time || st.ui.slipSummaryDay === today || st.ui.slipImportDay === today) return
       st.setUi({ slipSummaryDay: today })
-      const inbox = selectList(st.items, 'inbox').filter((x) => x.slip || x.image)
       const spent = selectList(st.items, 'txn').filter((t) => t.date === today && t.kind === 'expense').reduce((s, t) => s + t.amount, 0)
-      const outSlips = inbox.filter((x) => x.slip && x.slip.direction !== 'in').reduce((s, x) => s + x.slip.amount, 0)
-      const title = inbox.length ? `สลิปวันนี้ ${inbox.length} รายการ รอยืนยัน` : 'สรุปวันนี้'
-      const body = inbox.length ? `ยอดโอนออก ${money(outSlips)} · แตะเพื่อยืนยัน` : `วันนี้ใช้ไป ${money(spent)} · ไม่มีสลิปค้าง`
+      const title = 'นำเข้าสลิปวันนี้'
+      const body = `แตะเพื่อเลือกสลิป K PLUS ของวันนี้ · ตอนนี้บันทึกไว้ ${money(spent, { decimals: false })}`
       try {
         if ('Notification' in window && Notification.permission === 'granted') {
           const reg = await navigator.serviceWorker?.ready
-          await reg?.showNotification(title, { body, tag: 'slip-summary', icon: './icon-192.png', badge: './favicon.png', data: { url: './?view=inbox' } })
+          await reg?.showNotification(title, { body, tag: 'slip-reminder', icon: './icon-192.png', badge: './favicon.png', data: { url: './?slip=1' } })
         }
       } catch { /* notifications unavailable */ }
-      st.showToast(`${title} · ${body.replace(' · แตะเพื่อยืนยัน', '')}`)
+      st.showToast('ได้เวลานำเข้าสลิปวันนี้ — กดปุ่ม “นำเข้าสลิป” ที่หน้าแรก')
     }
     check()
     const iv = setInterval(check, 60_000)

@@ -4,7 +4,6 @@ import { Avatar, Button, Sheet, Label, IconBadge, IconPicker, ColorPicker, Segme
 import AvatarEditor from '../components/AvatarEditor'
 import AuthPanel from '../components/AuthPanel'
 import { LockSettings } from '../components/Lock'
-import AutoCapture from '../components/AutoCapture'
 import { useStore, useProfile } from '../store'
 import { useVault } from '../lib/useVault'
 import { ICON_KEYS, COLORS } from '../lib/icons'
@@ -40,7 +39,7 @@ export default function Settings({ opt }) {
   const [authOpen, setAuthOpen] = useState(false)
   const [installOpen, setInstallOpen] = useState(false)
   const [lockOpen, setLockOpen] = useState(false)
-  const [capOpen, setCapOpen] = useState(opt === 'autocapture')
+  const [slipOpen, setSlipOpen] = useState(false)
   const lock = useStore((s) => s.ui.lock)
   const fileRef = useRef(null)
 
@@ -100,7 +99,7 @@ export default function Settings({ opt }) {
         <Row icon="sparkles" color="#a78bfa" title="ซ่อนตัวเลข" sub="เหมาะกับการเปิดแอปในที่สาธารณะ"
           right={<div className={`w-11 h-6 rounded-full p-0.5 transition ${privacy ? 'bg-mint' : 'bg-slate-900/10'}`}><div className={`w-5 h-5 rounded-full bg-white transition ${privacy ? 'translate-x-5' : ''}`} /></div>}
           onClick={() => setUi({ privacy: !privacy })} />
-        <Row icon="zap" color="#f59e0b" title="บันทึกอัตโนมัติจากแจ้งเตือนธนาคาร" sub="ดึงยอดจากแจ้งเตือน LINE/SMS ของธนาคารเข้ากล่องรอยืนยัน" onClick={() => setCapOpen(true)} />
+        <Row icon="scan" color="#10b981" title="นำเข้าสลิป K PLUS" sub={`เตือนทุกวัน ${(useStore.getState().items.settings?.data?.slipSummaryTime ?? '20:00') || 'ปิดอยู่'} · วิธีใช้`} onClick={() => setSlipOpen(true)} />
         <Row icon="shield" color="#10b981" title="ล็อกแอปด้วย PIN / Face ID" sub={lock?.enabled ? `เปิดอยู่${lock.bio ? ' · ใช้ไบโอเมตริกซ์ได้' : ''}` : 'ปิดอยู่ · แนะนำให้เปิดเพื่อความปลอดภัย'} onClick={() => setLockOpen(true)} />
         <Row icon="sparkles" color="#14b8a6" title="ตั้งค่าเริ่มต้นใหม่ (ตัวช่วยทีละขั้น)" sub="เงินสด บัตร ผ่อนผ่านบัตร และการแบ่งเงิน" onClick={() => setUi({ onboardingOpen: true })} />
         <Row icon="tag" color="#fbbf24" title="หมวดหมู่รายรับ-รายจ่าย" sub="เพิ่ม แก้ไข หรือลบหมวดหมู่ และเลือกไอคอน" onClick={() => setCatsOpen(true)} />
@@ -152,7 +151,7 @@ export default function Settings({ opt }) {
 
       <CategoryManager open={catsOpen} onClose={() => setCatsOpen(false)} />
       <LockSettings open={lockOpen} onClose={() => setLockOpen(false)} />
-      <AutoCapture open={capOpen} onClose={() => setCapOpen(false)} />
+      <SlipSettings open={slipOpen} onClose={() => setSlipOpen(false)} />
     </div>
   )
 }
@@ -206,5 +205,46 @@ function CategoryManager({ open, onClose }) {
         )}
       </Sheet>
     </>
+  )
+}
+
+function SlipSettings({ open, onClose }) {
+  const settings = useStore((s) => s.items.settings?.data) || {}
+  const put = useStore((s) => s.put)
+  const setUi = useStore((s) => s.setUi)
+  const [perm, setPerm] = useState(() => ('Notification' in window ? Notification.permission : 'unsupported'))
+  const time = settings.slipSummaryTime ?? '20:00'
+  return (
+    <Sheet open={open} onClose={onClose} title="นำเข้าสลิป K PLUS"
+      footer={<Button className="w-full" onClick={() => { onClose(); setUi({ slipOpen: true }) }}>นำเข้าสลิปตอนนี้</Button>}>
+      <div className="space-y-4 text-sm">
+        <div className="card p-4 space-y-2">
+          <div className="font-semibold">เตือนให้นำเข้าสลิปทุกวัน</div>
+          <div className="flex items-center gap-2">
+            <span className="text-slate-600 flex-1">เวลา</span>
+            <input type="time" value={time} onChange={(e) => put('settings', { ...settings, slipSummaryTime: e.target.value })} className="field !w-auto !py-1.5" />
+            {time && <button onClick={() => put('settings', { ...settings, slipSummaryTime: '' })} className="text-xs text-slate-500 underline">ปิด</button>}
+          </div>
+          {perm !== 'granted' && perm !== 'unsupported' && (
+            <Button variant="ghost" className="w-full !py-2" onClick={async () => setPerm(await Notification.requestPermission())}>อนุญาตให้ Vault แจ้งเตือน</Button>
+          )}
+          <div className="text-xs text-slate-500">ถ้าวันนั้นนำเข้าสลิปแล้วจะไม่เตือนซ้ำ · แอปบนเว็บเตือนได้เฉพาะตอนที่ยังเปิดค้างไว้เบื้องหลัง ถ้าปัดปิดแอปไปแล้วจะไม่เตือน (ตั้งนาฬิกาปลุกในมือถือเวลาเดียวกันแทนได้)</div>
+        </div>
+        <div className="card p-4">
+          <div className="font-semibold mb-1">วิธีใช้</div>
+          <ol className="list-decimal pl-5 text-slate-600 space-y-1.5">
+            <li>ในแอป K PLUS เปิด <b>“บันทึกสลิปอัตโนมัติ”</b> ไว้ สลิปจะเข้าอัลบั้ม K PLUS ทุกครั้งที่โอนหรือสแกนจ่าย</li>
+            <li>ตอนเย็นกด <b>“นำเข้าสลิปวันนี้”</b> ที่หน้าแรก แล้วเลือกรูปล่าสุดในอัลบั้ม K PLUS ได้เลยหลายรูป ไม่ต้องคัด</li>
+            <li>ระบบอ่าน QR และยอดเงินในเครื่อง เก็บเฉพาะสลิปของวันนั้น ตรวจหมวดแล้วกด <b>“บันทึกทั้งหมด”</b></li>
+          </ol>
+          <div className="text-xs text-slate-500 mt-3 space-y-1">
+            <div>• โอนเติมเงินเข้า <b>Bitkub</b> จะลงเป็น “ย้ายเข้ากระเป๋าลงทุน” ไม่นับเป็นรายจ่าย</div>
+            <div>• สลิปเดิมนำเข้าซ้ำไม่ได้ (เช็กจากเลขที่รายการ) เลือกรูปเยอะเกินไม่เป็นไร</div>
+            <div>• ร้านที่เคยเลือกหมวดแล้ว ครั้งหน้าระบบจะจำให้</div>
+            <div>• อีกทาง: เลือกสลิปในแกลเลอรี → แชร์ → <b>Vault</b> (ต้องติดตั้งแอปลงหน้าจอก่อน)</div>
+          </div>
+        </div>
+      </div>
+    </Sheet>
   )
 }

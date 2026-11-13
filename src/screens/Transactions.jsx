@@ -4,16 +4,14 @@ import { useStore } from '../store'
 import { Segmented, Money, Empty } from '../components/ui'
 import TxnRow, { txnVisual } from '../components/TxnRow'
 import { useVault } from '../lib/useVault'
-import Inbox, { useInbox } from './Inbox'
 import Uncategorized from './Uncategorized'
 import { dateLabel, monthKey, monthLabel, shiftMonth, todayISO, round2 } from '../lib/format'
 
 export default function Transactions({ onEdit, onAdd, onTrade, go, opt, initialAccount }) {
   const { txns, catById, accById, accounts } = useVault()
-  const inbox = useInbox()
   const uncatCount = useMemo(() => txns.filter((t) => t.category === 'cat-uncat').length, [txns])
-  const [view, setView] = useState(opt || 'all')
-  useEffect(() => { if (opt) setView(opt) }, [opt])
+  const [view, setView] = useState(opt && opt !== 'inbox' ? opt : 'all')
+  useEffect(() => { if (opt) setView(opt === 'inbox' ? 'all' : opt) }, [opt])
   const [month, setMonth] = useState(monthKey(todayISO()))
   const [kind, setKind] = useState('all')
   const [q, setQ] = useState('')
@@ -52,15 +50,14 @@ export default function Transactions({ onEdit, onAdd, onTrade, go, opt, initialA
     return { inc: round2(inc), exp: round2(exp) }
   }, [list])
 
-  const tabs = [{ value: 'all', label: 'ทั้งหมด' }, { value: 'inbox', label: `รอยืนยัน${inbox.length ? ` (${inbox.length})` : ''}` }, { value: 'uncat', label: `ใส่หมวด${uncatCount ? ` (${uncatCount})` : ''}` }]
+  const tabs = [{ value: 'all', label: 'ทั้งหมด' }, { value: 'uncat', label: `ใส่หมวด${uncatCount ? ` (${uncatCount})` : ''}` }]
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between pt-2">
         <h1 className="text-2xl font-bold">รายการ</h1>
-        <button onClick={() => useStore.getState().setUi({ slipOpen: true })} className="flex items-center gap-1.5 text-sm font-medium px-3 py-2 rounded-xl bg-emerald-50 text-emerald-700 hover:bg-emerald-100"><ScanLine size={17} /> สแกนสลิป</button>
+        <button onClick={() => useStore.getState().setUi({ slipOpen: true })} className="flex items-center gap-1.5 text-sm font-medium px-3 py-2 rounded-xl bg-emerald-50 text-emerald-700 hover:bg-emerald-100"><ScanLine size={17} /> นำเข้าสลิป</button>
       </div>
       <Segmented value={view} onChange={setView} options={tabs} />
-      {view === 'inbox' && <Inbox onAdd={onAdd} onTrade={onTrade} go={go} embedded />}
       {view === 'uncat' && <Uncategorized onEdit={onEdit} />}
       {view === 'all' && <>
 
