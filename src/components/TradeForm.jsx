@@ -22,9 +22,11 @@ export default function TradeForm({ open, onClose, initial }) {
   const [step, setStep] = useState('pick')
   const [asset, setAsset] = useState(null) // existing or draft
   const [f, setF] = useState(null)
+  const [adv, setAdv] = useState(false)
 
   useEffect(() => {
     if (!open) { setF(null); setAsset(null); return }
+    setAdv(!!(initial?.fx && initial.fx !== 1) || !!initial?.note)
     const a = initial?.assetId ? assetById[initial.assetId] : initial?.asset || null
     setAsset(a)
     setStep(a ? 'form' : 'pick')
@@ -247,17 +249,18 @@ export default function TradeForm({ open, onClose, initial }) {
                 <Label>เงินประกัน (Margin) ฿</Label>
                 <input className="field num" inputMode="decimal" placeholder="0" value={f.marginStr} onChange={(e) => set({ marginStr: e.target.value })} />
               </div>
-            ) : (
+            ) : adv ? (
               <div>
                 <Label>ค่าธรรมเนียม ({f.entryCcy})</Label>
                 <input className="field num" inputMode="decimal" placeholder="0" value={f.feeStr} onChange={(e) => set({ feeStr: e.target.value })} />
               </div>
-            )}
+            ) : null}
           </div>
         </>
       )}
 
-      {usdAsset && (
+      {!adv && (usdAsset || !totalMode) && <button onClick={() => setAdv(true)} className="mt-3 text-sm text-sky-600">+ เพิ่มเติม{usdAsset ? ' (เรตค่าเงิน' : ' ('}{!totalMode ? (usdAsset ? ', ค่าธรรมเนียม' : 'ค่าธรรมเนียม') : ''}, บันทึก)</button>}
+      {usdAsset && adv && (
         <div className="mt-3">
           <Label>เรต USD/THB ณ วันนั้น</Label>
           <input className="field num" inputMode="decimal" placeholder={(f.histFx || fxLive).toFixed(2)} value={f.fxStr} onChange={(e) => set({ fxStr: e.target.value })} />
@@ -296,7 +299,7 @@ export default function TradeForm({ open, onClose, initial }) {
           <input className="field num mt-2" inputMode="decimal" placeholder="ยอดเงินบาทจริงจากแอปโบรกเกอร์" value={f.amountOverride} onChange={(e) => set({ amountOverride: e.target.value })} />
         </details>
       </div>
-      <input className="field mt-3" placeholder="บันทึกช่วยจำ (ไม่บังคับ)" value={f.note} onChange={(e) => set({ note: e.target.value })} />
+      {adv && <input className="field mt-3" placeholder="บันทึกช่วยจำ (ไม่บังคับ)" value={f.note} onChange={(e) => set({ note: e.target.value })} />}
     </Sheet>
   )
 }

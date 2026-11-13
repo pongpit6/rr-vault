@@ -1,15 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
-import { LayoutDashboard, List, Plus, Wallet, Settings as Cog, Swords, LineChart, Repeat, Target, Inbox as InboxIcon } from 'lucide-react'
+import { LayoutDashboard, List, Plus, Wallet, Settings as Cog, Swords, LineChart } from 'lucide-react'
 import { useStore, selectList } from './store'
 import Home from './screens/Home'
 import Transactions from './screens/Transactions'
-import Wallets from './screens/Wallets'
+import Money from './screens/Money'
 import Settings from './screens/Settings'
 import VaultRpg from './screens/VaultRpg'
 import Portfolio from './screens/Portfolio'
-import Subscriptions from './screens/Subscriptions'
-import Plan from './screens/Plan'
-import Inbox from './screens/Inbox'
+import Onboarding from './components/Onboarding'
 import { useVault } from './lib/useVault'
 import { usePrices, assetPrice } from './lib/prices'
 import { todayISO } from './lib/format'
@@ -25,17 +23,15 @@ import { processDueSubs } from './lib/subs'
 import { processInstallments } from './lib/installments'
 
 const NAV = [
-  { id: 'home', label: 'หน้าแรก', icon: LayoutDashboard, mobile: true },
-  { id: 'txns', label: 'รายการ', icon: List, mobile: true },
-  { id: 'inbox', label: 'รอยืนยัน', icon: InboxIcon },
-  { id: 'portfolio', label: 'พอร์ต', icon: LineChart, mobile: true },
-  { id: 'wallets', label: 'กระเป๋า', icon: Wallet, mobile: true },
-  { id: 'subs', label: 'Subscription', icon: Repeat },
-  { id: 'plan', label: 'วางแผน', icon: Target },
-  { id: 'vault', label: 'Vault', icon: Swords, mobile: true },
-  { id: 'settings', label: 'ตั้งค่า', icon: Cog },
+  { id: 'home', label: 'หน้าแรก', icon: LayoutDashboard },
+  { id: 'txns', label: 'รายการ', icon: List },
+  { id: 'money', label: 'เงิน', icon: Wallet },
+  { id: 'portfolio', label: 'ลงทุน', icon: LineChart },
+  { id: 'vault', label: 'Vault', icon: Swords },
 ]
-const MOBILE = NAV.filter((n) => n.mobile)
+const ALL_TABS = [...NAV.map((n) => n.id), 'settings']
+const ALIAS = { wallets: ['money', 'wallets'], subs: ['money', 'subs'], plan: ['money', 'plan'], inbox: ['txns', 'inbox'] }
+const LAST = 'vault:lastTab'
 
 function Welcome() {
   const setUi = useStore((s) => s.setUi)
@@ -120,11 +116,11 @@ export default function App() {
   const lock = useStore((s) => s.ui.lock)
   const [locked, setLocked] = useState(true)
   const hiddenAt = useRef(0)
-  const [tab, setTab] = useState(() => (location.hash.slice(1) || 'home'))
+  const [tab, setTab] = useState(() => { const h = location.hash.slice(1); return ALL_TABS.includes(h) ? h : ALIAS[h] ? ALIAS[h][0] : (localStorage.getItem(LAST) || 'home') })
   const [form, setForm] = useState(null) // null | {} | txn
   const [trade, setTrade] = useState(null)
-  const [tabOpt, setTabOpt] = useState(null)
-  const go = (t, o = null) => { setTabOpt(o); setTab(t) }
+  const [tabOpt, setTabOpt] = useState(() => (ALIAS[location.hash.slice(1)] || [])[1] || null)
+  const go = (t, o = null) => { if (ALIAS[t]) { o = o || ALIAS[t][1]; t = ALIAS[t][0] } setTabOpt(o); setTab(t) }
 
   useEffect(() => { useStore.getState().init() }, [])
   useMarketData(ready)
@@ -143,9 +139,9 @@ export default function App() {
     document.addEventListener('visibilitychange', vis)
     return () => document.removeEventListener('visibilitychange', vis)
   }, [])
-  useEffect(() => { if (location.hash.slice(1) !== tab) history.pushState(null, '', '#' + tab); window.scrollTo({ top: 0 }) }, [tab])
+  useEffect(() => { if (location.hash.slice(1) !== tab) history.pushState(null, '', '#' + tab); localStorage.setItem(LAST, tab); window.scrollTo({ top: 0 }) }, [tab])
   useEffect(() => {
-    const onHash = () => { const h = location.hash.slice(1); if (NAV.some((n) => n.id === h)) setTab(h) }
+    const onHash = () => { const h = location.hash.slice(1); if (ALL_TABS.includes(h)) setTab(h); else if (ALIAS[h]) go(h) }
     window.addEventListener('hashchange', onHash)
     return () => window.removeEventListener('hashchange', onHash)
   }, [])
@@ -154,7 +150,7 @@ export default function App() {
       if (e.target.closest('input,textarea,select') || e.metaKey || e.ctrlKey || document.querySelector('.fixed.inset-0.z-50')) return
       if (e.key === 'n' || e.key === 'N') { e.preventDefault(); setForm({}) }
       if (e.key === 't' || e.key === 'T') { e.preventDefault(); setTrade({}) }
-      if (e.key >= '1' && e.key <= '9') setTab(NAV[Number(e.key) - 1].id)
+      if (e.key >= '1' && e.key <= '5') setTab(NAV[Number(e.key) - 1].id)
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
@@ -167,14 +163,11 @@ export default function App() {
   const onAdd = (init) => setForm(init || {})
   const onEdit = (t) => (t.kind === 'trade' ? setTrade(t) : setForm(t))
   const screen = {
-    home: <Home onAdd={onAdd} onEdit={onEdit} go={go} onTrade={setTrade} />,
-    inbox: <Inbox onAdd={onAdd} onTrade={setTrade} go={go} />,
-    txns: <Transactions onEdit={onEdit} />,
+    home: <Home onAdd={onAdd} onEdit={onEdit} go={go} />,
+    txns: <Transactions onEdit={onEdit} onAdd={onAdd} onTrade={setTrade} go={go} opt={tabOpt} />,
+    money: <Money onEdit={onEdit} onAdd={onAdd} go={go} opt={tabOpt} />,
     portfolio: <Portfolio onTrade={setTrade} />,
-    wallets: <Wallets onEdit={onEdit} go={setTab} />,
-    subs: <Subscriptions />,
-    plan: <Plan onAdd={onAdd} />,
-    vault: <VaultRpg onAdd={onAdd} go={setTab} />,
+    vault: <VaultRpg onAdd={onAdd} go={go} />,
     settings: <Settings opt={tabOpt} />,
   }[tab] || null
 
@@ -193,12 +186,13 @@ export default function App() {
           <LineChart size={16} /> ซื้อ/ขายสินทรัพย์ <kbd className="ml-1 text-[10px] px-1.5 py-0.5 rounded bg-slate-100">T</kbd>
         </button>
         {NAV.map((n) => (
-          <button key={n.id} onClick={() => setTab(n.id)}
+          <button key={n.id} onClick={() => go(n.id)}
             className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition ${tab === n.id ? 'bg-slate-900/[.05] text-slate-900' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-900/[.025]'}`}>
             <n.icon size={18} className={tab === n.id ? 'text-emerald-600' : ''} /> {n.label}
           </button>
         ))}
-        <div className="mt-auto text-[11px] text-slate-400 px-2">คีย์ลัด: N บันทึก · T ซื้อขาย · 1-9 สลับหน้า</div>
+        <button onClick={() => setTab('settings')} className={`mt-auto flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition ${tab === 'settings' ? 'bg-slate-900/[.05] text-slate-900' : 'text-slate-500 hover:text-slate-900'}`}><Cog size={18} /> ตั้งค่า</button>
+        <div className="text-[11px] text-slate-400 px-2">คีย์ลัด: N บันทึก · T ซื้อขาย · 1-5 สลับหน้า</div>
       </aside>
 
       <main className="flex-1 min-w-0 px-4 md:px-8 pt-safe pb-28 md:pb-10">
@@ -208,16 +202,17 @@ export default function App() {
       {/* mobile bottom nav */}
       <nav className="md:hidden fixed bottom-0 inset-x-0 z-40 pb-safe bg-white/90 backdrop-blur-xl border-t border-slate-200">
         <div className="grid grid-cols-6 items-center h-16 px-1">
-          {MOBILE.slice(0, 2).map((n) => <NavBtn key={n.id} n={n} active={tab === n.id} onClick={() => setTab(n.id)} />)}
+          {NAV.slice(0, 2).map((n) => <NavBtn key={n.id} n={n} active={tab === n.id} onClick={() => go(n.id)} />)}
           <div className="flex justify-center">
             <button onClick={() => (tab === 'portfolio' ? setTrade({}) : setForm({}))} aria-label="บันทึกรายการ" className="w-14 h-14 -mt-7 rounded-2xl grad-bg text-white grid place-items-center shadow-xl shadow-emerald-500/30 active:scale-95 transition">
               <Plus size={26} strokeWidth={2.4} />
             </button>
           </div>
-          {MOBILE.slice(2).map((n) => <NavBtn key={n.id} n={n} active={tab === n.id} onClick={() => setTab(n.id)} />)}
+          {NAV.slice(2).map((n) => <NavBtn key={n.id} n={n} active={tab === n.id} onClick={() => go(n.id)} />)}
         </div>
       </nav>
 
+      <Onboarding />
       <SnapshotWriter />
       <AlertWatcher />
       <TxnForm open={!!form} initial={form} onClose={() => setForm(null)} />

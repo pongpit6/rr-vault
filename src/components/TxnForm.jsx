@@ -13,13 +13,36 @@ const KINDS = [
   { value: 'expense', label: 'รายจ่าย', color: '#fb7185' },
   { value: 'income', label: 'รายรับ', color: '#34d399' },
   { value: 'transfer', label: 'โอน', color: '#38bdf8' },
-  { value: 'payment', label: 'ชำระหนี้', color: '#a78bfa' },
+  { value: 'payment', label: 'จ่ายหนี้', color: '#a78bfa' },
 ]
 const BUCKETS = [
   { key: 'reserve', label: 'กันชำระหนี้', icon: 'shield', color: '#a78bfa', order: '1' },
   { key: 'cash', label: 'เงินใช้ได้', icon: 'wallet', color: '#10b981', order: '2' },
   { key: 'invest', label: 'ลงทุน', icon: 'trending', color: '#38bdf8', order: '3' },
 ]
+
+const isTouch = () => typeof window !== 'undefined' && (window.matchMedia?.('(pointer: coarse)').matches || ((navigator.maxTouchPoints > 0 || 'ontouchstart' in window) && window.innerWidth < 900))
+
+/** On-screen numpad for phones: digits, decimal, backspace and the four operators. */
+function Numpad({ value, onChange, color }) {
+  const press = (k) => {
+    if (k === '⌫') return onChange(value.slice(0, -1))
+    if (k === 'C') return onChange('')
+    if (k === '00' && !value) return
+    onChange(value + k)
+  }
+  const keys = [['7', '8', '9', '÷'], ['4', '5', '6', '×'], ['1', '2', '3', '-'], ['.', '0', '00', '+']]
+  return (
+    <div className="grid grid-cols-4 gap-1.5 mt-3 select-none" onContextMenu={(e) => e.preventDefault()}>
+      {keys.flat().map((k) => (
+        <button key={k} type="button" onPointerDown={(e) => { e.preventDefault(); press(k) }}
+          className={`h-12 rounded-xl text-xl font-semibold active:scale-95 transition ${/[÷×+\-]/.test(k) ? 'bg-slate-100 text-slate-600' : 'bg-white border border-slate-200 shadow-sm'}`}>{k}</button>
+      ))}
+      <button type="button" onPointerDown={(e) => { e.preventDefault(); press('⌫') }} onContextMenu={(e) => { e.preventDefault(); press('C') }}
+        className="col-span-4 h-11 rounded-xl bg-slate-100 text-slate-600 font-semibold active:scale-[.98]" style={{ color }}>⌫ ลบ (กดค้างเพื่อล้าง)</button>
+    </div>
+  )
+}
 
 export function AccountChips({ accounts, value, onChange, balances, filter }) {
   const list = accounts.filter((a) => !a.archived && (!filter || filter(a)))
@@ -48,7 +71,15 @@ export default function TxnForm({ open, onClose, initial }) {
 
   const firstOf = (type) => accounts.find((a) => a.type === type && !a.archived)?.id
   const [f, setF] = useState(null)
+  const [more, setMore] = useState(false)
+  const [allCats, setAllCats] = useState(false)
   const amountRef = useRef(null)
+  const touch = isTouch()
+  const recentCats = useMemo(() => {
+    const seen = []
+    for (const t of txns) { if (t.category && !seen.includes(t.category)) seen.push(t.category); if (seen.length > 30) break }
+    return seen
+  }, [txns])
 
   useEffect(() => {
     if (!open) { setF(null); return }
@@ -66,7 +97,8 @@ export default function TxnForm({ open, onClose, initial }) {
       pct: initial?.alloc?.pct || settings.allocation.pct,
       cap: initial?.alloc ? initial.alloc.cap : settings.allocation.capReserveAtGap,
     })
-    setTimeout(() => amountRef.current?.focus(), 250)
+    setMore(!!(initial?.id || initial?.note || (initial?.date && initial.date !== todayISO())))
+    if (!isTouch()) setTimeout(() => amountRef.current?.focus(), 250)
   }, [open]) // eslint-disable-line
 
   // Summary without the transaction being edited, so the reserve gap is computed fairly.
@@ -82,7 +114,9 @@ export default function TxnForm({ open, onClose, initial }) {
   const valid = amount > 0
   const isExpr = /[+\-*/x×÷]/.test(f.amountStr.replace(/^-/, ''))
   const kindMeta = KINDS.find((k) => k.value === f.kind)
-  const cats = categories.filter((c) => c.kind === (f.kind === 'income' ? 'income' : 'expense'))
+  const cats = categories.filter((c) => c.kind === (f.kind === 'income' ? 'income' : 'expense') && (c.id !== 'cat-uncat' || f.category === 'cat-uncat'))
+  const orderedCats = cats.slice().sort((a, b) => { const ra = recentCats.indexOf(a.id), rb = recentCats.indexOf(b.id); return (ra < 0 ? 99 : ra) - (rb < 0 ? 99 : rb) })
+  if (f.category && !orderedCats.slice(0, 10).some((c) => c.id === f.category) && !allCats) { const sel = orderedCats.find((c) => c.id === f.category); if (sel) orderedCats.unshift(sel) }
   const T = settings.allocation.targets
   const split = f.kind === 'income' && f.autoSplit && valid ? allocate(amount, { pct: f.pct, capReserveAtGap: f.cap }, baseSummary.gap) : null
   const selAcc = accById[f.account]
@@ -160,26 +194,42 @@ export default function TxnForm({ open, onClose, initial }) {
       <div className="mt-5 text-center">
         <div className="flex items-baseline justify-center gap-1" style={{ color: kindMeta.color }}>
           <span className="text-2xl font-semibold opacity-70">฿</span>
-          <input
-            ref={amountRef}
-            value={f.amountStr}
-            onChange={(e) => set({ amountStr: e.target.value })}
-            onKeyDown={(e) => e.key === 'Enter' && save()}
-            inputMode="decimal"
-            placeholder="0"
-            className="num bg-transparent outline-none text-5xl font-bold text-center w-full max-w-[280px] placeholder:text-slate-300"
-          />
+          {touch ? (
+            <div className={`num text-5xl font-bold text-center w-full max-w-[300px] min-h-[60px] break-all ${f.amountStr ? '' : 'text-slate-300'}`}>{f.amountStr || '0'}</div>
+          ) : (
+            <input
+              ref={amountRef}
+              value={f.amountStr}
+              onChange={(e) => set({ amountStr: e.target.value })}
+              onKeyDown={(e) => e.key === 'Enter' && save()}
+              inputMode="decimal"
+              placeholder="0"
+              className="num bg-transparent outline-none text-5xl font-bold text-center w-full max-w-[280px] placeholder:text-slate-300"
+            />
+          )}
         </div>
         <div className="h-5 text-xs text-slate-500 num">
-          {isExpr && valid ? `= ${money(amount)}` : 'พิมพ์สูตรได้ เช่น 120+45'}
+          {isExpr && valid ? `= ${money(amount)}` : touch ? '' : 'พิมพ์สูตรได้ เช่น 120+45'}
         </div>
+        {touch && <Numpad value={f.amountStr} onChange={(v) => set({ amountStr: v })} color={kindMeta.color} />}
       </div>
 
       {/* category */}
       {(f.kind === 'expense' || f.kind === 'income') && (
         <div className="mt-4">
-          <Label>หมวดหมู่</Label>
-          <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
+          <div className="flex items-center justify-between"><Label>หมวดหมู่</Label><button onClick={() => setAllCats(!allCats)} className="text-xs text-sky-600 mb-1.5">{allCats ? 'ย่อ' : 'ทั้งหมด'}</button></div>
+          {!allCats && (
+            <div className="flex gap-1.5 overflow-x-auto no-scrollbar -mx-5 px-5 pb-1">
+              {orderedCats.slice(0, 10).map((c) => (
+                <button key={c.id} onClick={() => set({ category: c.id })}
+                  className={`shrink-0 flex items-center gap-1.5 pl-1.5 pr-3 py-1.5 rounded-full border transition ${f.category === c.id ? 'bg-slate-900 border-slate-900 text-white' : 'bg-white border-slate-200'}`}>
+                  <IconBadge name={c.icon} color={f.category === c.id ? '#ffffff' : c.color} size={24} icon={13} /><span className="text-sm">{c.name}</span>
+                </button>
+              ))}
+              <button onClick={() => setAllCats(true)} className="shrink-0 px-3 py-1.5 rounded-full border border-dashed border-slate-300 text-sm text-slate-500">อื่น ๆ…</button>
+            </div>
+          )}
+          <div className={`grid grid-cols-4 sm:grid-cols-6 gap-2 ${allCats ? '' : 'hidden'}`}>
             {cats.map((c) => (
               <button key={c.id} onClick={() => set({ category: c.id })}
                 className={`flex flex-col items-center gap-1.5 py-2.5 px-1 rounded-2xl border transition ${f.category === c.id ? 'bg-slate-900/[.06] border-slate-300' : 'border-transparent hover:bg-slate-900/[.04]'}`}>
@@ -201,7 +251,7 @@ export default function TxnForm({ open, onClose, initial }) {
               className={`mt-3 w-full flex items-center gap-3 p-3 rounded-2xl border text-left transition ${f.earmark ? 'bg-violet-400/10 border-violet-400/30' : 'bg-slate-900/[.025] border-slate-200/70'}`}>
               <ShieldCheck size={20} className={f.earmark ? 'text-violet-600' : 'text-slate-500'} />
               <div className="flex-1 text-sm">
-                <div className="font-medium">กันเงินชำระบัตรอัตโนมัติ</div>
+                <div className="font-medium">กันเงินไว้จ่ายบัตรอัตโนมัติ</div>
                 <div className="text-xs text-slate-500">ย้ายยอดนี้จาก “{accById[settings.earmarkFrom]?.name || 'เงินใช้ได้'}” ไป “{accById[T.reserve]?.name}” ทันที</div>
               </div>
               <div className={`w-11 h-6 rounded-full p-0.5 transition ${f.earmark ? 'bg-violet-400' : 'bg-slate-900/10'}`}>
@@ -232,7 +282,7 @@ export default function TxnForm({ open, onClose, initial }) {
           <Label>จาก</Label>
           <AccountChips accounts={accounts} balances={balances} value={f.account} onChange={(v) => set({ account: v })} filter={(a) => f.kind === 'transfer' || !isDebt(a)} />
           <div className="flex justify-center text-slate-500"><ArrowDown size={18} /></div>
-          <Label>{f.kind === 'payment' ? 'ชำระให้' : 'ไปที่'}</Label>
+          <Label>{f.kind === 'payment' ? 'จ่ายให้' : 'ไปที่'}</Label>
           <AccountChips accounts={accounts} balances={balances} value={f.to} onChange={(v) => set({ to: v })}
             filter={(a) => a.id !== f.account && (f.kind === 'transfer' || isDebt(a))} />
           {f.kind === 'payment' && debtTo && (
@@ -258,7 +308,8 @@ export default function TxnForm({ open, onClose, initial }) {
       )}
 
       {/* date + note */}
-      <div className="mt-4 grid grid-cols-[1fr_1.4fr] gap-2">
+      {!more && <button onClick={() => setMore(true)} className="mt-4 text-sm text-sky-600">+ วันที่ / บันทึกช่วยจำ{f.date !== todayISO() ? ` (${f.date})` : ''}</button>}
+      <div className={`mt-4 grid grid-cols-[1fr_1.4fr] gap-2 ${more ? '' : 'hidden'}`}>
         <div>
           <Label>วันที่</Label>
           <div className="relative">

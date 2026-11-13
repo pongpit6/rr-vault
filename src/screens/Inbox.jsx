@@ -44,7 +44,7 @@ export function draftFromInbox(it, { settings, accounts, assets = [] }) {
   }
 }
 
-export default function Inbox({ onAdd, onTrade, go }) {
+export default function Inbox({ onAdd, onTrade, go, embedded = false }) {
   const list = useInbox()
   const { settings, accounts, catById, accById, assets } = useVault()
   const put = useStore((s) => s.put)
@@ -75,9 +75,8 @@ export default function Inbox({ onAdd, onTrade, go }) {
   }
 
   return (
-    <div className="space-y-5 max-w-3xl">
-      <div className="flex items-center justify-between pt-2">
-        <h1 className="text-2xl font-bold">รอยืนยัน <span className="text-slate-400 text-lg">({list.length})</span></h1>
+    <div className="space-y-4">
+      <div className="flex items-center justify-end">
         <Button variant="ghost" className="!py-2 text-sm" onClick={() => go('settings', 'autocapture')}><Settings2 size={16} /> ตั้งค่าดึงอัตโนมัติ</Button>
       </div>
 

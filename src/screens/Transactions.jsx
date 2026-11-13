@@ -1,12 +1,18 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Search, ChevronLeft, ChevronRight, X } from 'lucide-react'
 import { Segmented, Money, Empty } from '../components/ui'
 import TxnRow, { txnVisual } from '../components/TxnRow'
 import { useVault } from '../lib/useVault'
+import Inbox, { useInbox } from './Inbox'
+import Uncategorized from './Uncategorized'
 import { dateLabel, monthKey, monthLabel, shiftMonth, todayISO, round2 } from '../lib/format'
 
-export default function Transactions({ onEdit, initialAccount }) {
+export default function Transactions({ onEdit, onAdd, onTrade, go, opt, initialAccount }) {
   const { txns, catById, accById, accounts } = useVault()
+  const inbox = useInbox()
+  const uncatCount = useMemo(() => txns.filter((t) => t.category === 'cat-uncat').length, [txns])
+  const [view, setView] = useState(opt || 'all')
+  useEffect(() => { if (opt) setView(opt) }, [opt])
   const [month, setMonth] = useState(monthKey(todayISO()))
   const [kind, setKind] = useState('all')
   const [q, setQ] = useState('')
@@ -45,9 +51,16 @@ export default function Transactions({ onEdit, initialAccount }) {
     return { inc: round2(inc), exp: round2(exp) }
   }, [list])
 
+  const tabs = [{ value: 'all', label: 'ทั้งหมด' }, { value: 'inbox', label: `รอยืนยัน${inbox.length ? ` (${inbox.length})` : ''}` }, { value: 'uncat', label: `ใส่หมวด${uncatCount ? ` (${uncatCount})` : ''}` }]
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-bold pt-2">รายการ</h1>
+      <div className="flex items-center justify-between pt-2">
+        <h1 className="text-2xl font-bold">รายการ</h1>
+      </div>
+      <Segmented value={view} onChange={setView} options={tabs} />
+      {view === 'inbox' && <Inbox onAdd={onAdd} onTrade={onTrade} go={go} embedded />}
+      {view === 'uncat' && <Uncategorized onEdit={onEdit} />}
+      {view === 'all' && <>
 
       <div className="flex gap-2">
         <div className="relative flex-1">
@@ -63,7 +76,7 @@ export default function Transactions({ onEdit, initialAccount }) {
 
       <Segmented value={kind} onChange={setKind} options={[
         { value: 'all', label: 'ทั้งหมด' }, { value: 'expense', label: 'รายจ่าย' }, { value: 'income', label: 'รายรับ' },
-        { value: 'transfer', label: 'โอน' }, { value: 'payment', label: 'ชำระหนี้' }, { value: 'trade', label: 'ลงทุน' },
+        { value: 'transfer', label: 'โอน' }, { value: 'payment', label: 'จ่ายหนี้' }, { value: 'trade', label: 'ลงทุน' },
       ]} className="overflow-x-auto no-scrollbar" />
 
       {!q && (
@@ -95,6 +108,7 @@ export default function Transactions({ onEdit, initialAccount }) {
           ))}
         </div>
       )}
+      </>}
     </div>
   )
 }

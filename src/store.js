@@ -50,6 +50,7 @@ export const useStore = create((set, get) => ({
     const put = []
     if (!alive.some((i) => i.kind === 'account')) DEFAULT_ACCOUNTS.forEach((a) => put.push(['account', a]))
     if (!alive.some((i) => i.kind === 'category')) DEFAULT_CATEGORIES.forEach((c) => put.push(['category', c]))
+    if (alive.some((i) => i.kind === 'category') && !has('cat-uncat')) put.push(['category', DEFAULT_CATEGORIES.find((c) => c.id === 'cat-uncat')])
     if (!has('settings')) put.push(['settings', DEFAULT_SETTINGS])
     if (!has('profile')) put.push(['profile', DEFAULT_PROFILE])
     // fresh seeds get rev 1 so any real edit from another device always wins;

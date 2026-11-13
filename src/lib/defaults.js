@@ -35,6 +35,7 @@ export const DEFAULT_CATEGORIES = [
   ['cat-sub', 'Subscription', 'repeat', '#38bdf8', 'expense'],
   ['cat-fee', 'ดอกเบี้ย/ค่าธรรมเนียม', 'percent', '#94a3b8', 'expense'],
   ['cat-other', 'อื่น ๆ', 'more', '#94a3b8', 'expense'],
+  ['cat-uncat', 'ยังไม่ใส่หมวด', 'tag', '#f59e0b', 'expense'],
   // income
   ['cat-salary', 'เงินเดือน', 'briefcase', '#10b981', 'income'],
   ['cat-bonus', 'โบนัส', 'award', '#fbbf24', 'income'],

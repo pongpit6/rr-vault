@@ -109,7 +109,7 @@ export function Toast() {
   const hide = useStore((s) => s.hideToast)
   if (!toast) return null
   return (
-    <div className="fixed z-[60] left-1/2 -translate-x-1/2 top-[calc(env(safe-area-inset-top)+12px)] md:top-auto md:bottom-8 anim-pop w-max max-w-[92vw]">
+    <div className="fixed z-[60] left-1/2 -translate-x-1/2 bottom-[calc(env(safe-area-inset-bottom)+84px)] md:bottom-8 anim-pop w-max max-w-[92vw]">
       <div className="flex items-center gap-3 pl-4 pr-2 py-2 rounded-2xl bg-slate-900 text-slate-50 border border-slate-800 shadow-2xl text-sm">
         <span>{toast.text}</span>
         {toast.onUndo && (

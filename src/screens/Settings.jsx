@@ -102,6 +102,7 @@ export default function Settings({ opt }) {
           onClick={() => setUi({ privacy: !privacy })} />
         <Row icon="zap" color="#f59e0b" title="บันทึกอัตโนมัติจากแจ้งเตือนธนาคาร" sub="ดึงยอดจากแจ้งเตือน LINE/SMS ของธนาคารเข้ากล่องรอยืนยัน" onClick={() => setCapOpen(true)} />
         <Row icon="shield" color="#10b981" title="ล็อกแอปด้วย PIN / Face ID" sub={lock?.enabled ? `เปิดอยู่${lock.bio ? ' · ใช้ไบโอเมตริกซ์ได้' : ''}` : 'ปิดอยู่ · แนะนำให้เปิดเพื่อความปลอดภัย'} onClick={() => setLockOpen(true)} />
+        <Row icon="sparkles" color="#14b8a6" title="ตั้งค่าเริ่มต้นใหม่ (ตัวช่วยทีละขั้น)" sub="เงินสด บัตร ผ่อนผ่านบัตร และการแบ่งเงิน" onClick={() => setUi({ onboardingOpen: true })} />
         <Row icon="tag" color="#fbbf24" title="หมวดหมู่รายรับ-รายจ่าย" sub="เพิ่ม แก้ไข หรือลบหมวดหมู่ และเลือกไอคอน" onClick={() => setCatsOpen(true)} />
         <Row icon="phone" color="#10b981" title="ติดตั้งลงมือถือ" sub="Android และ iPhone" onClick={() => setInstallOpen(true)} />
       </section>
