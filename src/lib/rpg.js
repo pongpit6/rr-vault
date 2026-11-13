@@ -3,6 +3,7 @@ import { useStore } from '../store'
 import { useVault } from './useVault'
 import { postingsOf } from './ledger'
 import { round2, todayISO, monthKey } from './format'
+import { computeParty } from './party'
 
 /**
  * Everything RPG is derived from real data, so it syncs with no extra storage.
@@ -60,7 +61,7 @@ export const ACHIEVEMENTS = [
   { id: 'nw1m', name: 'ราชาแห่งเกาะ', desc: 'มูลค่าสุทธิถึง 1,000,000', icon: 'gem' },
 ]
 
-function computeRpg({ accounts, txns, settings, balances, summary, unlocked, portfolio, goals = [], budgets = [] }) {
+function computeRpg({ accounts, txns, settings, balances, summary, unlocked, portfolio, goals = [], budgets = [], catById = {}, data = {}, privacy = false }) {
   portfolio ||= { open: [], value: 0, pnlPct: 0, byType: {} }
   const typesHeld = Object.keys(portfolio.byType).filter((k) => portfolio.byType[k] > 0).length
   const accById = Object.fromEntries(accounts.map((a) => [a.id, a]))
@@ -99,6 +100,17 @@ function computeRpg({ accounts, txns, settings, balances, summary, unlocked, por
       const k = localDate(d.toISOString())
       if (!days.has(k)) break
       streak++; d.setDate(d.getDate() - 1)
+    }
+  }
+
+  let bestStreak = streak
+  {
+    const sorted = [...days.keys()].filter(Boolean).sort()
+    let run = 0, prev = null
+    for (const k of sorted) {
+      const d = new Date(k + 'T12:00:00')
+      run = prev && (d - prev) / 86400000 < 1.5 ? run + 1 : 1
+      bestStreak = Math.max(bestStreak, run); prev = d
     }
   }
 
@@ -200,46 +212,71 @@ function computeRpg({ accounts, txns, settings, balances, summary, unlocked, por
 
   const realm = [...REALMS].reverse().find((r) => summary.net >= r.min)
   const nextRealm = REALMS.find((r) => r.min > summary.net)
+  const party = computeParty({ accounts, txns, summary, portfolio, settings, catById, level: lv.level, into: lv.into, need: lv.need, streak, bestStreak, goodMonths, months, data: { ...data, unlocked }, privacy })
 
   return {
     inventory: portfolio.open, portfolioValue: portfolio.value,
     xp, xpParts, ...lv, title: title[1], titleEn: title[2], stats, bosses, quests, achievements, newlyUnlocked,
-    streak, realm, nextRealm, weather, loggedToday: todayCount, debtFog: Math.min(0.55, summary.debts / Math.max(1, summary.assets + summary.debts)),
+    streak, bestStreak, realm, nextRealm, weather, loggedToday: todayCount, debtFog: Math.min(0.55, summary.debts / Math.max(1, summary.assets + summary.debts)),
+    ...party,
   }
 }
 
 export function useRpg() {
   const v = useVault()
   const put = useStore((s) => s.put)
+  const privacy = useStore((s) => s.ui.privacy)
   const rpgItem = useStore((s) => s.items.rpg)
-  const unlocked = (rpgItem && !rpgItem.deleted && rpgItem.data.unlocked) || {}
-  const key = JSON.stringify([v.balances, v.txns.length, v.txns[0]?.id, v.txns[0]?.amount, Object.keys(unlocked).length, todayISO(), Math.round(v.portfolio.value / 10)])
+  const data = (rpgItem && !rpgItem.deleted && rpgItem.data) || {}
+  const unlocked = data.unlocked || {}
+  const key = JSON.stringify([v.balances, v.txns.length, v.txns[0]?.id, v.txns[0]?.amount, rpgItem?.rev, todayISO(), Math.round(v.portfolio.value / 10), privacy])
   const items = useStore((s) => s.items)
   const goals = useMemo(() => Object.values(items).filter((i) => i.kind === 'goal' && !i.deleted).map((i) => i.data), [items])
   const budgets = useMemo(() => Object.values(items).filter((i) => i.kind === 'budget' && !i.deleted).map((i) => i.data), [items])
-  const rpg = useMemo(() => computeRpg({ ...v, unlocked, goals, budgets }), [key, goals.length, budgets.length]) // eslint-disable-line
-  const data = (rpgItem && !rpgItem.deleted && rpgItem.data) || {}
+  const rpg = useMemo(() => computeRpg({ ...v, unlocked, goals, budgets, data, privacy }), [key, goals.length, budgets.length, JSON.stringify(data)]) // eslint-disable-line
   const gems = data.gems || 0
   const chestReady = rpg.loggedToday > 0 && data.chestLast !== todayISO()
+  const fresh = () => useStore.getState().items.rpg?.data || {}
+  const save = (patch) => put('rpg', { ...fresh(), id: 'rpg', ...patch })
   const openChest = () => {
     if (!chestReady) return null
-    const bonus = Math.min(10, rpg.streak)
+    const bonus = rpg.streak >= 3 ? Math.min(10, rpg.streak) : 0
     const roll = Math.random()
-    const gain = 5 + bonus + (roll > 0.9 ? 15 : roll > 0.6 ? 5 : 0)
+    let gain = 5 + bonus + (roll > 0.9 ? 15 : roll > 0.6 ? 5 : 0)
+    const double = rpg.streak >= 30
+    if (double) gain *= 2
     const tip = CHEST_TIPS[Math.floor(Math.random() * CHEST_TIPS.length)]
-    put('rpg', { ...data, id: 'rpg', unlocked: data.unlocked || {}, gems: gems + gain, chestLast: todayISO(), chestCount: (data.chestCount || 0) + 1 })
-    return { gain, rare: roll > 0.9, tip, bonus }
+    const d = fresh()
+    save({ gems: (d.gems || 0) + gain, chestLast: todayISO(), chestCount: (d.chestCount || 0) + 1, chestLog: [...(d.chestLog || []).slice(-40), { at: new Date().toISOString(), gain, rare: roll > 0.9 }] })
+    return { gain, rare: roll > 0.9, tip, bonus, double }
   }
+  const buy = (item) => {
+    const d = fresh()
+    if ((d.owned || {})[item.id] || (d.gems || 0) < item.price) return false
+    const equip = { ...(d.equip || {}) }
+    if (item.type === 'pet') equip.pet = item.id
+    if (item.type === 'skin') equip.skin = item.id
+    save({ gems: d.gems - item.price, owned: { ...(d.owned || {}), [item.id]: new Date().toISOString() }, equip, buyLog: [...(d.buyLog || []).slice(-40), { at: new Date().toISOString(), name: item.name, price: item.price }] })
+    return true
+  }
+  const setEquip = (patch) => save({ equip: { ...(fresh().equip || {}), ...patch } })
+  const toggleDeco = (id) => { const off = { ...(fresh().decoOff || {}) }; off[id] = !off[id]; save({ decoOff: off }) }
 
+  // keep milestones (achievements, party joins, level-ups, realms) so they show in the adventure log
   useEffect(() => {
-    if (!rpg.newlyUnlocked.length) return
+    const d = fresh()
     const now = new Date().toISOString()
-    const next = { ...unlocked }
-    rpg.newlyUnlocked.forEach((id) => { next[id] = now })
-    put('rpg', { ...(useStore.getState().items.rpg?.data || {}), id: 'rpg', unlocked: next })
-  }, [rpg.newlyUnlocked.join()]) // eslint-disable-line
+    const patch = {}
+    if (rpg.newlyUnlocked.length) { patch.unlocked = { ...(d.unlocked || {}) }; rpg.newlyUnlocked.forEach((id) => { patch.unlocked[id] = now }) }
+    if (rpg.newlyJoined.length) { patch.joined = { ...(d.joined || {}) }; rpg.newlyJoined.forEach((id) => { patch.joined[id] = now }) }
+    if (!d.maxLevel) patch.maxLevel = rpg.level
+    else if (rpg.level > d.maxLevel) { patch.maxLevel = rpg.level; patch.levels = [...(d.levels || []).slice(-40), { lv: rpg.level, at: now }] }
+    if (d.tier === undefined) patch.tier = rpg.realm.tier
+    else if (rpg.realm.tier !== d.tier) { patch.tier = rpg.realm.tier; patch.realms = [...(d.realms || []).slice(-20), { name: rpg.realm.name, at: now, down: rpg.realm.tier < d.tier }] }
+    if (Object.keys(patch).length) save(patch)
+  }, [rpg.newlyUnlocked.join(), rpg.newlyJoined.join(), rpg.level, rpg.realm.tier]) // eslint-disable-line
 
-  return { ...rpg, vault: v, gems, chestReady, openChest, chestCount: data.chestCount || 0 }
+  return { ...rpg, vault: v, gems, chestReady, openChest, buy, setEquip, toggleDeco, chestCount: data.chestCount || 0 }
 }
 
 const CHEST_TIPS = [
@@ -264,6 +301,10 @@ export function diffEvents(prev, snap, bosses) {
     if (d > 0) ev.push({ type: 'hit', boss: b.id, amount: d, kill: b.hp <= 0 })
     if (d < 0) ev.push({ type: 'heal', boss: b.id, amount: -d })
   }
+  if (prev.inv !== undefined && snap.inv > prev.inv + 0.5) ev.push({ type: 'skill', member: 'mage', skill: snap.inv - prev.inv >= 5000 ? 'meteor' : 'fireball', amount: round2(snap.inv - prev.inv) })
+  if (prev.res !== undefined && snap.res > prev.res + 0.5) ev.push({ type: 'skill', member: 'healer', skill: 'shield', amount: round2(snap.res - prev.res) })
+  if (prev.inc !== undefined && snap.inc > prev.inc) ev.push({ type: 'skill', member: 'healer', skill: 'heal' })
+  for (const id of snap.party || []) if (prev.party && !prev.party.includes(id)) ev.push({ type: 'join', member: id })
   if (snap.level > (prev.level || 0) && prev.level) ev.push({ type: 'levelup', level: snap.level })
   for (const id of snap.ach || []) if (!(prev.ach || []).includes(id)) ev.push({ type: 'achievement', id })
   return ev

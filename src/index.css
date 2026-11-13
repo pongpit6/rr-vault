@@ -132,3 +132,13 @@ html[data-tod="morning"] body { background-image: radial-gradient(120% 60% at 10
 html[data-tod="evening"] body { background-image: radial-gradient(120% 60% at 100% 0%, rgba(251,146,60,.16), transparent 60%), radial-gradient(90% 50% at 0% 0%, rgba(167,139,250,.12), transparent 60%); }
 html[data-tod="night"] body { background-image: radial-gradient(120% 60% at 100% 0%, rgba(99,102,241,.13), transparent 60%); }
 body { background-attachment: fixed; }
+.px-float.gold { color: #fde68a; font-size: clamp(12px, 3.6vw, 18px); }
+.px-float.sky { color: #bae6fd; font-size: clamp(12px, 3.4vw, 16px); }
+.px-narr { display: flex; gap: 6px; align-items: flex-start; padding: 7px 10px; background: #0f172a; color: #e2e8f0; font-size: 12.5px; line-height: 1.35; min-height: 34px; border-top: 2px solid #1e293b; }
+.px-narr .tx { animation: narrIn .35s steps(5) both; }
+@keyframes narrIn { from { opacity: 0; transform: translateY(3px) } to { opacity: 1; transform: none } }
+.px-tabs { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+.px-tabs::-webkit-scrollbar { display: none; }
+.px-tab { flex-shrink: 0; display: flex; align-items: center; gap: 5px; padding: 7px 11px; font-size: 13px; font-weight: 600; border: 2px solid #1e293b; background: #fff; color: #334155; }
+.px-tab.on { background: #0f172a; color: #fff; }
+.px-tab .dot { width: 7px; height: 7px; background: #f43f5e; }

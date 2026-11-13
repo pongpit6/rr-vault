@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Flame, ChevronRight, Gem } from 'lucide-react'
-import BattleScene from './BattleScene'
+import BattleScene, { skinUrl } from './BattleScene'
 import { SHEETS } from '../lib/spriteSheets'
 import { useStore } from '../store'
 import { diffEvents } from '../lib/rpg'
+import { statusLines } from '../lib/party'
 
 export function useBattleEvents(rpg) {
   const seen = useStore((s) => s.ui.rpgSeen)
@@ -12,12 +13,49 @@ export function useBattleEvents(rpg) {
     owed: Object.fromEntries(rpg.bosses.map((b) => [b.id, b.hp])),
     level: rpg.level,
     ach: rpg.achievements.filter((a) => a.unlockedAt || a.ready).map((a) => a.id),
+    inv: rpg.totals.investIn, res: rpg.totals.reserveIn, inc: rpg.totals.incomes,
+    party: rpg.party.filter((p) => p.joined).map((p) => p.id),
   }), [rpg])
   const snapKey = JSON.stringify(snap), seenKey = JSON.stringify(seen || null)
   const events = useMemo(() => diffEvents(seen, snap, rpg.bosses), [snapKey, seenKey]) // eslint-disable-line
   useEffect(() => { if (!seen) setUi({ rpgSeen: snap }) }, [seenKey]) // eslint-disable-line
   const consume = () => setUi({ rpgSeen: snap })
+  // older saved snapshots lack the new fields: fill them in without replaying history
+  useEffect(() => { if (seen && seen.inv === undefined) setUi({ rpgSeen: { ...seen, inv: snap.inv, res: snap.res, inc: snap.inc, party: snap.party } }) }, [seenKey]) // eslint-disable-line
   return { events, consume }
+}
+
+/** Everything the battle scene needs to draw the party as it really is. */
+export function sceneProps(rpg) {
+  return {
+    bosses: rpg.bosses, tier: rpg.realm.tier, fog: rpg.debtFog, level: rpg.level, weather: rpg.weather, chest: rpg.chestReady,
+    party: rpg.party, gear: rpg.gearBy, pet: rpg.pet.sprite, skinHue: rpg.skin?.hue || 0, decos: rpg.decos,
+    storm: rpg.skills.find((k) => k.id === 'storm')?.unlocked, captions: statusLines(rpg),
+  }
+}
+
+/** A character's face/body from its idle sprite (sheet or still). */
+export function Portrait({ sprite, size = 44, dim = false, hue = 0 }) {
+  const sheetName = SHEETS[`${sprite}_idle`] ? `${sprite}_idle` : null
+  const [tinted, setTinted] = useState(null)
+  useEffect(() => {
+    if (!hue || !sheetName) { setTinted(null); return }
+    let n = 0
+    const tryIt = () => { const u = skinUrl(hue, sheetName); if (u) setTinted(u); else if (n++ < 20) setTimeout(tryIt, 150) }
+    tryIt()
+  }, [hue, sheetName])
+  hue = 0
+  const src = tinted || `./sprites/${sheetName || sprite}.png`
+  const sp = sheetName ? SHEETS[sheetName] : null
+  const k = sp ? size / sp.h : 1
+  return (
+    <div className="shrink-0 overflow-hidden" style={{
+      width: size, height: size, imageRendering: 'pixelated',
+      backgroundImage: `url(${src})`, backgroundRepeat: 'no-repeat',
+      backgroundSize: sp ? `${sp.w * sp.n * k}px ${size}px` : 'contain', backgroundPosition: sp ? '0 0' : 'center',
+      filter: `${dim ? 'brightness(0) opacity(.3)' : ''} ${hue ? `hue-rotate(${hue}deg)` : ''}`.trim() || undefined,
+    }} />
+  )
 }
 
 export function SpriteImg({ name, size = 48, className = '' }) {
@@ -39,7 +77,7 @@ export function RpgHomeCard({ rpg, onOpen }) {
   const { events, consume } = useBattleEvents(rpg)
   return (
     <section className="px-card overflow-hidden anim-pop">
-      <BattleScene bosses={rpg.bosses} events={events} onConsumed={consume} tier={rpg.realm.tier} fog={rpg.debtFog} level={rpg.level} weather={rpg.weather} chest={rpg.chestReady} onChest={onOpen} />
+      <BattleScene {...sceneProps(rpg)} events={events} onConsumed={consume} onChest={onOpen} />
       <button onClick={onOpen} className="w-full flex items-center gap-3 px-3.5 py-3 text-left hover:bg-slate-50 transition">
         <div className="px-lv">{rpg.level}</div>
         <div className="flex-1 min-w-0">
@@ -81,7 +119,8 @@ export function ChestCard({ rpg, onAdd }) {
           </div>
           {res ? (
             <div className="mt-1.5 anim-pop">
-              <div className="text-sm font-semibold text-amber-600">{res.rare ? 'หีบหายาก! ' : ''}ได้ +{res.gain} เจม{res.bonus ? ` (โบนัสสตรีค +${res.bonus})` : ''}</div>
+              <div className="text-sm font-semibold text-amber-600">{res.rare ? 'หีบหายาก! ' : ''}ได้ +{res.gain} เจม{res.bonus ? ` (ไฟแห่งวินัย +${res.bonus})` : ''}{res.double ? ' ×2 ตำนานแห่งวินัย' : ''}</div>
+              <div className="text-xs text-violet-600 mt-0.5">เอาเจมไปซื้อของได้ที่แท็บ “ร้านค้า”</div>
               <div className="text-xs text-slate-600 mt-1">💡 {res.tip}</div>
             </div>
           ) : rpg.chestReady ? (
