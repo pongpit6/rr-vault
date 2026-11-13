@@ -8,6 +8,7 @@ import Settings from './screens/Settings'
 import VaultRpg from './screens/VaultRpg'
 import Portfolio from './screens/Portfolio'
 import Onboarding from './components/Onboarding'
+import ErrorBoundary from './components/ErrorBoundary'
 import SlipScanner from './components/SlipScanner'
 import { useVault } from './lib/useVault'
 import { usePrices, assetPrice } from './lib/prices'
@@ -218,7 +219,7 @@ export default function App() {
       </aside>
 
       <main className="flex-1 min-w-0 px-4 md:px-8 pt-safe pb-28 md:pb-10">
-        <div className="max-w-6xl mx-auto pt-3 md:pt-6" key={tab}>{screen}</div>
+        <div className="max-w-6xl mx-auto pt-3 md:pt-6" key={tab}><ErrorBoundary>{screen}</ErrorBoundary></div>
       </main>
 
       {/* mobile bottom nav */}
