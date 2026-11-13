@@ -3,6 +3,7 @@ import { Trash2, Check, ShieldCheck, Sparkles, CalendarDays, ArrowDown } from 'l
 import { Sheet, Button, Segmented, Icon, IconBadge, Label, Money } from './ui'
 import { useStore, selectList } from '../store'
 import { budgetStatus } from '../lib/plan'
+import { learnKey } from '../lib/notify'
 import { monthKey } from '../lib/format'
 import { useVault } from '../lib/useVault'
 import { evalAmount, todayISO, round2, money } from '../lib/format'
@@ -134,7 +135,9 @@ export default function TxnForm({ open, onClose, initial }) {
 
   const save = () => {
     if (!valid) return
-    const base = { id: initial?.id, kind: f.kind, amount, date: f.date, note: f.note.trim(), createdAt: initial?.createdAt || new Date().toISOString() }
+    const keep = {}
+    if (initial?.id) for (const k of ['subId', 'instOf', 'counterparty', 'fromInbox', 'inDir', 'raw']) if (initial[k] !== undefined) keep[k] = initial[k]
+    const base = { ...keep, id: initial?.id, kind: f.kind, amount, date: f.date, note: f.note.trim(), createdAt: initial?.createdAt || new Date().toISOString() }
     let t
     if (f.kind === 'expense') t = { ...base, category: f.category, account: f.account, earmark: isDebt(selAcc) && selAcc.type === 'credit' ? f.earmark : undefined }
     else if (f.kind === 'income') {
@@ -155,6 +158,11 @@ export default function TxnForm({ open, onClose, initial }) {
     }
     Object.keys(t).forEach((k) => t[k] === undefined && delete t[k])
     put('txn', t)
+    if (initial?.id && initial.counterparty && initial.category === 'cat-uncat' && t.category && t.category !== 'cat-uncat') {
+      const k = learnKey({ counterparty: initial.counterparty })
+      const cur = useStore.getState().items.settings?.data || settings
+      if (k) put('settings', { ...cur, merchantMap: { ...(cur.merchantMap || {}), [k]: { category: t.category, account: t.account } } })
+    }
     if (initial?.inboxId) {
       remove(initial.inboxId, { undo: false })
       if (initial.learnKey && (t.kind === 'expense' || t.kind === 'income')) {

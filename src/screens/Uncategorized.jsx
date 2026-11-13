@@ -40,7 +40,7 @@ export default function Uncategorized({ onEdit }) {
   const n = Object.keys(picked).length
   return (
     <div className="space-y-3 pb-24">
-      <div className="text-sm text-slate-500 px-1">แตะหมวดใต้แต่ละรายการ แล้วกด “บันทึก {n ? n : ''}” ด้านล่าง ระบบจะจำร้านเดิมให้ครั้งต่อไป</div>
+      <div className="text-sm text-slate-500 px-1">แตะหมวดใต้แต่ละรายการ แล้วกดบันทึกด้านล่างทีเดียว ระบบจะจำร้านเดิมให้ครั้งต่อไป</div>
       {list.map((t) => (
         <div key={t.id} className="card p-3">
           <button onClick={() => onEdit(t)} className="w-full flex items-center gap-3 text-left">

@@ -21,6 +21,7 @@ import { symbolsToPoll } from './lib/portfolio'
 import { assetLabel } from './lib/portfolio'
 import { processDueSubs } from './lib/subs'
 import { processInstallments } from './lib/installments'
+import { processInbox } from './lib/autorecord'
 
 const NAV = [
   { id: 'home', label: 'หน้าแรก', icon: LayoutDashboard },
@@ -124,6 +125,9 @@ export default function App() {
 
   useEffect(() => { useStore.getState().init() }, [])
   useMarketData(ready)
+  const inboxCount = useStore((s) => Object.values(s.items).filter((i) => i.kind === 'inbox' && !i.deleted).length)
+  const autoRecord = useStore((s) => s.items.settings?.data?.autoRecord)
+  useEffect(() => { if (ready && autoRecord && inboxCount) { const t = setTimeout(processInbox, 600); return () => clearTimeout(t) } }, [ready, autoRecord, inboxCount])
   useEffect(() => {
     if (!ready) return
     const run = () => { processDueSubs(); processInstallments() }

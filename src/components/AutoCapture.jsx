@@ -4,6 +4,8 @@ import { Sheet, Button, Segmented, Label } from './ui'
 import { useStore } from '../store'
 import { supabase, SUPABASE_URL } from '../lib/supabase'
 import { makeToken } from '../lib/notify'
+import { useVault } from '../lib/useVault'
+import { processInbox } from '../lib/autorecord'
 
 const HOOK = `${SUPABASE_URL}/functions/v1/vault-inbox`
 
@@ -33,7 +35,68 @@ export default function AutoCapture({ open, onClose }) {
   const syncNow = useStore((s) => s.syncNow)
   const [os, setOs] = useState(/iphone|ipad/i.test(navigator.userAgent) ? 'ios' : 'android')
   const [busy, setBusy] = useState(false)
+  const put = useStore((s) => s.put)
+  const { settings, accounts, categories } = useVault()
+  const [rule, setRule] = useState(null)
   if (!open) return null
+  const saveSettings = (patch) => put('settings', { ...(useStore.getState().items.settings?.data || settings), ...patch })
+  const nonDebt = accounts.filter((a) => !a.archived && a.type !== 'loan')
+  const Toggle = ({ on, onClick, title, sub }) => (
+    <button onClick={onClick} className="w-full flex items-center gap-3 p-3 rounded-2xl border border-slate-200 text-left">
+      <div className="flex-1"><div className="text-sm font-medium">{title}</div>{sub && <div className="text-xs text-slate-500">{sub}</div>}</div>
+      <div className={`w-11 h-6 rounded-full p-0.5 transition shrink-0 ${on ? 'bg-mint' : 'bg-slate-900/10'}`}><div className={`w-5 h-5 rounded-full bg-white shadow transition ${on ? 'translate-x-5' : ''}`} /></div>
+    </button>
+  )
+  const modeBox = (
+    <div className="space-y-2">
+      <Toggle on={!!settings.autoRecord} onClick={() => { saveSettings({ autoRecord: !settings.autoRecord }); if (!settings.autoRecord) setTimeout(processInbox, 300) }}
+        title="บันทึกทันที ไม่ต้องกดยืนยัน" sub="รายการจากแจ้งเตือนกลายเป็นรายการจริงเลย ร้านใหม่จะอยู่ในหมวด “ยังไม่ใส่หมวด” ให้ใส่ทีหลังรวดเดียว" />
+      {settings.autoRecord && <Toggle on={settings.autoSplitIncome !== false} onClick={() => saveSettings({ autoSplitIncome: settings.autoSplitIncome === false })} title="แบ่งรายรับอัตโนมัติ" sub="เงินเข้าแบ่งเป็น หนี้ / ใช้ได้ / ลงทุน ตามที่ตั้งไว้" />}
+      {settings.autoRecord && (
+        <div className="rounded-2xl border border-slate-200 p-3 space-y-2">
+          <div className="text-sm font-medium">ธนาคารไหน เข้ากระเป๋าไหน</div>
+          {['KBank', 'SCB', 'Krungthai', 'Krungsri', 'Bangkok Bank', 'ttb'].map((b) => (
+            <div key={b} className="flex items-center gap-2 text-sm">
+              <span className="w-24 shrink-0 text-slate-600">{b}</span>
+              <select className="field !py-1.5 text-sm" value={settings.bankMap?.[b] || ''} onChange={(e) => saveSettings({ bankMap: { ...(settings.bankMap || {}), [b]: e.target.value || undefined } })}>
+                <option value="">ค่าเริ่มต้น (เงินใช้ได้)</option>
+                {nonDebt.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+              </select>
+            </div>
+          ))}
+        </div>
+      )}
+      <div className="rounded-2xl border border-slate-200 p-3">
+        <div className="flex items-center justify-between"><div className="text-sm font-medium">กฎอัตโนมัติ</div><button onClick={() => setRule({ text: '', kind: 'expense', category: 'cat-food', account: '' })} className="text-xs text-sky-600">+ เพิ่มกฎ</button></div>
+        <div className="text-xs text-slate-500 mb-2">ถ้าข้อความมีคำนี้ ให้บันทึกแบบนี้เสมอ (ระบบยังจำร้านที่คุณเคยเลือกหมวดให้เองด้วย)</div>
+        {(settings.rules || []).map((r, i) => (
+          <div key={i} className="flex items-center gap-2 text-sm py-1.5 border-t border-slate-100">
+            <span className="flex-1 truncate">“{r.text}” → {r.kind === 'transfer' ? `โอนไป ${accounts.find((a) => a.id === r.to)?.name}` : categories.find((c) => c.id === r.category)?.name}</span>
+            <button onClick={() => saveSettings({ rules: settings.rules.filter((_, k) => k !== i) })} className="text-rose p-1"><Trash2 size={15} /></button>
+          </div>
+        ))}
+        {rule && (
+          <div className="mt-2 space-y-2 bg-slate-50 rounded-xl p-2.5">
+            <input className="field !py-2 text-sm" placeholder="คำในข้อความ เช่น 7-ELEVEN, GRAB, ชื่อคนโอน" value={rule.text} onChange={(e) => setRule({ ...rule, text: e.target.value })} />
+            <Segmented value={rule.kind} onChange={(kind) => setRule({ ...rule, kind, category: kind === 'income' ? 'cat-salary' : 'cat-food' })} options={[{ value: 'expense', label: 'รายจ่าย' }, { value: 'income', label: 'รายรับ' }, { value: 'transfer', label: 'โอน' }]} />
+            {rule.kind === 'transfer' ? (
+              <select className="field !py-2 text-sm" value={rule.to || ''} onChange={(e) => setRule({ ...rule, to: e.target.value })}>
+                <option value="">โอนไปกระเป๋า…</option>{nonDebt.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+              </select>
+            ) : (
+              <select className="field !py-2 text-sm" value={rule.category} onChange={(e) => setRule({ ...rule, category: e.target.value })}>
+                {categories.filter((c) => c.kind === (rule.kind === 'income' ? 'income' : 'expense') && c.id !== 'cat-uncat').map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+            )}
+            <div className="flex gap-2">
+              <Button variant="ghost" className="flex-1 !py-2 text-sm" onClick={() => setRule(null)}>ยกเลิก</Button>
+              <Button className="flex-1 !py-2 text-sm" disabled={!rule.text.trim() || (rule.kind === 'transfer' && !rule.to)} onClick={() => { const r = { ...rule, text: rule.text.trim() }; saveSettings({ rules: [...(settings.rules || []), r] }); setRule(null) }}>บันทึกกฎ</Button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  )
   const url = token ? `${HOOK}?t=${token}` : ''
 
   const create = async () => {
@@ -68,14 +131,16 @@ export default function AutoCapture({ open, onClose }) {
   return (
     <Sheet open onClose={onClose} title="บันทึกอัตโนมัติจากแจ้งเตือนธนาคาร" wide>
       {!session ? (
-        <div className="text-sm text-slate-600">ต้องเข้าสู่ระบบก่อน (ตั้งค่า → เข้าสู่ระบบเพื่อซิงก์) เพื่อให้แจ้งเตือนส่งเข้าบัญชีของคุณได้</div>
+        <div className="space-y-3">{modeBox}<div className="text-sm text-slate-600">การส่งแจ้งเตือนจากมือถืออัตโนมัติ ต้องเข้าสู่ระบบก่อน (ตั้งค่า → เข้าสู่ระบบเพื่อซิงก์) ระหว่างนี้วางข้อความหรืออ่านจากคลิปบอร์ดในหน้า “รายการ → รอยืนยัน” ได้</div></div>
       ) : !token ? (
         <div className="space-y-3">
+          {modeBox}
           <div className="text-sm text-slate-600">ขั้นแรก สร้าง <b>ลิงก์ส่วนตัว</b> สำหรับส่งข้อความแจ้งเตือนเข้า Vault ของคุณ (เก็บเป็นความลับ ใครได้ลิงก์ไปจะส่งรายการเข้ามาได้)</div>
           <Button className="w-full" onClick={create} disabled={busy}><KeyRound size={18} /> สร้างลิงก์ส่วนตัว</Button>
         </div>
       ) : (
         <div className="space-y-5">
+          {modeBox}
           <div className="rounded-2xl bg-emerald-50 border border-emerald-200 p-3 space-y-2">
             <div className="text-sm font-semibold text-emerald-800 flex items-center gap-1.5"><ShieldCheck size={16} /> ลิงก์ส่วนตัวของคุณ</div>
             <CopyBox value={url} />
@@ -85,6 +150,7 @@ export default function AutoCapture({ open, onClose }) {
             </div>
           </div>
 
+          <div className="text-sm font-semibold pt-2">ตั้งค่าตัวส่งแจ้งเตือนบนมือถือ</div>
           <Segmented value={os} onChange={setOs} options={[{ value: 'android', label: 'Android (อัตโนมัติ)' }, { value: 'ios', label: 'iPhone (แชร์ข้อความ)' }]} />
 
           {os === 'android' ? (
