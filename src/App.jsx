@@ -236,14 +236,14 @@ export default function App() {
       {/* mobile bottom nav */}
       <nav className="ui-nav md:hidden fixed bottom-0 inset-x-0 z-40 pb-safe bg-white/90 backdrop-blur-xl border-t border-slate-200">
         <div className="grid grid-cols-7 items-center h-16 px-0.5">
-          {NAV.slice(0, 2).map((n) => <NavBtn key={n.id} n={n} active={tab === n.id} onClick={() => go(n.id)} />)}
+          {NAV.slice(0, 3).map((n) => <NavBtn key={n.id} n={n} active={tab === n.id} onClick={() => go(n.id)} />)}
           <div className="relative flex justify-center h-full">
             <span className="ui-fab-notch" aria-hidden="true" />
             <button onClick={() => (tab === 'portfolio' || tab === 'market' ? setTrade({}) : setForm({}))} aria-label="บันทึกรายการ" className="ui-fab relative z-10 self-center -translate-y-3 w-12 h-12 rounded-full grad-bg text-white grid place-items-center shadow-lg shadow-emerald-500/30 active:scale-95 transition">
               <Plus size={24} strokeWidth={2.6} />
             </button>
           </div>
-          {NAV.slice(2).map((n) => <NavBtn key={n.id} n={n} active={tab === n.id} onClick={() => go(n.id)} />)}
+          {NAV.slice(3).map((n) => <NavBtn key={n.id} n={n} active={tab === n.id} onClick={() => go(n.id)} />)}
         </div>
       </nav>
 
