@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Flame, ChevronRight, Gem } from 'lucide-react'
+import { Flame, ChevronRight } from 'lucide-react'
 import BattleScene, { skinUrl } from './BattleScene'
 import { SHEETS } from '../lib/spriteSheets'
 import { useStore } from '../store'
@@ -115,12 +115,12 @@ export function ChestCard({ rpg, onAdd }) {
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
             <h2 className="px-font text-[11px] flex-1">DAILY CHEST</h2>
-            <span className="px-chip text-violet-600"><Gem size={13} /> {rpg.gems}</span>
+            <span className="px-chip text-emerald-700">💵 <b className="num">{rpg.fiat.toLocaleString()}</b></span>
           </div>
           {res ? (
             <div className="mt-1.5 anim-pop">
-              <div className="text-sm font-semibold text-amber-600">{res.rare ? 'หีบหายาก! ' : ''}ได้ +{res.gain} เจม{res.bonus ? ` (ไฟแห่งวินัย +${res.bonus})` : ''}{res.double ? ' ×2 ตำนานแห่งวินัย' : ''}</div>
-              <div className="text-xs text-violet-600 mt-0.5">เอาเจมไปซื้อของได้ที่แท็บ “ร้านค้า”</div>
+              <div className="text-sm font-semibold text-amber-600">{res.rare ? 'หีบหายาก! ' : ''}ได้ +{res.gain} FIAT{res.bonus ? ` (ไฟแห่งวินัย +${res.bonus})` : ''}{res.double ? ' ×2 ตำนานแห่งวินัย' : ''}</div>
+              <div className="text-xs text-violet-600 mt-0.5">เอา FIAT ไปสร้างเมืองหรือซื้อของได้ที่แท็บ “เมือง” และ “ร้านค้า”</div>
               <div className="text-xs text-slate-600 mt-1">💡 {res.tip}</div>
             </div>
           ) : rpg.chestReady ? (

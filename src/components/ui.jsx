@@ -60,7 +60,7 @@ export function Sheet({ open, onClose, title, children, footer, wide = false }) 
           <button onClick={onClose} className="p-2 -mr-2 rounded-full hover:bg-slate-900/[.04] text-slate-600" aria-label="ปิด"><X size={20} /></button>
         </div>
         <div className="overflow-y-auto px-5 pb-4 flex-1">{children}</div>
-        {footer && <div className="px-5 pt-3 pb-5 pb-safe border-t border-slate-200/70">{footer}</div>}
+        {footer && <div className="ui-sheet-foot px-6 pt-4 pb-6 border-t border-slate-200/70" style={{ paddingBottom: 'max(1.5rem, calc(env(safe-area-inset-bottom) + 1rem))' }}>{footer}</div>}
       </div>
     </div>,
     document.body,

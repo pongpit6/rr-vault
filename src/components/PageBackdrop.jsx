@@ -1,6 +1,8 @@
 import { useEffect, useRef } from 'react'
 import { useStore } from '../store'
 import { frame, drawStill, drawRealm, skyFor, mix, GROUND } from './BattleScene'
+import { drawTown, plotX } from './TownScene'
+import { computeTown } from '../lib/town'
 
 /**
  * A faded, slowly animated pixel scene behind each page (not on the Vault page, which has the real battle).
@@ -37,6 +39,17 @@ const bob = (now, k) => (Math.sin(now / 380 + k) > 0 ? 0 : 1)
 
 const SCENES = {
   home(g, now, o) {
+    // once you've built something, the home page shows your own town, slowly panning
+    if (o.town && o.town.built.length) {
+      // pan across the built part only (hall → last building)
+      const last = o.town.plots.reduce((m, b, i) => (b ? i : m), 0)
+      const span = Math.max(0, plotX(last) + 70 - 200)
+      const off = Math.round(((Math.sin(now / 24000) + 1) / 2) * span)
+      g.save(); g.translate(-off, 0)
+      const fg = drawTown(g, o.town, now, { party: o.party.filter((p) => p !== 'knight'), pet: o.pet, hue: o.hue, dark: o.dark })
+      g.restore()
+      return () => { g.save(); g.translate(-off * 2, 0); fg(); g.restore() }
+    }
     const night = o.dark || skyFor(new Date().getHours()).night > 0.2
     const s = night ? skyFor(22) : skyFor(new Date().getHours())
     sky(g, s.top, s.bottom)
@@ -159,12 +172,12 @@ const SCENES = {
   },
 }
 
-export default function PageBackdrop({ tab, tier = 1, party = [], pet = 'pet_fox', hue = 0 }) {
+export default function PageBackdrop({ tab, tier = 1, party = [], pet = 'pet_fox', hue = 0, town = null }) {
   const ref = useRef(null)
   const theme = useStore((s) => s.ui.theme) || 'pixel'
   const off = useStore((s) => s.ui.backdropOff)
   const O = useRef({})
-  O.current = { tier, party, pet, hue, dark: theme === 'pixel-night' }
+  O.current = { tier, party, pet, hue, town, dark: theme === 'pixel-night' }
   const scene = SCENES[tab]
   const show = scene && !off && theme !== 'minimal'
   useEffect(() => {
@@ -198,5 +211,6 @@ export function BackdropHost({ tab }) {
   const pet = (data.owned || {})[data.equip?.pet] ? data.equip.pet : 'pet_fox'
   const hue = (data.owned || {})[data.equip?.skin] ? ({ skin_royal: 120, skin_flame: 200 }[data.equip.skin] || 0) : 0
   const tier = data.tier ?? (net == null ? 1 : net < 0 ? 0 : net < 10000 ? 1 : net < 100000 ? 2 : net < 1000000 ? 3 : 4)
-  return <PageBackdrop tab={tab} tier={tier} party={party} pet={pet} hue={hue} />
+  const town = data.town ? computeTown(data, { realmTier: tier }) : null
+  return <PageBackdrop tab={tab} tier={tier} party={party} pet={pet} hue={hue} town={town} />
 }

@@ -143,3 +143,7 @@ body { background-attachment: fixed; }
 .px-tab.on { background: #0f172a; color: #fff; }
 .px-tab .dot { width: 7px; height: 7px; background: #f43f5e; }
 @media (min-width: 768px) { .px-tabs { flex-wrap: wrap; overflow: visible; } }
+
+/* bottom-nav add button sits in a little bump of the bar */
+.ui-fab-notch { position: absolute; left: 50%; top: -11px; width: 62px; height: 62px; margin-left: -31px; border-radius: 9999px; background: rgba(255,255,255,.9); border: 1px solid #e2e8f0; clip-path: inset(0 0 calc(100% - 12px) 0); pointer-events: none; }
+html[data-theme^="pixel"] .ui-fab-notch { background: var(--px-card); border: 2px solid var(--px-ink); clip-path: inset(0 0 calc(100% - 13px) 0); }

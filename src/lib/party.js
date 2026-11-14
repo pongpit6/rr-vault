@@ -45,8 +45,8 @@ export const SKILLS = [
   { id: 'meteor', member: 'mage', lv: 4, name: 'อุกกาบาตกำไร', icon: '☄️', how: 'ส่งเข้าลงทุนครั้งละ 5,000 ขึ้นไป', does: 'เวทใหญ่เต็มจอ' },
   { id: 'arrow', member: 'ranger', lv: 1, name: 'ธนูลาดตระเวน', icon: '🏹', how: 'บันทึกรายการในวันนั้น', does: 'สอดส่องกระเป๋า สรุปว่าวันนี้ใช้อะไรไป' },
   { id: 'eagle', member: 'ranger', lv: 3, name: 'ตาเหยี่ยว', icon: '🦅', how: 'เลเวล 3 ขึ้นไป', does: 'บอกหมวดที่ใช้เงินมากที่สุดของวัน ในบันทึกการผจญภัย' },
-  { id: 'streak3', member: 'all', lv: 0, need: 3, name: 'ไฟแห่งวินัย', icon: '🔥', how: 'บันทึกต่อเนื่อง 3 วัน', does: 'หีบรายวันได้เจมเพิ่มตามจำนวนวัน' },
-  { id: 'streak30', member: 'all', lv: 0, need: 30, name: 'ตำนานแห่งวินัย', icon: '👑', how: 'บันทึกต่อเนื่อง 30 วัน', does: 'เจมจากหีบรายวัน ×2' },
+  { id: 'streak3', member: 'all', lv: 0, need: 3, name: 'ไฟแห่งวินัย', icon: '🔥', how: 'บันทึกต่อเนื่อง 3 วัน', does: 'หีบรายวันได้ FIAT เพิ่มตามจำนวนวัน' },
+  { id: 'streak30', member: 'all', lv: 0, need: 30, name: 'ตำนานแห่งวินัย', icon: '👑', how: 'บันทึกต่อเนื่อง 30 วัน', does: 'FIAT จากหีบรายวัน ×2' },
 ]
 
 /* ---------------- shop ---------------- */
@@ -187,15 +187,19 @@ function buildLog({ txns, accById, catById, pm, gearBy, has, data, privacy, avgD
     const r = joined('ranger', day)
     const top = Object.entries(d.cats).sort((a, b) => b[1] - a[1])[0]
     const eagle = r && has('eagle') && top ? ` · ตาเหยี่ยวเห็นว่าเงินไหลไปที่ “${catById[top[0]]?.name || 'อื่น ๆ'}” มากสุด` : ''
-    push(day, { at: `${day}T23:59`, who: r ? 'ranger' : 'knight', icon: '🏹', tone: 'info', text: `${r ? 'ฟินลาดตระเวน' : 'อัศวินออกตรวจตลาด'} บันทึก ${d.n} รายการ${d.out ? ` ใช้ไป ${M(d.out)}` : ''}${eagle}`, amount: `+${10 + Math.min(5, d.n) * 2} XP` })
+    push(day, { at: `${day}T23:59`, who: r ? 'ranger' : 'knight', icon: '🏹', tone: 'info', text: `${r ? 'ฟินลาดตระเวน' : 'อัศวินออกตรวจตลาด'} บันทึก ${d.n} รายการ${d.out ? ` ใช้ไป ${M(d.out)}` : ''}${eagle}`, amount: `+${10 + Math.min(5, d.n) * 2} XP · +${Math.min(5, d.n) * 10} FIAT` })
   }
   // milestones kept in the rpg item
   for (const [id, at] of Object.entries(data.joined || {})) if (pm[id]) push(localDay(at), { at, who: id, icon: '✨', tone: 'gold', text: `${pm[id].name} ${pm[id].role.split(' ')[0]} เข้าร่วมปาร์ตี้แล้ว!` })
   for (const l of data.levels || []) push(localDay(l.at), { at: l.at, who: 'knight', icon: '⬆️', tone: 'gold', text: `เลเวลอัป! ปาร์ตี้ขึ้นเป็นเลเวล ${l.lv}` })
   for (const r of data.realms || []) push(localDay(r.at), { at: r.at, who: 'knight', icon: '🗺️', tone: 'gold', text: r.down ? `ถอยกลับไปที่ “${r.name}” — มูลค่าสุทธิลดลง` : `เดินทางถึง “${r.name}”!` })
   for (const [id, at] of Object.entries(data.unlocked || {})) push(localDay(at), { at, who: 'knight', icon: '🏅', tone: 'gold', text: `ได้รับฉายา “${ACH_NAMES[id] || id}”` })
-  for (const c of data.chestLog || []) push(localDay(c.at), { at: c.at, who: 'pet', icon: '🎁', tone: 'gold', text: `เปิดหีบสมบัติรายวัน${c.rare ? ' (หายาก!)' : ''}`, amount: `+${c.gain} เจม` })
+  for (const c of data.chestLog || []) push(localDay(c.at), { at: c.at, who: 'pet', icon: '🎁', tone: 'gold', text: `เปิดหีบสมบัติรายวัน${c.rare ? ' (หายาก!)' : ''}`, amount: c.ccy === 'fiat' ? `+${c.gain} FIAT` : `+${c.gain} เจม` })
   for (const b of data.buyLog || []) push(localDay(b.at), { at: b.at, who: 'pet', icon: '🛒', tone: 'info', text: `ซื้อ “${b.name}” จากร้านพ่อค้า`, amount: `-${b.price} เจม` })
+  for (const e of data.econLog || []) {
+    const amt = [e.fiat ? `${e.fiat > 0 ? '+' : ''}${e.fiat} FIAT` : '', e.gold ? `${e.gold > 0 ? '+' : ''}${e.gold} GOLD` : ''].filter(Boolean).join(' ')
+    push(localDay(e.at), { at: e.at, who: 'pet', icon: e.icon || '🏘️', tone: (e.fiat || 0) + (e.gold || 0) * 100 >= 0 ? 'gold' : 'info', text: e.text, amount: amt || undefined })
+  }
 
   const days = [...byDay.entries()].sort((a, b) => b[0].localeCompare(a[0])).map(([day, items]) => {
     const d = daily.get(day)

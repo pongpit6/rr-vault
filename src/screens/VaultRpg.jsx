@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Flame, Swords, Check, Lock, Trophy, ScrollText, Sparkles, MapPin, Backpack, Users, Shield, Store, Map as MapIcon, BookOpen, Gem, Eye } from 'lucide-react'
+import { Flame, Swords, Check, Lock, Trophy, ScrollText, Sparkles, MapPin, Backpack, Users, Shield, Store, Map as MapIcon, BookOpen, Eye, Castle } from 'lucide-react'
 import { ItemSprite, AssetLogo } from '../components/Logos'
 import { itemOf, assetLabel } from '../lib/portfolio'
 import BattleScene from '../components/BattleScene'
@@ -9,6 +9,7 @@ import { useProfile, useStore } from '../store'
 import { useRpg, REALMS } from '../lib/rpg'
 import { SHOP, GEAR_TIERS, memberById } from '../lib/party'
 import { money, compact, todayISO, shortDate } from '../lib/format'
+import TownTab, { Wallet, Price } from '../components/TownTab'
 
 function Section({ icon: I, title, right, children }) {
   return (
@@ -48,6 +49,7 @@ function GearIcon({ slot, color, size = 40 }) {
 }
 
 const TABS = [
+  { id: 'town', label: 'เมือง', icon: Castle },
   { id: 'log', label: 'บันทึกการผจญภัย', icon: BookOpen },
   { id: 'party', label: 'ปาร์ตี้', icon: Users },
   { id: 'gear', label: 'อุปกรณ์', icon: Shield },
@@ -62,7 +64,7 @@ export default function VaultRpg({ onAdd, go }) {
   const rpg = useRpg()
   const profile = useProfile()
   const privacy = useStore((s) => s.ui.privacy)
-  const tab = useStore((s) => s.ui.rpgTab) || 'log'
+  const tab = useStore((s) => s.ui.rpgTab) || 'town'
   const setUi = useStore((s) => s.setUi)
   const { events, consume } = useBattleEvents(rpg)
   const [preview, setPreview] = useState(null)
@@ -74,7 +76,7 @@ export default function VaultRpg({ onAdd, go }) {
       <div className="flex items-center justify-between pt-2">
         <h1 className="text-2xl font-bold">Vault <span className="px-font text-sm text-teal-600 align-middle">RPG</span></h1>
         <div className="flex items-center gap-2">
-          <span className="px-chip text-violet-600"><Gem size={13} /> {rpg.gems}</span>
+          <Wallet rpg={rpg} />
           {rpg.streak > 0 && <div className="px-chip text-orange-600"><Flame size={14} /> {rpg.streak} วัน</div>}
         </div>
       </div>
@@ -108,11 +110,14 @@ export default function VaultRpg({ onAdd, go }) {
             {TABS.map((t) => (
               <button key={t.id} onClick={() => setTab(t.id)} className={`px-tab ${tab === t.id ? 'on' : ''}`} data-testid={`rpg-tab-${t.id}`}>
                 <t.icon size={14} /> {t.label}
-                {t.id === 'shop' && SHOP.some((i) => !rpg.owned[i.id] && rpg.gems >= i.price) && <span className="dot" />}
+                {t.id === 'shop' && SHOP.some((i) => !rpg.owned[i.id] && rpg.afford(rpg.shopPrice(i))) && <span className="dot" />}
+                {t.id === 'town' && rpg.collectReady && <span className="dot" />}
+                {t.id === 'quests' && rpg.quests.some((q) => q.claimable) && <span className="dot" />}
               </button>
             ))}
           </div>
 
+          {tab === 'town' && <TownTab rpg={rpg} />}
           {tab === 'log' && <AdventureLog rpg={rpg} />}
           {tab === 'party' && <PartyTab rpg={rpg} />}
           {tab === 'gear' && <GearTab rpg={rpg} />}
@@ -272,8 +277,8 @@ function ShopTab({ rpg }) {
     <div className="space-y-3">
       <section className="px-card p-3.5 flex items-center gap-3">
         <Portrait sprite="npc_merchant" size={48} />
-        <div className="flex-1 text-sm"><b>พ่อค้าประจำหมู่บ้าน:</b> “มีเจมเท่าไหร่ ซื้อได้เท่านั้นนะ! เจมได้จากหีบรายวัน บันทึกทุกวันได้มากขึ้น”</div>
-        <span className="px-chip text-violet-600 shrink-0"><Gem size={13} /> {rpg.gems}</span>
+        <div className="flex-1 text-sm"><b>พ่อค้าประจำหมู่บ้าน:</b> “ของที่นี่ขายเป็น FIAT นะ ราคาขึ้นทุกเดือนตามเงินเฟ้อ ซื้อตอนนี้คุ้มกว่า!”{rpg.town.shopDiscount ? ` · ตลาดนัดลดให้ ${rpg.town.shopDiscount}%` : ''}</div>
+        <div className="flex flex-col gap-1 shrink-0"><Wallet rpg={rpg} /></div>
       </section>
       {types.map(([type, label]) => (
         <Section key={type} icon={Store} title={label.toUpperCase()}>
@@ -289,7 +294,7 @@ function ShopTab({ rpg }) {
               const equipped = type === 'deco' ? !!rpg.decos[i.id] : type === 'pet' ? rpg.pet.id === i.id : rpg.skin?.id === i.id
               const art = i.type === 'pet' ? <Portrait sprite={i.sprite} size={44} /> : i.type === 'skin' ? <Portrait sprite="hero" size={48} hue={i.hue} /> : <span className="text-3xl">{i.id === 'deco_flowers' ? '🌷' : i.id === 'deco_lanterns' ? '🏮' : '🚩'}</span>
               return (
-                <ShopCard key={i.id} name={i.name} desc={i.desc} art={art} price={i.price} owned={owned} equipped={equipped} canBuy={rpg.gems >= i.price}
+                <ShopCard key={i.id} name={i.name} desc={i.desc} art={art} price={<Price p={rpg.shopPrice(i)} rpg={rpg} />} owned={owned} equipped={equipped} canBuy={rpg.afford(rpg.shopPrice(i))}
                   onBuy={() => { if (rpg.buy(i)) showToast(`ซื้อ “${i.name}” แล้ว!`) }}
                   onEquip={() => (type === 'deco' ? rpg.toggleDeco(i.id) : rpg.setEquip({ [type]: equipped ? null : i.id }))} deco={type === 'deco'} />
               )
@@ -309,7 +314,7 @@ function ShopCard({ name, desc, art, price, owned, equipped, canBuy, onBuy, onEq
       {owned ? (
         <button onClick={onEquip} className={`mt-2 w-full py-1.5 text-xs font-semibold border-2 border-slate-800 ${equipped ? 'bg-teal-500 text-white' : 'bg-white'}`}>{equipped ? (deco ? 'เปิดอยู่ ✓' : 'ใช้อยู่ ✓') : deco ? 'ปิดอยู่' : 'ใช้'}</button>
       ) : (
-        <button onClick={onBuy} disabled={!canBuy} className="mt-2 w-full py-1.5 text-xs font-semibold border-2 border-slate-800 bg-violet-500 text-white disabled:bg-slate-200 disabled:text-slate-400 disabled:border-slate-300 flex items-center justify-center gap-1"><Gem size={12} /> {price}</button>
+        <button onClick={onBuy} disabled={!canBuy} className="mt-2 w-full py-1.5 text-xs font-semibold border-2 border-slate-800 bg-violet-500 text-white disabled:bg-slate-200 disabled:border-slate-300 flex items-center justify-center gap-1 [&_span]:!text-white disabled:[&_span]:!text-slate-500">{price}</button>
       )}
     </div>
   )
@@ -388,12 +393,17 @@ function QuestsTab({ rpg, onAdd }) {
                     <div className={`w-6 h-6 grid place-items-center shrink-0 ${q.done ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-slate-400'}`}>{q.done ? <Check size={14} strokeWidth={3} /> : <span className="w-1.5 h-1.5 bg-current" />}</div>
                     <div className="flex-1 min-w-0">
                       <div className={`text-sm ${q.done ? 'text-emerald-700' : ''}`}>{q.name}</div>
+                      {q.hint && <div className="text-[10px] text-slate-400">{q.hint}</div>}
                       <div className="flex items-center gap-2 mt-1">
                         <div className="px-xp flex-1 !h-1.5"><div style={{ width: `${Math.min(100, (q.progress / q.goal) * 100)}%` }} /></div>
                         <span className="text-[10px] text-slate-500 num shrink-0">{q.money ? `${compact(q.progress)}/${compact(q.goal)}` : `${q.progress}${q.unit || ''}/${q.goal}${q.unit || ''}`}</span>
                       </div>
                     </div>
-                    <span className="px-font text-[8px] text-amber-600 shrink-0">+{q.xp}XP</span>
+                    {q.claimable ? (
+                      <button onClick={() => rpg.claim(q)} className="px-btn shrink-0 !py-1 !px-2 text-[11px] anim-pop" data-testid="claim-btn">รับ {q.gold ? `🪙${q.gold}` : `💵${q.fiat}`}</button>
+                    ) : (
+                      <span className={`text-[11px] font-semibold shrink-0 num ${q.claimedAt ? 'text-slate-400 line-through' : q.gold ? 'text-amber-600' : 'text-emerald-700'}`}>{q.gold ? `🪙${q.gold}` : `💵${q.fiat}`}</span>
+                    )}
                   </div>
                 ))}
               </div>
