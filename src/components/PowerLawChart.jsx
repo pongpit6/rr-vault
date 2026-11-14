@@ -251,8 +251,8 @@ export default function PowerLawChart({ hist, now, price, k, sym, lows, lots, av
             </g>
             {avgY != null && avgY > Y0 + 8 && avgY < Y1 - 8 && (
               <g>
-                <rect x={X0 + 4} y={avgY - 10} width="126" height="19" rx="9.5" fill="#f59e0b" />
-                <text x={X0 + 67} y={avgY + 3.5} fill="#1f1300" fontSize="10.5" fontWeight="700" textAnchor="middle">ต้นทุนเฉลี่ย {privacy ? '••••' : fmt(avg)}</text>
+                <rect x={X0 + 150} y={avgY - 10} width="126" height="19" rx="9.5" fill="#f59e0b" />
+                <text x={X0 + 213} y={avgY + 3.5} fill="#1f1300" fontSize="10.5" fontWeight="700" textAnchor="middle">ต้นทุนเฉลี่ย {privacy ? '••••' : fmt(avg)}</text>
               </g>
             )}
             {futureLabel && (
