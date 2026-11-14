@@ -334,12 +334,49 @@ export default function TxnForm({ open, onClose, initial }) {
   )
 }
 
-export function AllocationEditor({ pct, cap, onPct, onCap, split, gap, compact = false }) {
+export const ALLOC_PRESETS = [
+  { id: 'default', name: 'ค่าเริ่มต้น', pct: { reserve: 30, cash: 50, invest: 20 } },
+  { id: 'debt', name: 'เน้นปลดหนี้', pct: { reserve: 50, cash: 40, invest: 10 } },
+  { id: 'balance', name: 'สมดุล', pct: { reserve: 25, cash: 50, invest: 25 } },
+  { id: 'invest', name: 'เน้นลงทุน', pct: { reserve: 15, cash: 45, invest: 40 } },
+  { id: 'saver', name: 'ออมหนัก', pct: { reserve: 25, cash: 35, invest: 40 } },
+  { id: 'nodebt', name: 'ไม่มีหนี้', pct: { reserve: 0, cash: 60, invest: 40 } },
+]
+const samePct = (a, b) => BUCKETS.every((x) => (a?.[x.key] ?? 0) === (b?.[x.key] ?? 0))
+
+/**
+ * Split editor. `confirm` (settings): edits stay a draft — type, +/-, drag or pick a style — until "ยืนยัน",
+ * and values are independent (the sum must reach 100). Without it (one-off income, onboarding) changes apply
+ * at once and the other buckets rebalance to keep 100%.
+ */
+export function AllocationEditor({ pct, cap, onPct, onCap, split, gap, compact = false, confirm = false }) {
+  const [draft, setDraft] = useState(pct)
+  const [saved, setSaved] = useState(false)
+  useEffect(() => { if (!confirm) setDraft(pct) }, [pct, confirm])
+  const cur = confirm ? draft : pct
+  const sum = BUCKETS.reduce((s, b) => s + (cur[b.key] || 0), 0)
+  const dirty = confirm && !samePct(pct, draft)
+  const setOne = (key, value) => {
+    const v = Math.max(0, Math.min(100, Math.round(Number(String(value).replace(/[^0-9.]/g, '')) || 0)))
+    if (confirm) { setDraft({ ...draft, [key]: v }); setSaved(false) } else onPct(rebalance(pct, key, v))
+  }
+  const pick = (p) => { if (confirm) { setDraft({ ...p.pct }); setSaved(false) } else onPct({ ...p.pct }) }
+  const apply = () => { if (sum === 100 && dirty) { onPct({ ...draft }); setSaved(true) } }
   return (
-    <div className={`rounded-2xl bg-slate-900/[.025] border border-slate-200/70 ${compact ? 'p-3' : 'p-4'}`}>
+    <div className={`rounded-2xl bg-slate-900/[.025] border border-slate-200/70 ${compact ? 'p-3' : 'p-4'}`} data-testid="alloc-editor">
+      {!compact && (
+        <div className="mb-3">
+          <div className="text-xs text-slate-500 mb-1.5">สไตล์สำเร็จรูป</div>
+          <div className="flex flex-wrap gap-1.5">
+            {ALLOC_PRESETS.map((p) => (
+              <button key={p.id} onClick={() => pick(p)} className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold border ${samePct(cur, p.pct) ? 'bg-slate-900 text-white border-slate-900' : 'bg-white border-slate-200'}`}>{p.name}</button>
+            ))}
+          </div>
+        </div>
+      )}
       {/* stacked bar */}
-      <div className="flex h-2.5 rounded-full overflow-hidden mb-4">
-        {BUCKETS.map((b) => <div key={b.key} style={{ width: `${pct[b.key]}%`, background: b.color }} className="transition-all" />)}
+      <div className="flex h-2.5 rounded-full overflow-hidden mb-4 bg-slate-200/60">
+        {BUCKETS.map((b) => <div key={b.key} style={{ width: `${((cur[b.key] || 0) / Math.max(100, sum)) * 100}%`, background: b.color }} className="transition-all" />)}
       </div>
       <div className="space-y-4">
         {BUCKETS.map((b) => (
@@ -347,15 +384,33 @@ export function AllocationEditor({ pct, cap, onPct, onCap, split, gap, compact =
             <div className="flex items-center gap-2 mb-1.5">
               <span className="text-[10px] font-bold w-4 h-4 grid place-items-center rounded-full bg-slate-900/[.06] text-slate-600">{b.order}</span>
               <Icon name={b.icon} size={15} className="opacity-90" />
-              <span className="text-sm flex-1" style={{ color: b.color }}>{b.label}</span>
+              <label htmlFor={`alloc-${b.key}`} className="text-sm flex-1" style={{ color: b.color }}>{b.label}</label>
               {split && <span className="text-sm font-semibold num">{money(split[b.key])}</span>}
-              <span className="text-xs text-slate-500 w-10 text-right num">{pct[b.key]}%</span>
+              <button type="button" onClick={() => setOne(b.key, (cur[b.key] || 0) - 5)} aria-label={`ลด ${b.label} 5%`} className="w-7 h-7 rounded-lg border border-slate-200 bg-white text-slate-600 font-bold leading-none">−</button>
+              <input id={`alloc-${b.key}`} inputMode="numeric" value={cur[b.key] ?? 0} onFocus={(e) => e.target.select()}
+                onChange={(e) => setOne(b.key, e.target.value)} data-testid={`alloc-in-${b.key}`}
+                className="w-12 h-7 rounded-lg border border-slate-200 bg-white text-center text-sm font-semibold num" />
+              <span className="text-xs text-slate-500">%</span>
+              <button type="button" onClick={() => setOne(b.key, (cur[b.key] || 0) + 5)} aria-label={`เพิ่ม ${b.label} 5%`} className="w-7 h-7 rounded-lg border border-slate-200 bg-white text-slate-600 font-bold leading-none">+</button>
             </div>
-            <input type="range" min="0" max="100" value={pct[b.key]} className="slider" style={{ '--thumb': b.color }}
-              onChange={(e) => onPct(rebalance(pct, b.key, Number(e.target.value)))} />
+            <input type="range" min="0" max="100" value={cur[b.key] || 0} className="slider" style={{ '--thumb': b.color }} aria-label={b.label}
+              onChange={(e) => setOne(b.key, e.target.value)} />
           </div>
         ))}
       </div>
+      {confirm && (
+        <div className="mt-4 space-y-2">
+          <div className={`text-sm font-semibold px-3 py-2 rounded-xl border border-dashed ${sum === 100 ? 'border-emerald-300 text-emerald-700 bg-emerald-50/60' : 'border-rose-300 text-rose-700 bg-rose-50/60'}`} data-testid="alloc-sum">
+            {sum === 100 ? 'รวม 100% พอดี' : sum < 100 ? `รวม ${sum}% — ขาดอีก ${100 - sum}%` : `รวม ${sum}% — เกิน ${sum - 100}%`}
+          </div>
+          <div className="flex gap-2">
+            <button type="button" onClick={() => { setDraft(pct); setSaved(false) }} disabled={!dirty} className="flex-1 h-11 rounded-xl border border-slate-200 bg-white font-semibold text-sm disabled:opacity-40">ยกเลิก</button>
+            <button type="button" onClick={apply} disabled={!dirty || sum !== 100} data-testid="alloc-confirm"
+              className={`flex-[2] h-11 rounded-xl font-bold text-sm text-white ${saved && !dirty ? 'bg-teal-700' : 'bg-mint disabled:bg-slate-300'}`}>{saved && !dirty ? 'บันทึกแล้ว ✓' : 'ยืนยัน'}</button>
+          </div>
+          <div className="text-[11px] text-slate-500">ลาก พิมพ์ หรือเลือกสไตล์ได้ ค่าที่เปลี่ยนเป็นแค่ร่าง จนกว่าจะกด “ยืนยัน”</div>
+        </div>
+      )}
       <button onClick={() => onCap(!cap)} className="mt-4 w-full flex items-center gap-3 text-left">
         <Sparkles size={16} className={cap ? 'text-emerald-600' : 'text-slate-500'} />
         <div className="flex-1 text-xs text-slate-600">

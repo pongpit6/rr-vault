@@ -142,3 +142,4 @@ body { background-attachment: fixed; }
 .px-tab { flex-shrink: 0; display: flex; align-items: center; gap: 5px; padding: 7px 11px; font-size: 13px; font-weight: 600; border: 2px solid #1e293b; background: #fff; color: #334155; }
 .px-tab.on { background: #0f172a; color: #fff; }
 .px-tab .dot { width: 7px; height: 7px; background: #f43f5e; }
+@media (min-width: 768px) { .px-tabs { flex-wrap: wrap; overflow: visible; } }

@@ -100,7 +100,7 @@ export default function Wallets({ onEdit, go }) {
           <div className="px-1 mb-2 text-sm text-slate-500">ระบบแบ่งเงินอัตโนมัติ (ค่าเริ่มต้นทุกครั้งที่มีรายรับ)</div>
           <AllocationEditor pct={alloc.pct} cap={alloc.capReserveAtGap} gap={summary.gap}
             onPct={(pct) => saveAlloc({ pct })} onCap={(capReserveAtGap) => saveAlloc({ capReserveAtGap })}
-            split={null} />
+            split={null} confirm />
           <div className="card mt-3 p-4 space-y-3">
             <div className="text-sm font-medium">ปลายทางของแต่ละส่วน</div>
             {[['reserve', '① กันชำระหนี้'], ['cash', '② เงินใช้ได้'], ['invest', '③ ลงทุน']].map(([k, label]) => (

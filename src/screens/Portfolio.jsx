@@ -1,3 +1,4 @@
+import PowerLawCard from '../components/PowerLawCard'
 import { useEffect, useState } from 'react'
 import { Plus, RefreshCw, Radio, Pencil, Check, TrendingUp, TrendingDown, Trash2 } from 'lucide-react'
 import { Sheet, Button, Money, Empty, Label } from '../components/ui'
@@ -94,6 +95,11 @@ export default function Portfolio({ onTrade }) {
                       {h.asset.source === 'thaigold' ? `${fmtQ(h.qty)} บาท` : `${fmtQ(h.qty)} ${h.asset.unit || ''}`} · {ccy(h.asset)}{fmtQ(h.price)}
                       {h.changePct != null && <> · <Delta v={h.changePct / 100} /></>}
                     </div>
+                    {h.qty > 0 && h.avgPrice > 0 && (
+                      <div className="text-[11px] text-slate-500 truncate" data-testid="avg-cost">
+                        ต้นทุนเฉลี่ย {privacy ? '••••' : <>{ccy(h.asset)}{fmtQ(h.avgPrice)}{ccy(h.asset) !== '฿' && <> · ฿{fmtQ(h.cost / h.qty)}</>}</>}
+                      </div>
+                    )}
                   </div>
                   <div className="text-right">
                     <Money value={h.value} className="font-semibold" />
@@ -105,6 +111,8 @@ export default function Portfolio({ onTrade }) {
           )}
         </section>
       </div>
+
+      <PowerLawCard />
 
       <AssetDetail id={detail} onClose={() => setDetail(null)} onTrade={(x) => { setDetail(null); onTrade(x) }} />
     </div>
@@ -155,7 +163,22 @@ function AssetDetail({ id, onClose, onTrade }) {
         ))}
       </div>
       {h.realized !== 0 && <div className="text-xs text-slate-500 mt-2">กำไร/ขาดทุนที่ขายไปแล้ว: <span className={`num font-semibold ${h.realized >= 0 ? 'text-emerald-600' : 'text-rose'}`}>{money(h.realized, { sign: true })}</span></div>}
-      {h.qty > 0 && h.avgPrice > 0 && <div className="text-xs text-slate-500 mt-1">ต้นทุนเฉลี่ย {ccy(a)}{fmtQ(h.avgPrice)} ต่อ{unit}</div>}
+      {h.qty > 0 && h.avgPrice > 0 && (
+        <div className={`grid gap-2 mt-2 ${ccy(a) !== '฿' ? 'grid-cols-2' : 'grid-cols-1'}`}>
+          <div className="rounded-2xl bg-amber-50/60 border border-amber-200/70 p-3">
+            <div className="text-[11px] text-slate-500">ต้นทุนเฉลี่ยต่อ{unit} ({ccy(a) === '฿' ? 'THB' : 'USD'})</div>
+            <div className="font-semibold num text-sm">{privacy ? '••••' : `${ccy(a)}${fmtQ(h.avgPrice)}`}</div>
+            <div className="text-[11px]">ราคาตอนนี้ <Delta v={(h.price - h.avgPrice) / h.avgPrice} /></div>
+          </div>
+          {ccy(a) !== '฿' && (
+            <div className="rounded-2xl bg-amber-50/60 border border-amber-200/70 p-3">
+              <div className="text-[11px] text-slate-500">ต้นทุนเฉลี่ยต่อ{unit} (THB จ่ายจริง)</div>
+              <div className="font-semibold num text-sm">{privacy ? '••••' : `฿${fmtQ(h.cost / h.qty)}`}</div>
+              <div className="text-[11px] text-slate-500">รวมผลเรทแลกเงินตอนซื้อ</div>
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="mt-5 flex items-center justify-between">
         <div className="text-sm font-semibold">ประวัติแต่ละไม้ (Lot)</div>
