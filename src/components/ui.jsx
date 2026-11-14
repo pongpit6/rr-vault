@@ -70,7 +70,7 @@ export function Sheet({ open, onClose, title, children, footer, wide = false }) 
 export function Button({ children, variant = 'primary', className = '', ...p }) {
   const base = `ui-btn ui-btn-${variant} inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-3 font-semibold transition active:scale-[.98] disabled:opacity-40 disabled:pointer-events-none`
   const v = {
-    primary: 'grad-bg text-white shadow-lg shadow-emerald-500/20 hover:brightness-110',
+    primary: 'grad-bg text-white ui-ac-shadow hover:brightness-110',
     ghost: 'bg-white hover:bg-slate-50 text-slate-800 border border-slate-200 shadow-sm',
     danger: 'bg-rose/10 text-rose hover:bg-rose/20 border border-rose/20',
     subtle: 'text-slate-600 hover:text-slate-900 hover:bg-slate-900/[.04]',

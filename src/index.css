@@ -18,7 +18,12 @@
   --color-amber: #d97706;
 }
 
-:root { color-scheme: light; -webkit-tap-highlight-color: transparent; }
+:root { color-scheme: light; -webkit-tap-highlight-color: transparent;
+  /* accent defaults (overwritten by lib/accent.js) */
+  --ac1: #10b981; --ac2: #0ea5e9; --ac-mid: #0fa9c4; --ac-ink: #047857; --ac-hi: #34d399; --ac-soft: rgba(16,185,129,.12);
+  --ac-glow1: rgba(16,185,129,.10); --ac-glow2: rgba(56,189,248,.10); --ac-shadow1: rgba(14,165,233,.55); --ac-shadow2: rgba(16,185,129,.5); --ac-btn-shadow: rgba(16,185,129,.25);
+  --color-sky-600: var(--ac-ink); /* links ("ดูทั้งหมด", "+ วันที่") follow the accent */
+}
 
 html, body, #root { min-height: 100%; }
 body {
@@ -33,13 +38,13 @@ body {
 body::before {
   content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
   background:
-    radial-gradient(900px 500px at 10% -10%, rgba(16,185,129,.10), transparent 60%),
-    radial-gradient(800px 500px at 100% 0%, rgba(56,189,248,.10), transparent 60%);
+    radial-gradient(900px 500px at 10% -10%, var(--ac-glow1), transparent 60%),
+    radial-gradient(800px 500px at 100% 0%, var(--ac-glow2), transparent 60%);
 }
 
 .num { font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; letter-spacing: -0.01em; }
-.grad-text { background: linear-gradient(100deg, #34d399, #38bdf8); -webkit-background-clip: text; background-clip: text; color: transparent; }
-.grad-bg { background: linear-gradient(120deg, #10b981, #0ea5e9); }
+.grad-text { background: linear-gradient(100deg, var(--ac1), var(--ac2)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.grad-bg { background: linear-gradient(120deg, var(--ac1), var(--ac2)); }
 .card {
   background: #ffffff;
   border: 1px solid rgba(15,23,42,.06);
@@ -49,10 +54,10 @@ body::before {
 .hero {
   background:
     radial-gradient(120% 140% at 100% 0%, rgba(255,255,255,.22), transparent 50%),
-    linear-gradient(125deg, #10b981 0%, #14b8a6 45%, #0ea5e9 100%);
+    linear-gradient(125deg, var(--ac1) 0%, var(--ac-mid) 45%, var(--ac2) 100%);
   color: #fff;
   border-radius: 26px;
-  box-shadow: 0 18px 40px -18px rgba(14,165,233,.55), 0 10px 24px -16px rgba(16,185,129,.5);
+  box-shadow: 0 18px 40px -18px var(--ac-shadow1), 0 10px 24px -16px var(--ac-shadow2);
 }
 .pt-safe { padding-top: env(safe-area-inset-top); }
 .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
@@ -63,7 +68,7 @@ body::before {
   width: 100%; background: #f8fafc; border: 1px solid #e2e8f0;
   border-radius: 14px; padding: 12px 14px; color: #0f172a; outline: none; transition: border-color .15s;
 }
-.field:focus { border-color: #38bdf8; background: #fff; box-shadow: 0 0 0 4px rgba(56,189,248,.12); }
+.field:focus { border-color: var(--ac-mid); background: #fff; box-shadow: 0 0 0 4px var(--ac-soft); }
 input[type="date"].field { color-scheme: light; }
 
 }
@@ -147,3 +152,16 @@ body { background-attachment: fixed; }
 /* bottom-nav add button sits in a little bump of the bar */
 .ui-fab-notch { position: absolute; left: 50%; top: -11px; width: 62px; height: 62px; margin-left: -31px; border-radius: 9999px; background: rgba(255,255,255,.9); border: 1px solid #e2e8f0; clip-path: inset(0 0 calc(100% - 12px) 0); pointer-events: none; }
 html[data-theme^="pixel"] .ui-fab-notch { background: var(--px-card); border: 2px solid var(--px-ink); clip-path: inset(0 0 calc(100% - 13px) 0); }
+
+/* market overview: 2-column masonry on wide screens so short cards don't leave gaps */
+.mkt-masonry > * { margin-bottom: 1rem; }
+@media (min-width: 768px) { .mkt-masonry { column-count: 2; column-gap: 1rem; } }
+
+/* ---------- accent-driven bits ---------- */
+.bg-ac { background-color: var(--ac-mid); }
+.text-ac { color: var(--ac-ink); }
+.ui-link { color: var(--ac-ink); }
+.ui-ac-shadow { box-shadow: 0 10px 18px -6px var(--ac-btn-shadow); }
+/* selected chips / pills (were slate-900) */
+:is(button, label).bg-slate-900.text-white, .ui-pick-on { background-color: var(--ac-ink); border-color: var(--ac-ink); }
+.ui-seg-on:not([style*="color"]) { color: var(--ac-ink) !important; }

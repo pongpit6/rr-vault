@@ -409,7 +409,7 @@ export function AllocationEditor({ pct, cap, onPct, onCap, split, gap, compact =
           <div className="flex gap-2">
             <button type="button" onClick={() => { setDraft(pct); setSaved(false) }} disabled={!dirty} className="flex-1 h-11 rounded-xl border border-slate-200 bg-white font-semibold text-sm disabled:opacity-40">ยกเลิก</button>
             <button type="button" onClick={apply} disabled={!dirty || sum !== 100} data-testid="alloc-confirm"
-              className={`flex-[2] h-11 rounded-xl font-bold text-sm text-white ${saved && !dirty ? 'bg-teal-700' : 'bg-mint disabled:bg-slate-300'}`}>{saved && !dirty ? 'บันทึกแล้ว ✓' : 'ยืนยัน'}</button>
+              className={`flex-[2] h-11 rounded-xl font-bold text-sm text-white ${saved && !dirty ? 'bg-teal-700' : 'bg-ac disabled:bg-slate-300'}`}>{saved && !dirty ? 'บันทึกแล้ว ✓' : 'ยืนยัน'}</button>
           </div>
           <div className="text-[11px] text-slate-500">ลาก พิมพ์ หรือเลือกสไตล์ได้ ค่าที่เปลี่ยนเป็นแค่ร่าง จนกว่าจะกด “ยืนยัน”</div>
         </div>
@@ -419,7 +419,7 @@ export function AllocationEditor({ pct, cap, onPct, onCap, split, gap, compact =
         <div className="flex-1 text-xs text-slate-600">
           กันหนี้เท่าที่ยังขาด {gap !== undefined && <>(ตอนนี้ขาด <span className="num text-slate-900">{money(gap)}</span>)</>} ส่วนเกินแบ่งไปกระเป๋าอื่นอัตโนมัติ
         </div>
-        <div className={`w-10 h-[22px] rounded-full p-0.5 transition shrink-0 ${cap ? 'bg-mint' : 'bg-slate-900/10'}`}>
+        <div className={`w-10 h-[22px] rounded-full p-0.5 transition shrink-0 ${cap ? 'bg-ac' : 'bg-slate-900/10'}`}>
           <div className={`w-[18px] h-[18px] rounded-full bg-white transition ${cap ? 'translate-x-[18px]' : ''}`} />
         </div>
       </button>

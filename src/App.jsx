@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { LayoutDashboard, List, Plus, Wallet, Settings as Cog, Swords, LineChart, CandlestickChart } from 'lucide-react'
+import { applyAccent, DEFAULT_ACCENT } from './lib/accent'
 import { useStore, selectList } from './store'
 import Home from './screens/Home'
 import Transactions from './screens/Transactions'
@@ -212,7 +213,7 @@ export default function App() {
           <img src="./icon-192.png" className="w-9 h-9 rounded-xl" alt="" />
           <div className="leading-tight"><div className="text-sm font-semibold">R.R.</div><div className="text-sm font-semibold grad-text">Vault</div></div>
         </div>
-        <button onClick={() => setForm({})} className="ui-btn ui-btn-primary mb-2 flex items-center justify-center gap-2 py-3 rounded-2xl grad-bg text-white font-semibold shadow-lg shadow-emerald-500/20 hover:brightness-110">
+        <button onClick={() => setForm({})} className="ui-btn ui-btn-primary mb-2 flex items-center justify-center gap-2 py-3 rounded-2xl grad-bg text-white font-semibold ui-ac-shadow hover:brightness-110">
           <Plus size={18} /> บันทึกรายการ <kbd className="ml-1 text-[10px] px-1.5 py-0.5 rounded bg-black/20">N</kbd>
         </button>
         <button onClick={() => setTrade({})} className="ui-btn ui-btn-ghost mb-4 flex items-center justify-center gap-2 py-2.5 rounded-2xl bg-white border border-slate-200 font-semibold text-sm hover:bg-slate-50">
@@ -221,7 +222,7 @@ export default function App() {
         {NAV.map((n) => (
           <button key={n.id} onClick={() => go(n.id)}
             className={`ui-side-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition ${tab === n.id ? 'ui-on bg-slate-900/[.05] text-slate-900' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-900/[.025]'}`}>
-            <n.icon size={18} className={tab === n.id ? 'text-emerald-600' : ''} /> {n.label}
+            <n.icon size={18} className={tab === n.id ? 'text-ac' : ''} /> {n.label}
           </button>
         ))}
         <button onClick={() => setTab('settings')} className={`mt-auto flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition ${tab === 'settings' ? 'bg-slate-900/[.05] text-slate-900' : 'text-slate-500 hover:text-slate-900'}`}><Cog size={18} /> ตั้งค่า</button>
@@ -239,7 +240,7 @@ export default function App() {
           {NAV.slice(0, 3).map((n) => <NavBtn key={n.id} n={n} active={tab === n.id} onClick={() => go(n.id)} />)}
           <div className="relative flex justify-center h-full">
             <span className="ui-fab-notch" aria-hidden="true" />
-            <button onClick={() => (tab === 'portfolio' || tab === 'market' ? setTrade({}) : setForm({}))} aria-label="บันทึกรายการ" className="ui-fab relative z-10 self-center -translate-y-3 w-12 h-12 rounded-full grad-bg text-white grid place-items-center shadow-lg shadow-emerald-500/30 active:scale-95 transition">
+            <button onClick={() => (tab === 'portfolio' || tab === 'market' ? setTrade({}) : setForm({}))} aria-label="บันทึกรายการ" className="ui-fab relative z-10 self-center -translate-y-3 w-12 h-12 rounded-full grad-bg text-white grid place-items-center ui-ac-shadow active:scale-95 transition">
               <Plus size={24} strokeWidth={2.6} />
             </button>
           </div>
@@ -262,7 +263,7 @@ export default function App() {
 function NavBtn({ n, active, onClick }) {
   return (
     <button onClick={onClick} className={`ui-nav-item flex flex-col items-center gap-1 text-[10px] whitespace-nowrap ${active ? 'ui-on text-slate-900' : 'text-slate-500'}`}>
-      <n.icon size={21} className={active ? 'text-emerald-600' : ''} strokeWidth={active ? 2.2 : 1.8} />
+      <n.icon size={21} className={active ? 'text-ac' : ''} strokeWidth={active ? 2.2 : 1.8} />
       {n.label}
     </button>
   )
@@ -277,11 +278,14 @@ function useTimeOfDay() {
 
 function useTheme() {
   const theme = useStore((s) => s.ui.theme) || 'pixel'
+  const accent = useStore((s) => s.items.settings?.data?.accent) || DEFAULT_ACCENT
+  const accentKey = JSON.stringify(accent)
   useEffect(() => {
     document.documentElement.dataset.theme = theme
     try { localStorage.setItem('vault:theme', theme) } catch { /* private mode */ }
-    document.querySelector('meta[name=theme-color]')?.setAttribute('content', theme === 'pixel-night' ? '#0b1220' : '#10b981')
-  }, [theme])
+    const vars = applyAccent(accent)
+    document.querySelector('meta[name=theme-color]')?.setAttribute('content', theme === 'pixel-night' ? '#0b1220' : vars['--ac-mid'])
+  }, [theme, accentKey]) // eslint-disable-line
 }
 
 function SlipHost({ shared, clearShared }) {

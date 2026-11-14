@@ -5,7 +5,7 @@ import { useVault } from '../lib/useVault'
 import { Sheet, Button } from '../components/ui'
 import { AssetLogo } from '../components/Logos'
 import FuelCard from '../components/FuelCard'
-import { CATS, CAT_BY_ID, itemFor, itemCcy, useMarket, loadSpark, loadChart, searchMarket, streamMarketCrypto, stopMarketStream, loadOil } from '../lib/market'
+import { CATS, CAT_BY_ID, catOf, WATCH_MAX, itemFor, itemCcy, useMarket, loadSpark, loadChart, searchMarket, streamMarketCrypto, stopMarketStream, loadOil } from '../lib/market'
 import { ccyMark, ccyOfSymbol, fetchQuotes, fxSym } from '../lib/prices'
 import { GOLD_PRESETS, COMMODITY_PRESETS } from '../lib/portfolio'
 import { sfx } from '../lib/sfx'
@@ -99,14 +99,30 @@ export default function Market({ onTrade }) {
     sfx('click')
     setUi({ marketWatch: isWatched(it.symbol) ? watch.filter((w) => w.symbol !== it.symbol) : [...watch, { symbol: it.symbol, name: it.name, code: it.code }] })
   }
-  const catItems = (id) => (id === 'fund' ? [...heldFunds, ...watchItems.filter((w) => w.kind === 'fund' && !heldFunds.some((h) => h.symbol === w.symbol))] : id === 'watch' ? watchItems : CAT_BY_ID[id]?.items || [])
+  const watchIn = (id) => watchItems.filter((w) => catOf(w) === id)
+  // full list for a category tab: watched first, then the rest of the catalog
+  const catItems = (id) => {
+    if (id === 'watch') return watchItems
+    if (id === 'other') return watchIn('other')
+    const w = watchIn(id)
+    const base = id === 'fund' ? heldFunds : CAT_BY_ID[id]?.items || []
+    return [...w, ...base.filter((b) => !w.some((x) => x.symbol === b.symbol))]
+  }
+  // overview card: your stars in this category (max 6); none starred → catalog defaults (3)
+  const overviewItems = (id) => {
+    const w = watchIn(id)
+    if (w.length) return { list: w.slice(0, WATCH_MAX), extra: Math.max(0, w.length - WATCH_MAX), mine: true }
+    if (id === 'fund') return { list: heldFunds.slice(0, WATCH_MAX), extra: Math.max(0, heldFunds.length - WATCH_MAX), mine: false }
+    return { list: (CAT_BY_ID[id]?.items || []).slice(0, 3), extra: 0, mine: false }
+  }
+  const overviewCats = [...CATS, ...(watchIn('other').length ? [{ id: 'other', label: 'ตลาดอื่น', emoji: '🌐' }] : [])]
 
   // which symbols are on screen → load them, refresh every minute, stream crypto live
   const visible = useMemo(() => {
     if (cat === 'fuel') return []
-    if (cat === 'all') return [...watchItems, ...CATS.flatMap((c) => catItems(c.id).slice(0, 3))].map((i) => i.symbol)
+    if (cat === 'all') return overviewCats.flatMap((c) => overviewItems(c.id).list).map((i) => i.symbol)
     return catItems(cat).map((i) => i.symbol)
-  }, [cat, watch.length, heldFunds.length]) // eslint-disable-line
+  }, [cat, watch.map((w) => w.symbol).join(','), heldFunds.length]) // eslint-disable-line
   useEffect(() => {
     if (!visible.length) return
     loadSpark(visible)
@@ -130,7 +146,7 @@ export default function Market({ onTrade }) {
 
   const open = (it) => { sfx('click'); setDetail(it) }
   const rowProps = (it) => ({ it, q: q[it.symbol], starred: isWatched(it.symbol), held: heldSyms.has(it.symbol), onStar: () => toggleWatch(it), onOpen: () => open(it) })
-  const tabs = [{ id: 'all', label: 'ภาพรวม', emoji: '🗺️' }, ...(watch.length ? [{ id: 'watch', label: 'ติดตาม', emoji: '⭐' }] : []), { id: 'fuel', label: 'น้ำมันไทย', emoji: '⛽' }, ...CATS]
+  const tabs = [{ id: 'all', label: 'ภาพรวม', emoji: '🗺️' }, ...(watch.length ? [{ id: 'watch', label: `ติดตาม ${watch.length}`, emoji: '⭐' }] : []), { id: 'fuel', label: 'น้ำมันไทย', emoji: '⛽' }, ...CATS]
 
   return (
     <div className="space-y-4">
@@ -177,29 +193,36 @@ export default function Market({ onTrade }) {
       </div>
 
       {cat === 'fuel' ? <FuelCard /> : cat === 'all' ? (
-        <div className="grid md:grid-cols-2 gap-4">
-          <div className="md:col-span-2"><FuelCard compact onOpen={() => setCat('fuel')} /></div>
-          {watchItems.length > 0 && (
-            <Section title="⭐ ที่ติดตาม" onMore={() => setCat('watch')} more={watchItems.length > 4}>
-              {watchItems.slice(0, 4).map((it) => <Row key={it.symbol} {...rowProps(it)} />)}
-            </Section>
-          )}
-          {CATS.map((c) => {
-            const items = catItems(c.id)
-            if (c.id === 'fund' && !items.length) return (
-              <Section key={c.id} title={`${c.emoji} ${c.label}`}>
-                <div className="px-2 py-3 text-xs text-slate-500">ค้นหาชื่อกองทุนด้านบน (เช่น K-USA, SCBSET) แล้วกด ⭐ เพื่อติดตาม · กองทุนที่คุณถือจะขึ้นที่นี่อัตโนมัติ</div>
-              </Section>
-            )
-            return (
-              <Section key={c.id} title={`${c.emoji} ${c.label}`} onMore={() => setCat(c.id)} more>
-                {items.slice(0, 3).map((it) => <Row key={it.symbol} {...rowProps(it)} />)}
-              </Section>
-            )
-          })}
+        <div className="space-y-4">
+          <FuelCard compact onOpen={() => setCat('fuel')} />
+          <div className="mkt-masonry">
+            {overviewCats.map((c) => {
+              const { list, extra, mine } = overviewItems(c.id)
+              const head = <>{c.emoji} {c.label}{mine && <span className="ml-1.5 text-[10px] font-medium text-amber-500 align-middle">⭐ {watchIn(c.id).length}</span>}</>
+              if (c.id === 'fund' && !list.length) return (
+                <Section key={c.id} title={head}>
+                  <div className="px-2 py-3 text-xs text-slate-500">ค้นหาชื่อกองทุนด้านบน (เช่น K-USA, SCBSET) แล้วกด ⭐ เพื่อติดตาม · กองทุนที่คุณถือจะขึ้นที่นี่อัตโนมัติ</div>
+                </Section>
+              )
+              return (
+                <Section key={c.id} title={head} onMore={() => setCat(c.id === 'other' ? 'watch' : c.id)} more moreLabel={extra ? `ดูทั้งหมด (+${extra})` : 'ดูทั้งหมด'}>
+                  {list.map((it) => <Row key={it.symbol} {...rowProps(it)} />)}
+                  {!mine && c.id !== 'fund' && <div className="px-2 pt-1 pb-0.5 text-[10px] text-slate-400">กด ☆ เพื่อเลือกตัวที่อยากเห็นในกรอบนี้ (สูงสุด {WATCH_MAX})</div>}
+                </Section>
+              )
+            })}
+          </div>
         </div>
       ) : (
-        <section className="card p-2 md:p-3">
+        cat === 'watch' ? (
+          <div className="mkt-masonry">
+            {overviewCats.filter((c) => watchIn(c.id).length).map((c) => (
+              <Section key={c.id} title={<>{c.emoji} {c.label} <span className="text-[10px] text-slate-400 font-normal">{watchIn(c.id).length}</span></>}>
+                {watchIn(c.id).map((it) => <Row key={it.symbol} {...rowProps(it)} />)}
+              </Section>
+            ))}
+          </div>
+        ) : <section className="card p-2 md:p-3">
           {catItems(cat).map((it) => <Row key={it.symbol} {...rowProps(it)} />)}
           {cat === 'fund' && <div className="px-2 py-3 text-xs text-slate-500">ค้นหากองทุนอื่นได้จากช่องค้นหาด้านบน แล้วกด ⭐ เพื่อเพิ่มเข้ามาที่นี่</div>}
           {cat === 'gold' && <div className="px-2 pt-2 pb-1 text-[11px] text-slate-500">ทองไทยคำนวณจาก Gold Spot × USD/THB × 96.5% (ใกล้เคียงราคาสมาคมฯ แต่ไม่ใช่ราคาประกาศ)</div>}
@@ -216,12 +239,12 @@ export default function Market({ onTrade }) {
   )
 }
 
-function Section({ title, children, onMore, more }) {
+function Section({ title, children, onMore, more, moreLabel = 'ดูทั้งหมด' }) {
   return (
-    <section className="card p-2 md:p-3">
+    <section className="card p-2 md:p-3 break-inside-avoid">
       <div className="flex items-center justify-between px-2 pt-1 pb-1">
         <div className="font-semibold text-sm">{title}</div>
-        {more && onMore && <button onClick={onMore} className="text-xs text-sky-600 flex items-center">ดูทั้งหมด <ChevronRight size={14} /></button>}
+        {more && onMore && <button onClick={onMore} className="ui-link text-xs flex items-center">{moreLabel} <ChevronRight size={14} /></button>}
       </div>
       {children}
     </section>

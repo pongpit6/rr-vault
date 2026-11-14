@@ -195,7 +195,7 @@ export function InsightsToggle() {
         <div className="font-medium">แนะนำสัดส่วนอัตโนมัติ</div>
         <div className="text-xs text-slate-500">เรียนรู้สไตล์การใช้เงินจากรายการย้อนหลัง 30 วัน สรุปทุก 30 วัน และแนะนำสัดส่วนแบ่งเงิน (คำนวณในเครื่อง ไม่ส่งข้อมูลออก)</div>
       </div>
-      <span className={`w-10 h-[22px] rounded-full p-0.5 shrink-0 ${on ? 'bg-mint' : 'bg-slate-900/10'}`}><span className={`block w-[18px] h-[18px] rounded-full bg-white transition ${on ? 'translate-x-[18px]' : ''}`} /></span>
+      <span className={`w-10 h-[22px] rounded-full p-0.5 shrink-0 ${on ? 'bg-ac' : 'bg-slate-900/10'}`}><span className={`block w-[18px] h-[18px] rounded-full bg-white transition ${on ? 'translate-x-[18px]' : ''}`} /></span>
     </button>
   )
 }

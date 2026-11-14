@@ -141,7 +141,7 @@ export default function Home({ onAdd, onEdit, go }) {
           {/* the main action: import today's K PLUS slips */}
           <button onClick={() => setUi({ slipOpen: true })} data-testid="import-slips"
             className="w-full card p-4 flex items-center gap-4 text-left border-2 border-emerald-200 hover:border-emerald-300 active:scale-[.99] transition">
-            <div className="w-14 h-14 rounded-2xl grad-bg text-white grid place-items-center shrink-0 shadow-lg shadow-emerald-500/25"><ScanLine size={28} /></div>
+            <div className="w-14 h-14 rounded-2xl grad-bg text-white grid place-items-center shrink-0 ui-ac-shadow"><ScanLine size={28} /></div>
             <div className="flex-1 min-w-0">
               <div className="font-bold text-lg leading-tight">นำเข้าสลิปวันนี้</div>
               <div className="text-sm text-slate-500 mt-0.5 truncate">

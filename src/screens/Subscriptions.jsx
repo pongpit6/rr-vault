@@ -169,7 +169,7 @@ export function SubForm({ open, initial, onClose }) {
       <button onClick={() => set({ auto: !f.auto })} className="mt-4 w-full flex items-center gap-3 p-3 rounded-2xl border border-slate-200 text-left">
         <Repeat size={18} className={f.auto ? 'text-emerald-600' : 'text-slate-400'} />
         <div className="flex-1 text-sm"><div className="font-medium">บันทึกรายจ่ายอัตโนมัติเมื่อถึงรอบ</div><div className="text-xs text-slate-500">ถ้าตัดผ่านบัตรเครดิต ระบบจะกันเงินชำระบัตรให้ด้วย</div></div>
-        <div className={`w-11 h-6 rounded-full p-0.5 transition ${f.auto ? 'bg-mint' : 'bg-slate-900/10'}`}><div className={`w-5 h-5 rounded-full bg-white shadow transition ${f.auto ? 'translate-x-5' : ''}`} /></div>
+        <div className={`w-11 h-6 rounded-full p-0.5 transition ${f.auto ? 'bg-ac' : 'bg-slate-900/10'}`}><div className={`w-5 h-5 rounded-full bg-white shadow transition ${f.auto ? 'translate-x-5' : ''}`} /></div>
       </button>
     </Sheet>
   )

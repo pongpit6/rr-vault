@@ -1,4 +1,5 @@
-import { previewSfx } from '../lib/sfx'
+import { previewSfx, sfx } from '../lib/sfx'
+import { ACCENTS, DEFAULT_ACCENT, accentColors, applyAccent } from '../lib/accent'
 import { InsightsToggle } from '../components/Insights'
 import { useEffect, useRef, useState } from 'react'
 import { Camera, Pencil, Eye, EyeOff, Cloud, LogOut, Download, Upload, Tag, ChevronRight, Plus, Trash2, Check, Smartphone, RefreshCw, TriangleAlert } from 'lucide-react'
@@ -98,12 +99,13 @@ export default function Settings({ opt }) {
 
       <div className="text-sm text-slate-500 px-1">การใช้งาน</div>
       <ThemePicker />
+      <AccentPicker />
 
       <section className="card"><InsightsToggle /></section>
 
       <section className="card divide-y divide-slate-100">
         <Row icon="sparkles" color="#a78bfa" title="ซ่อนตัวเลข" sub="เหมาะกับการเปิดแอปในที่สาธารณะ"
-          right={<div className={`w-11 h-6 rounded-full p-0.5 transition ${privacy ? 'bg-mint' : 'bg-slate-900/10'}`}><div className={`w-5 h-5 rounded-full bg-white transition ${privacy ? 'translate-x-5' : ''}`} /></div>}
+          right={<div className={`w-11 h-6 rounded-full p-0.5 transition ${privacy ? 'bg-ac' : 'bg-slate-900/10'}`}><div className={`w-5 h-5 rounded-full bg-white transition ${privacy ? 'translate-x-5' : ''}`} /></div>}
           onClick={() => setUi({ privacy: !privacy })} />
         <Row icon="scan" color="#10b981" title="นำเข้าสลิป K PLUS" sub={`เตือนทุกวัน ${(useStore.getState().items.settings?.data?.slipSummaryTime ?? '20:00') || 'ปิดอยู่'} · วิธีใช้`} onClick={() => setSlipOpen(true)} />
         <Row icon="shield" color="#10b981" title="ล็อกแอปด้วย PIN / Face ID" sub={lock?.enabled ? `เปิดอยู่${lock.bio ? ' · ใช้ไบโอเมตริกซ์ได้' : ''}` : 'ปิดอยู่ · แนะนำให้เปิดเพื่อความปลอดภัย'} onClick={() => setLockOpen(true)} />
@@ -274,11 +276,11 @@ function ThemePicker() {
           const px = t.id !== 'minimal'
           return (
             <button key={t.id} onClick={() => setUi({ theme: t.id })} data-testid={`theme-${t.id}`} aria-pressed={on}
-              className={`text-left p-2 rounded-2xl border-2 transition ${on ? 'border-emerald-500 ring-2 ring-emerald-500/30' : 'border-slate-200'}`}>
+              className={`text-left p-2 rounded-2xl border-2 transition ${on ? 'ring-2 ring-[var(--ac-soft)]' : 'border-slate-200'}`} style={on ? { borderColor: 'var(--ac-mid)' } : undefined}>
               <div className="h-16 relative overflow-hidden" style={{ background: t.page, borderRadius: px ? 0 : 10 }}>
                 {t.sky && <div className="absolute inset-x-0 top-0 h-7" style={{ background: `linear-gradient(${t.sky[0]}, ${t.sky[1]})`, opacity: 0.8 }} />}
                 {t.sky && <div className="absolute inset-x-0 top-6 h-1.5" style={{ background: '#22c55e' }} />}
-                <div className="absolute left-2 right-2 bottom-2 h-6" style={{ background: 'linear-gradient(125deg,#10b981,#0ea5e9)', border: px ? `2px solid ${t.ink === '#e2e8f0' ? '#0f172a' : '#0f172a'}` : 0, borderRadius: px ? 0 : 8, boxShadow: px ? '2px 2px 0 #0f172a' : 'none' }} />
+                <div className="absolute left-2 right-2 bottom-2 h-6" style={{ background: 'linear-gradient(125deg,var(--ac1),var(--ac2))', border: px ? `2px solid ${t.ink === '#e2e8f0' ? '#0f172a' : '#0f172a'}` : 0, borderRadius: px ? 0 : 8, boxShadow: px ? '2px 2px 0 #0f172a' : 'none' }} />
               </div>
               <div className="text-xs font-bold mt-1.5">{t.name}</div>
               <div className="text-[10px] text-slate-500 leading-tight">{t.sub}</div>
@@ -289,13 +291,80 @@ function ThemePicker() {
       {theme !== 'minimal' && (
         <button onClick={() => setUi({ backdropOff: !backdropOff })} className="w-full flex items-center gap-3 text-left text-sm py-1">
           <span className="flex-1">ฉากเกมจาง ๆ หลังแต่ละหน้า<span className="block text-[11px] text-slate-500">หน้าแรก = หมู่บ้าน · รายการ = ตลาด · เงิน = คลังสมบัติ · ลงทุน = หอคอยนักเวท · ตั้งค่า = โรงตีเหล็ก</span></span>
-          <span className={`w-10 h-[22px] rounded-full p-0.5 shrink-0 ${!backdropOff ? 'bg-mint' : 'bg-slate-900/10'}`}><span className={`block w-[18px] h-[18px] rounded-full bg-white transition ${!backdropOff ? 'translate-x-[18px]' : ''}`} /></span>
+          <span className={`w-10 h-[22px] rounded-full p-0.5 shrink-0 ${!backdropOff ? 'bg-ac' : 'bg-slate-900/10'}`}><span className={`block w-[18px] h-[18px] rounded-full bg-white transition ${!backdropOff ? 'translate-x-[18px]' : ''}`} /></span>
         </button>
       )}
       <button onClick={() => { const v = !sfxOn; setUi({ sfx: v }); if (v) previewSfx('levelup') }} className="w-full flex items-center gap-3 text-left text-sm py-1" data-testid="sfx-toggle">
         <span className="flex-1">เสียงเอฟเฟกต์ 8-bit<span className="block text-[11px] text-slate-500">ตอนบันทึกรายการ เปิดหีบ และเลเวลอัป</span></span>
-        <span className={`w-10 h-[22px] rounded-full p-0.5 shrink-0 ${sfxOn ? 'bg-mint' : 'bg-slate-900/10'}`}><span className={`block w-[18px] h-[18px] rounded-full bg-white transition ${sfxOn ? 'translate-x-[18px]' : ''}`} /></span>
+        <span className={`w-10 h-[22px] rounded-full p-0.5 shrink-0 ${sfxOn ? 'bg-ac' : 'bg-slate-900/10'}`}><span className={`block w-[18px] h-[18px] rounded-full bg-white transition ${sfxOn ? 'translate-x-[18px]' : ''}`} /></span>
       </button>
+    </section>
+  )
+}
+
+function AccentPicker() {
+  const settings = useStore((s) => s.items.settings?.data) || {}
+  const put = useStore((s) => s.put)
+  const cur = settings.accent || DEFAULT_ACCENT
+  const isCustom = typeof cur === 'object'
+  const [draft, setDraft] = useState(null) // [hex, hex] while editing custom colours
+  const save = (accent) => { sfx('click'); put('settings', { ...settings, id: 'settings', accent }) }
+  const openCustom = () => setDraft(isCustom ? [...cur.custom] : [...accentColors(cur)])
+  const setC = (i, v) => { const d = [...draft]; d[i] = v; setDraft(d); applyAccent({ custom: d }) }
+  const cancel = () => { setDraft(null); applyAccent(cur) }
+  return (
+    <section className="card p-4 space-y-3" data-testid="accent-picker">
+      <div className="flex items-baseline justify-between">
+        <div className="font-semibold">สีหลัก</div>
+        <div className="text-[11px] text-slate-500">ปุ่ม · แท็บ · ลิงก์ · การ์ดยอดเงิน</div>
+      </div>
+      <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
+        {ACCENTS.map((a) => {
+          const on = !isCustom && cur === a.id && !draft
+          return (
+            <button key={a.id} onClick={() => { setDraft(null); save(a.id) }} aria-pressed={on} data-testid={`accent-${a.id}`}
+              className={`flex flex-col items-center gap-1 p-1.5 rounded-2xl border-2 transition ${on ? 'border-slate-900/70' : 'border-transparent hover:bg-slate-900/[.03]'}`}>
+              <span className="relative w-10 h-10 rounded-full grid place-items-center" style={{ background: `linear-gradient(135deg, ${a.a[0]}, ${a.a[1]})` }}>
+                {on && <Check size={18} className="text-white drop-shadow" strokeWidth={3} />}
+              </span>
+              <span className="text-[10px] leading-tight text-center">{a.name}</span>
+            </button>
+          )
+        })}
+        <button onClick={openCustom} aria-pressed={isCustom} data-testid="accent-custom"
+          className={`flex flex-col items-center gap-1 p-1.5 rounded-2xl border-2 transition ${(isCustom || draft) ? 'border-slate-900/70' : 'border-transparent hover:bg-slate-900/[.03]'}`}>
+          <span className="w-10 h-10 rounded-full grid place-items-center" style={{ background: isCustom ? `linear-gradient(135deg, ${cur.custom[0]}, ${cur.custom[1]})` : 'conic-gradient(#f43f5e,#f59e0b,#84cc16,#10b981,#0ea5e9,#8b5cf6,#ec4899,#f43f5e)' }}>
+            {isCustom && !draft ? <Check size={18} className="text-white drop-shadow" strokeWidth={3} /> : <Pencil size={15} className="text-white drop-shadow" />}
+          </span>
+          <span className="text-[10px] leading-tight">กำหนดเอง</span>
+        </button>
+      </div>
+      {draft && (
+        <div className="rounded-2xl border border-slate-200 p-3 space-y-3" data-testid="accent-custom-panel">
+          <div className="grid grid-cols-2 gap-2">
+            {draft.map((c, i) => (
+              <label key={i} className="flex items-center gap-2 text-sm cursor-pointer">
+                <input type="color" value={c} onChange={(e) => setC(i, e.target.value)} className="w-10 h-10 rounded-lg border border-slate-200 p-0.5 bg-white cursor-pointer" />
+                <span><span className="block text-[11px] text-slate-500">{i ? 'สีที่ 2 (ปลาย)' : 'สีที่ 1 (ต้น)'}</span><span className="num uppercase text-xs">{c}</span></span>
+              </label>
+            ))}
+          </div>
+          <div className="text-[11px] text-slate-500">แอปจะปรับความเข้มให้อ่านตัวหนังสือได้เสมอ ถ้าเลือกสีอ่อนมาก ปุ่มจะเข้มกว่าสีที่เลือกเล็กน้อย</div>
+          <div className="flex gap-2">
+            <Button variant="ghost" className="flex-1 !py-2" onClick={cancel}>ยกเลิก</Button>
+            <Button className="flex-1 !py-2" onClick={() => { save({ custom: draft }); setDraft(null) }}><Check size={16} /> ใช้สีนี้</Button>
+          </div>
+        </div>
+      )}
+      {/* live preview */}
+      <div className="flex items-center gap-2 flex-wrap pt-1">
+        <span className="grad-bg text-white text-xs font-semibold px-3 py-1.5 rounded-xl">ปุ่มหลัก</span>
+        <span className="ui-pick-on text-white text-xs px-3 py-1.5 rounded-xl">ตัวเลือก</span>
+        <span className="ui-link text-xs font-medium">ดูทั้งหมด ›</span>
+        <span className="w-10 h-[22px] rounded-full p-0.5 bg-ac"><span className="block w-[18px] h-[18px] rounded-full bg-white translate-x-[18px]" /></span>
+        <span className="flex-1 min-w-16 h-2 rounded-full bg-slate-900/[.06] overflow-hidden"><span className="block h-full w-2/3 grad-bg rounded-full" /></span>
+      </div>
+      <div className="text-[11px] text-slate-500">สีเขียว/แดงของกำไร-ขาดทุนและรายรับ-รายจ่ายยังคงเดิม · ซิงก์ไปทุกเครื่องในบัญชีนี้</div>
     </section>
   )
 }

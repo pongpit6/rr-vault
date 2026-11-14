@@ -5,6 +5,8 @@ import './themes.css'
 
 // apply the saved theme before the first paint
 try { document.documentElement.dataset.theme = localStorage.getItem('vault:theme') || 'pixel' } catch { document.documentElement.dataset.theme = 'pixel' }
+import { applySavedAccent } from './lib/accent'
+applySavedAccent()
 import App from './App.jsx'
 import ErrorBoundary from './components/ErrorBoundary'
 

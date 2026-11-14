@@ -51,6 +51,24 @@ export function itemFor(symbol, extra = {}) {
   return { symbol, kind, name: extra.name || symbol, ...extra }
 }
 
+/** Which market category an item belongs to (for per-category watchlists). Unknown markets → 'other'. */
+export function catOf(it) {
+  if (!it) return 'other'
+  if (it.cat) return it.cat
+  const s = it.symbol || ''
+  if (KNOWN[s]) return KNOWN[s].cat
+  if (s.startsWith('FUND:') || it.kind === 'fund') return 'fund'
+  if (s.endsWith('-USD') || it.kind === 'crypto') return 'crypto'
+  if (/=X$/.test(s)) return 'fx'
+  if (/^(GC|SI|PL|PA|HG|MGC|SIL)=F$/.test(s)) return 'gold'
+  if (/=F$/.test(s)) return 'oil'
+  if (/\.BK$/.test(s)) return 'th'
+  if (/\.(HK|SS|SZ)$/.test(s)) return 'cn'
+  if (!/\./.test(s) || s.startsWith('^')) return 'us'
+  return 'other'
+}
+export const WATCH_MAX = 6
+
 /** Display currency of an item's price. */
 export const itemCcy = (it, q) => (it.kind === 'fx' || it.symbol === 'TH-GOLD' || it.kind === 'fund' ? 'THB' : q?.currency || ccyOfSymbol(it.symbol))
 

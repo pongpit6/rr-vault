@@ -35,7 +35,7 @@ html[data-theme^="pixel"] .hero .rounded-2xl,
 html[data-theme^="pixel"] .hero [class*="bg-white/"] { border: 2px solid rgba(15,23,42,.28); }
 html[data-theme^="pixel"] [class*="rounded-["] { border-radius: 8px !important; }
 html[data-theme^="pixel"] .field { border-radius: 6px; border: 2px solid var(--px-ink); background: var(--px-card); }
-html[data-theme^="pixel"] .field:focus { box-shadow: 3px 3px 0 #38bdf8; border-color: var(--px-ink); }
+html[data-theme^="pixel"] .field:focus { box-shadow: 3px 3px 0 var(--ac-mid); border-color: var(--px-ink); }
 
 /* numbers in a pixel font (x-height matched so sizes stay readable) */
 /* pixel font only for headline numbers; list amounts stay easy to read */
@@ -66,10 +66,10 @@ html[data-theme^="pixel"] .ui-progress > div {
 /* navigation */
 html[data-theme^="pixel"] .ui-nav { border-top: 2px solid var(--px-ink); background: var(--px-card); backdrop-filter: none; }
 html[data-theme^="pixel"] .ui-nav-item.ui-on { background: var(--px-ink); color: #fff; padding: 5px 0; margin: 0 2px; border-radius: 6px; }
-html[data-theme^="pixel"] .ui-nav-item.ui-on svg { color: #34d399; }
+html[data-theme^="pixel"] .ui-nav-item.ui-on svg { color: var(--ac-hi) !important; }
 html[data-theme^="pixel"] .ui-aside { border-right: 2px solid var(--px-ink); background: var(--px-card); backdrop-filter: none; }
 html[data-theme^="pixel"] .ui-side-item.ui-on { background: var(--px-ink); color: #fff; }
-html[data-theme^="pixel"] .ui-side-item.ui-on svg { color: #34d399; }
+html[data-theme^="pixel"] .ui-side-item.ui-on svg { color: var(--ac-hi) !important; }
 
 /* sliders: square thumb */
 html[data-theme^="pixel"] input[type=range].slider { border-radius: 0; height: 8px; border: 2px solid var(--px-ink); }
@@ -113,14 +113,14 @@ html[data-theme="pixel-night"] .card { border-color: #2a3a56; }
 html[data-theme="pixel-night"] .field { color: #e2e8f0; border-color: #3b4c6b; }
 html[data-theme="pixel-night"] input[type="date"].field { color-scheme: dark; }
 html[data-theme="pixel-night"] .ui-btn { border-color: #020617; }
-html[data-theme="pixel-night"] .ui-nav-item.ui-on, html[data-theme="pixel-night"] .ui-side-item.ui-on { background: #10b981; color: #04140f; }
-html[data-theme="pixel-night"] .ui-nav-item.ui-on svg, html[data-theme="pixel-night"] .ui-side-item.ui-on svg { color: #04140f; }
-html[data-theme="pixel-night"] .ui-seg-on { background: #10b981 !important; color: #04140f !important; }
+html[data-theme="pixel-night"] .ui-nav-item.ui-on, html[data-theme="pixel-night"] .ui-side-item.ui-on { background: var(--ac-hi); color: #04140f; }
+html[data-theme="pixel-night"] .ui-nav-item.ui-on svg, html[data-theme="pixel-night"] .ui-side-item.ui-on svg { color: #04140f !important; }
+html[data-theme="pixel-night"] .ui-seg-on { background: var(--ac-hi) !important; color: #04140f !important; }
 /* the RPG widgets were drawn for a light page */
 html[data-theme="pixel-night"] .px-card { background: #131d31; border-color: #334155; }
 html[data-theme="pixel-night"] .px-inner { background: #0f1829; border-color: #334155; }
 html[data-theme="pixel-night"] .px-tab { background: #131d31; color: #e2e8f0; border-color: #334155; }
-html[data-theme="pixel-night"] .px-tab.on { background: #10b981; color: #04140f; }
+html[data-theme="pixel-night"] .px-tab.on { background: var(--ac-hi); color: #04140f; }
 html[data-theme="pixel-night"] .px-chip, html[data-theme="pixel-night"] .px-box { background: #131d31; border-color: #334155; color: #e2e8f0; }
 
 /* ---------- page backdrops: a scene strip above each page ---------- */
@@ -166,3 +166,12 @@ html[data-theme^="pixel"] .pl-dark { border-radius: 10px; }
 html[data-theme="pixel-night"] .pl-seg button.on { background: #f8fafc; color: #0b1220; }
 html[data-theme="pixel-night"] .pl-stat.light { background: #0f1829; border-color: #2a3a56; }
 html[data-theme="pixel-night"] .pl-stat.light div { color: #f1f5f9; }
+
+/* accent in the pixel themes */
+html[data-theme="pixel"] .ui-seg-on { background: var(--ac-ink) !important; }
+html[data-theme="pixel"] .ui-seg-on:not([style*="color"]) { color: #fff !important; }
+html[data-theme="pixel-night"] .ui-seg-on:not([style*="color"]) { color: #04140f !important; }
+html[data-theme="pixel-night"] { --color-sky-600: var(--ac-hi); }
+html[data-theme="pixel-night"] .ui-link, html[data-theme="pixel-night"] .text-ac { color: var(--ac-hi); }
+html[data-theme="pixel-night"] :is(button, label).bg-slate-900.text-white, html[data-theme="pixel-night"] .ui-pick-on { background-color: var(--ac-hi); border-color: var(--ac-hi); color: #04140f; }
+html[data-theme="pixel-night"] .grad-bg.text-white, html[data-theme="pixel-night"] .grad-bg .text-white { color: #fff; }
