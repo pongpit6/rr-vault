@@ -1,3 +1,4 @@
+import { sfx } from './sfx'
 import { useEffect, useMemo } from 'react'
 import { useStore } from '../store'
 import { useVault } from './useVault'
@@ -246,6 +247,7 @@ export function useRpg() {
     const double = rpg.streak >= 30
     if (double) gain *= 2
     const tip = CHEST_TIPS[Math.floor(Math.random() * CHEST_TIPS.length)]
+    sfx('coin')
     const d = fresh()
     save({ gems: (d.gems || 0) + gain, chestLast: todayISO(), chestCount: (d.chestCount || 0) + 1, chestLog: [...(d.chestLog || []).slice(-40), { at: new Date().toISOString(), gain, rare: roll > 0.9 }] })
     return { gain, rare: roll > 0.9, tip, bonus, double }

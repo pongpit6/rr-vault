@@ -1,3 +1,4 @@
+import { sfx } from '../lib/sfx'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Search, Check, Trash2, ChevronLeft, Loader2, Info, History } from 'lucide-react'
 import { Sheet, Button, Segmented, Label, Money } from './ui'
@@ -128,6 +129,7 @@ export default function TradeForm({ open, onClose, initial }) {
     if (!t.id) delete t.id
     put('txn', t)
     if (initial?.inboxId) remove(initial.inboxId, { undo: false })
+    sfx('coin')
     showToast(`${f.side === 'buy' ? 'ซื้อ' : 'ขาย'} ${a.name} แล้ว`)
     onClose()
   }

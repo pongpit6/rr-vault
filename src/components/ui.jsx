@@ -50,7 +50,7 @@ export function Sheet({ open, onClose, title, children, footer, wide = false }) 
     <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center">
       <div className="absolute inset-0 bg-slate-900/25 backdrop-blur-sm anim-fade" onClick={onClose} />
       <div
-        className={`relative w-full ${wide ? 'md:max-w-2xl' : 'md:max-w-lg'} max-h-[92dvh] flex flex-col bg-white border border-slate-200 rounded-t-[28px] md:rounded-[28px] shadow-2xl anim-sheet md:anim-pop`}
+        className={`ui-sheet relative w-full ${wide ? 'md:max-w-2xl' : 'md:max-w-lg'} max-h-[92dvh] flex flex-col bg-white border border-slate-200 rounded-t-[28px] md:rounded-[28px] shadow-2xl anim-sheet md:anim-pop`}
       >
         <div className="md:hidden mx-auto mt-2.5 h-1.5 w-10 rounded-full bg-slate-900/10" />
         <div className="flex items-center justify-between px-5 pt-3 pb-2 md:pt-5">
@@ -65,7 +65,7 @@ export function Sheet({ open, onClose, title, children, footer, wide = false }) 
 }
 
 export function Button({ children, variant = 'primary', className = '', ...p }) {
-  const base = 'inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-3 font-semibold transition active:scale-[.98] disabled:opacity-40 disabled:pointer-events-none'
+  const base = `ui-btn ui-btn-${variant} inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-3 font-semibold transition active:scale-[.98] disabled:opacity-40 disabled:pointer-events-none`
   const v = {
     primary: 'grad-bg text-white shadow-lg shadow-emerald-500/20 hover:brightness-110',
     ghost: 'bg-white hover:bg-slate-50 text-slate-800 border border-slate-200 shadow-sm',
@@ -77,12 +77,12 @@ export function Button({ children, variant = 'primary', className = '', ...p }) 
 
 export function Segmented({ options, value, onChange, className = '' }) {
   return (
-    <div className={`flex p-1 rounded-2xl bg-slate-900/[.04] border border-slate-200/70 ${className}`}>
+    <div className={`ui-seg flex p-1 rounded-2xl bg-slate-900/[.04] border border-slate-200/70 ${className}`}>
       {options.map((o) => (
         <button
           key={o.value}
           onClick={() => onChange(o.value)}
-          className={`flex-1 py-2 px-2 rounded-xl text-sm font-medium transition whitespace-nowrap ${value === o.value ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-600'}`}
+          className={`flex-1 py-2 px-2 rounded-xl text-sm font-medium transition whitespace-nowrap ${value === o.value ? 'ui-seg-on bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-600'}`}
           style={value === o.value && o.color ? { color: o.color } : undefined}
         >
           {o.label}
@@ -94,7 +94,7 @@ export function Segmented({ options, value, onChange, className = '' }) {
 
 export function Progress({ value, color = 'grad-bg', className = '' }) {
   return (
-    <div className={`h-2 rounded-full bg-slate-900/[.05] overflow-hidden ${className}`} style={{ background: '#eef2f6' }}>
+    <div className={`ui-progress h-2 rounded-full bg-slate-900/[.05] overflow-hidden ${className}`}>
       <div className={`h-full rounded-full ${color} transition-all duration-700`} style={{ width: `${Math.max(0, Math.min(1, value)) * 100}%` }} />
     </div>
   )

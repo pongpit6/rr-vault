@@ -1,3 +1,4 @@
+import { previewSfx } from '../lib/sfx'
 import { useEffect, useRef, useState } from 'react'
 import { Camera, Pencil, Eye, EyeOff, Cloud, LogOut, Download, Upload, Tag, ChevronRight, Plus, Trash2, Check, Smartphone, RefreshCw, TriangleAlert } from 'lucide-react'
 import { Avatar, Button, Sheet, Label, IconBadge, IconPicker, ColorPicker, Segmented } from '../components/ui'
@@ -95,6 +96,8 @@ export default function Settings({ opt }) {
       </section>
 
       <div className="text-sm text-slate-500 px-1">การใช้งาน</div>
+      <ThemePicker />
+
       <section className="card divide-y divide-slate-100">
         <Row icon="sparkles" color="#a78bfa" title="ซ่อนตัวเลข" sub="เหมาะกับการเปิดแอปในที่สาธารณะ"
           right={<div className={`w-11 h-6 rounded-full p-0.5 transition ${privacy ? 'bg-mint' : 'bg-slate-900/10'}`}><div className={`w-5 h-5 rounded-full bg-white transition ${privacy ? 'translate-x-5' : ''}`} /></div>}
@@ -246,5 +249,50 @@ function SlipSettings({ open, onClose }) {
         </div>
       </div>
     </Sheet>
+  )
+}
+
+const THEMES = [
+  { id: 'pixel', name: 'Pixel Quest', sub: 'สว่าง · ขอบพิกเซล · ฉากหลังเกม', page: '#eef6f3', card: '#ffffff', ink: '#0f172a', sky: ['#7dd3fc', '#e0f2fe'] },
+  { id: 'pixel-night', name: 'Pixel Night', sub: 'โทนมืด · ดันเจี้ยนยามค่ำ', page: '#0b1220', card: '#131d31', ink: '#334155', sky: ['#0b1736', '#27407a'] },
+  { id: 'minimal', name: 'Minimal', sub: 'เรียบ ๆ แบบเดิม ไม่มีฉากหลัง', page: '#f4f7f9', card: '#ffffff', ink: '#e2e8f0', sky: null },
+]
+function ThemePicker() {
+  const theme = useStore((s) => s.ui.theme) || 'pixel'
+  const backdropOff = useStore((s) => s.ui.backdropOff)
+  const sfxOn = useStore((s) => s.ui.sfx)
+  const setUi = useStore((s) => s.setUi)
+  return (
+    <section className="card p-4 space-y-3" data-testid="theme-picker">
+      <div className="font-semibold">ธีมของแอป</div>
+      <div className="grid grid-cols-3 gap-2">
+        {THEMES.map((t) => {
+          const on = theme === t.id
+          const px = t.id !== 'minimal'
+          return (
+            <button key={t.id} onClick={() => setUi({ theme: t.id })} data-testid={`theme-${t.id}`} aria-pressed={on}
+              className={`text-left p-2 rounded-2xl border-2 transition ${on ? 'border-emerald-500 ring-2 ring-emerald-500/30' : 'border-slate-200'}`}>
+              <div className="h-16 relative overflow-hidden" style={{ background: t.page, borderRadius: px ? 0 : 10 }}>
+                {t.sky && <div className="absolute inset-x-0 top-0 h-7" style={{ background: `linear-gradient(${t.sky[0]}, ${t.sky[1]})`, opacity: 0.8 }} />}
+                {t.sky && <div className="absolute inset-x-0 top-6 h-1.5" style={{ background: '#22c55e' }} />}
+                <div className="absolute left-2 right-2 bottom-2 h-6" style={{ background: 'linear-gradient(125deg,#10b981,#0ea5e9)', border: px ? `2px solid ${t.ink === '#e2e8f0' ? '#0f172a' : '#0f172a'}` : 0, borderRadius: px ? 0 : 8, boxShadow: px ? '2px 2px 0 #0f172a' : 'none' }} />
+              </div>
+              <div className="text-xs font-bold mt-1.5">{t.name}</div>
+              <div className="text-[10px] text-slate-500 leading-tight">{t.sub}</div>
+            </button>
+          )
+        })}
+      </div>
+      {theme !== 'minimal' && (
+        <button onClick={() => setUi({ backdropOff: !backdropOff })} className="w-full flex items-center gap-3 text-left text-sm py-1">
+          <span className="flex-1">ฉากเกมจาง ๆ หลังแต่ละหน้า<span className="block text-[11px] text-slate-500">หน้าแรก = หมู่บ้าน · รายการ = ตลาด · เงิน = คลังสมบัติ · ลงทุน = หอคอยนักเวท · ตั้งค่า = โรงตีเหล็ก</span></span>
+          <span className={`w-10 h-[22px] rounded-full p-0.5 shrink-0 ${!backdropOff ? 'bg-mint' : 'bg-slate-900/10'}`}><span className={`block w-[18px] h-[18px] rounded-full bg-white transition ${!backdropOff ? 'translate-x-[18px]' : ''}`} /></span>
+        </button>
+      )}
+      <button onClick={() => { const v = !sfxOn; setUi({ sfx: v }); if (v) previewSfx('levelup') }} className="w-full flex items-center gap-3 text-left text-sm py-1" data-testid="sfx-toggle">
+        <span className="flex-1">เสียงเอฟเฟกต์ 8-bit<span className="block text-[11px] text-slate-500">ตอนบันทึกรายการ เปิดหีบ และเลเวลอัป</span></span>
+        <span className={`w-10 h-[22px] rounded-full p-0.5 shrink-0 ${sfxOn ? 'bg-mint' : 'bg-slate-900/10'}`}><span className={`block w-[18px] h-[18px] rounded-full bg-white transition ${sfxOn ? 'translate-x-[18px]' : ''}`} /></span>
+      </button>
+    </section>
   )
 }

@@ -1,3 +1,4 @@
+import { sfx } from '../lib/sfx'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Trash2, Check, ShieldCheck, Sparkles, CalendarDays, ArrowDown } from 'lucide-react'
 import { Sheet, Button, Segmented, Icon, IconBadge, Label, Money } from './ui'
@@ -184,6 +185,7 @@ export default function TxnForm({ open, onClose, initial }) {
       }
     }
     showToast(msg)
+    sfx('save')
     onClose()
   }
 

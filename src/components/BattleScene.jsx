@@ -1,3 +1,4 @@
+import { sfx } from '../lib/sfx'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { SHEETS } from '../lib/spriteSheets'
 import { money } from '../lib/format'
@@ -20,7 +21,7 @@ function still(name) {
 }
 ;['pet_fox', 'pet_owl', 'pet_drake', 'npc_merchant', 'npc_farmer', 'chest_closed', 'chest_open'].forEach(still)
 /** draw a static sprite, optionally mirrored, scaled to height h, feet at (x, y) */
-function drawStill(g, name, x, y, h, flip = false) {
+export function drawStill(g, name, x, y, h, flip = false) {
   const im = still(name); if (!im) return
   const w = (im.width / im.height) * h
   g.save(); g.translate(Math.round(x), Math.round(y - h))
@@ -58,7 +59,7 @@ function hueRotate(data, deg) {
   }
 }
 /** Frame `i` of an animation (index into its seq), optionally tinted white (hit) or green (regen), or recoloured (skin). */
-function frame(name, i, mode = 'normal', hue = 0) {
+export function frame(name, i, mode = 'normal', hue = 0) {
   const sp = SHEETS[name], im = sheet(name)
   if (!sp || !im.complete || !im.naturalWidth) return null
   const f = sp.seq[((i % sp.seq.length) + sp.seq.length) % sp.seq.length]
@@ -84,20 +85,20 @@ export function skinUrl(hue, name = 'hero_idle') {
 }
 
 /* ---------------- sky by real local time ---------------- */
-function skyFor(h) {
+export function skyFor(h) {
   if (h >= 19 || h < 5) return { top: '#0b1736', bottom: '#27407a', night: 0.3, hill: ['#1e5b4b', '#164e3f'] }
   if (h < 7) return { top: '#fbcfe8', bottom: '#fde68a', night: 0.06, hill: ['#6ee7b7', '#34d399'] }
   if (h < 17) return { top: '#7dd3fc', bottom: '#e0f2fe', night: 0, hill: ['#86efac', '#4ade80'] }
   return { top: '#fdba74', bottom: '#c4b5fd', night: 0.1, hill: ['#6ee7b7', '#2fbf8a'] }
 }
-const mix = (a, b, t) => {
+export const mix = (a, b, t) => {
   const p = (c) => [1, 3, 5].map((i) => parseInt(c.slice(i, i + 2), 16))
   const A = p(a), B = p(b)
   return `rgb(${A.map((v, i) => Math.round(v + (B[i] - v) * t)).join(',')})`
 }
 
 /* ---------------- realms: each one looks different ---------------- */
-const GROUND = [
+export const GROUND = [
   { grass: '#5b6b4f', blade: '#46553d', dirt: '#3f3a4a', speck: '#2a2633', hill: ['#4b5d4f', '#3a4a3e'] }, // debt mire
   { grass: '#22c55e', blade: '#16a34a', dirt: '#b45309', speck: '#92400e' }, // village
   { grass: '#22c55e', blade: '#16a34a', dirt: '#a8a29e', speck: '#78716c', cobble: true }, // trade town
@@ -106,7 +107,7 @@ const GROUND = [
 ]
 
 /** Background structures, drawn in half-resolution space (200 wide). */
-function drawRealm(g, tier, gy, night, now, decos) {
+export function drawRealm(g, tier, gy, night, now, decos) {
   const dark = night > 0.2
   const C = {
     wall: dark ? '#475569' : '#f8fafc', wall2: dark ? '#334155' : '#e2e8f0', roof: dark ? '#7f1d1d' : '#f87171', roof2: dark ? '#1e3a8a' : '#60a5fa',
@@ -352,7 +353,7 @@ export default function BattleScene({
           addFloat(privacy ? 'CRITICAL!' : `-${money(ev.amount, { decimals: false })}`, ecx, etop + 18, 'crit')
           if (crit) setTimeout(() => addFloat('ฟันพายุ!', ecx - 30, etop, 'gold'), 250)
           for (let i = 0; i < 26; i++) s.fx.push({ x: ecx - 10, y: gy - sp.h / 2, vx: Math.random() * 4 - 1, vy: -Math.random() * 3.5, life: 700, c: i % 2 ? wcol : '#ffffff', z: 2 })
-          buzz(ev.kill ? [40, 60, 40, 60, 120] : [25, 40, 50])
+          buzz(ev.kill ? [40, 60, 40, 60, 120] : [25, 40, 50]); sfx('hit')
           tell(`⚔️ อัศวินใช้${gear?.weapon?.name || 'ดาบ'}${crit ? ' ร่าย “ฟันพายุ”' : ''} ฟัน${enemy?.name || 'บอส'} −${M(ev.amount)} — มาจากการชำระ${enemy?.accName || 'หนี้'}จริง`)
           if (Math.random() < 0.6) say('hero', QUIPS[Math.floor(Math.random() * QUIPS.length)], hx + 34, gy - 74, 1400)
           if (ev.kill) {
@@ -396,7 +397,7 @@ export default function BattleScene({
       }
       if (ev && ev.type === 'levelup' && fire('_lvl', 300)) {
         s.levelGlow = 1700
-        showBanner({ text: 'LEVEL UP!', sub: `เลเวล ${ev.level}`, cls: 'gold' })
+        showBanner({ text: 'LEVEL UP!', sub: `เลเวล ${ev.level}`, cls: 'gold' }); sfx('levelup')
         tell(`⬆️ ปาร์ตี้เลเวลอัปเป็น ${ev.level}! ได้ XP จากวินัยการเงินของคุณ`)
         for (let i = 0; i < 34; i++) s.fx.push({ x: heroBaseX + 32, y: gy - 6, vx: Math.random() * 2 - 1, vy: -Math.random() * 3 - 0.6, life: 1300, c: i % 3 ? '#fde047' : '#5eead4', z: 2 })
         ev._done = true

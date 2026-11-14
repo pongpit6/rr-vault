@@ -161,10 +161,10 @@ export default function PowerLawCard() {
           <div className="text-xs text-slate-500 mt-1">Floor = 0.42 × เส้น Trend ({M(trend)}) · ขยับขึ้นทุกวินาที เฉลี่ยราว 36% ต่อปี</div>
           <div className="text-xs text-slate-500 mt-1">อีก 5 ปี Floor จะอยู่ที่ประมาณ <b className="text-slate-700">{M(live5yFloor)}</b></div>
         </div>
-        <div className="rounded-2xl bg-slate-900 text-slate-100 p-3.5">
+        <div className="rounded-2xl bg-[#0f172a] text-[#f1f5f9] p-3.5">
           <div className="flex justify-between items-start gap-2">
             <div>
-              <div className="text-[11px] text-slate-400">ราคา BTC ตอนนี้</div>
+              <div className="text-[11px] text-[#94a3b8]">ราคา BTC ตอนนี้</div>
               <div className="text-xl font-bold num">{p ? M(p) : '—'}</div>
             </div>
             <div className="text-right">
