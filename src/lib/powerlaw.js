@@ -65,3 +65,52 @@ export function dearerShare(hist, ratio) {
   for (const [d, p] of hist) if (d >= from) { n++; if (p / floorAt(d) > ratio) k++ }
   return n ? k / n : null
 }
+
+/* ---------- statistics from all daily closes ---------- */
+const quant = (sorted, q) => sorted[Math.min(sorted.length - 1, Math.max(0, Math.floor(q * (sorted.length - 1))))]
+
+/** Price ÷ trend quantiles and below-floor history, computed from the data (not hard-coded). */
+export function computeStats(hist) {
+  const xs = hist.map(([d, p]) => p / trendAt(d)).sort((a, b) => a - b)
+  const below = []
+  let run = null
+  for (const [d, p] of hist) {
+    if (p < floorAt(d)) { if (!run) run = { from: d, to: d, n: 0 }; run.to = d; run.n++ } else if (run) { below.push(run); run = null }
+  }
+  if (run) below.push(run)
+  const n2016 = hist.filter((h) => h[0] >= daysAt(Date.UTC(2016, 0, 1)))
+  const runs2016 = below.filter((r) => r.from >= daysAt(Date.UTC(2016, 0, 1)))
+  return {
+    total: hist.length,
+    q10: quant(xs, 0.1), q50: quant(xs, 0.5), q90: quant(xs, 0.9),
+    belowDays: below.reduce((s, r) => s + r.n, 0), belowVisits: below.length, longest: below.reduce((m, r) => Math.max(m, r.n), 0),
+    below2016Pct: n2016.length ? runs2016.reduce((s, r) => s + r.n, 0) / n2016.length : 0,
+    longest2016: runs2016.reduce((m, r) => Math.max(m, r.n), 0),
+    shareCheaper: (x) => { let lo = 0, hi = xs.length; while (lo < hi) { const m = (lo + hi) >> 1; if (xs[m] < x) lo = m + 1; else hi = m } return lo / xs.length },
+    sortedX: xs,
+  }
+}
+
+/** Zones on the price ÷ trend scale (floor = 0.42×). Colours follow the reference bar. */
+export function zonesOf(st) {
+  return [
+    { id: 'below', name: 'ต่ำกว่า Floor', from: 0, to: FLOOR_K, color: '#9f1239' },
+    { id: 'cheap10', name: 'ถูกมาก (10% ล่างสุด)', from: FLOOR_K, to: Math.max(FLOOR_K + 0.01, st.q10), color: '#4ade80' },
+    { id: 'cheap', name: 'ถูก (ต่ำกว่าค่ากลาง)', from: Math.max(FLOOR_K + 0.01, st.q10), to: st.q50, color: '#16a34a' },
+    { id: 'fair', name: 'ใกล้ Trend', from: st.q50, to: 1.25, color: '#2563eb' },
+    { id: 'rich', name: 'แพง', from: 1.25, to: st.q90, color: '#b45309' },
+    { id: 'hot', name: 'แพงมาก (10% บนสุด)', from: st.q90, to: Infinity, color: '#f97316' },
+  ]
+}
+
+/** Ladder rungs on a log scale of price ÷ trend. */
+export function ladderOf(hist, rungs = 18, lo = 0.25, hi = 6) {
+  const a = Math.log(lo), b = Math.log(hi), step = (b - a) / rungs
+  const bins = Array.from({ length: rungs }, (_, i) => ({ from: Math.exp(a + i * step), to: Math.exp(a + (i + 1) * step), n: 0 }))
+  for (const [d, p] of hist) {
+    const x = Math.log(p / trendAt(d))
+    const i = Math.min(rungs - 1, Math.max(0, Math.floor((x - a) / step)))
+    bins[i].n++
+  }
+  return bins
+}
