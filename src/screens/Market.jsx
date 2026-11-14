@@ -5,6 +5,7 @@ import { useVault } from '../lib/useVault'
 import { Sheet, Button } from '../components/ui'
 import { AssetLogo } from '../components/Logos'
 import FuelCard from '../components/FuelCard'
+import { useSyncedPref, unionBySymbol } from '../lib/prefs'
 import { CATS, CAT_BY_ID, catOf, WATCH_MAX, itemFor, itemCcy, useMarket, loadSpark, loadChart, searchMarket, streamMarketCrypto, stopMarketStream, loadOil } from '../lib/market'
 import { ccyMark, ccyOfSymbol, fetchQuotes, fxSym } from '../lib/prices'
 import { GOLD_PRESETS, COMMODITY_PRESETS } from '../lib/portfolio'
@@ -82,8 +83,8 @@ export default function Market({ onTrade }) {
   const q = useMarket((s) => s.q)
   const at = useMarket((s) => s.at)
   const loading = useMarket((s) => s.loading.spark)
-  const watch = useStore((s) => s.ui.marketWatch) || []
-  const setUi = useStore((s) => s.setUi)
+  const [watchPref, setWatch] = useSyncedPref('pref-market-watch', 'marketWatch', { merge: unionBySymbol })
+  const watch = watchPref || []
   const [cat, setCat] = useState(() => { try { return sessionStorage.getItem('vault:mktCat') || 'all' } catch { return 'all' } })
   const [detail, setDetail] = useState(null)
   const [query, setQuery] = useState('')
@@ -97,7 +98,7 @@ export default function Market({ onTrade }) {
   const isWatched = (s) => watch.some((w) => w.symbol === s)
   const toggleWatch = (it) => {
     sfx('click')
-    setUi({ marketWatch: isWatched(it.symbol) ? watch.filter((w) => w.symbol !== it.symbol) : [...watch, { symbol: it.symbol, name: it.name, code: it.code }] })
+    setWatch(isWatched(it.symbol) ? watch.filter((w) => w.symbol !== it.symbol) : [...watch, { symbol: it.symbol, name: it.name, code: it.code }])
   }
   const watchIn = (id) => watchItems.filter((w) => catOf(w) === id)
   // full list for a category tab: watched first, then the rest of the catalog

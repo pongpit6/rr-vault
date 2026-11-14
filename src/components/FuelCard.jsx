@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useSyncedPref } from '../lib/prefs'
 import { Fuel, Star, RefreshCw, ArrowLeftRight, Settings2 } from 'lucide-react'
 import { useStore } from '../store'
 import { useVault } from '../lib/useVault'
@@ -38,9 +39,9 @@ function useFuelSpend() {
 export default function FuelCard({ compact = false, onOpen }) {
   const data = useOil((s) => s.data)
   const status = useOil((s) => s.status)
-  const fuel = useStore((s) => s.ui.fuel) || {}
-  const setUi = useStore((s) => s.setUi)
-  const setFuel = (p) => setUi({ fuel: { ...fuel, ...p } })
+  const [fuelPref, saveFuel] = useSyncedPref('pref-fuel', 'fuel', { merge: (synced, local) => ({ ...local, ...synced }) })
+  const fuel = fuelPref || {}
+  const setFuel = (p) => saveFuel({ ...fuel, ...p })
   const brand = fuel.brand || 'bangchak'
   const fav = fuel.fav || 'g95'
   const tank = Number(fuel.tank) || 40
