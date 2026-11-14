@@ -81,6 +81,12 @@ export default function PowerLawChart({ hist, now, price, k, sym, lows, lots, av
     let pricePath = ''
     pts.forEach((h, i) => { if (i % step === 0 || i === pts.length - 1) pricePath += `${pricePath ? 'L' : 'M'}${sx(h[0]).toFixed(1)} ${sy(h[1]).toFixed(1)}` })
     if (price && now <= d1) pricePath += `L${sx(now).toFixed(1)} ${sy(price).toFixed(1)}`
+    // closes below the floor, drawn again in red
+    let belowPath = '', open = false
+    for (const h of pts) {
+      const under = h[1] < floorAt(h[0])
+      if (under) { belowPath += `${open ? 'L' : 'M'}${sx(h[0]).toFixed(1)} ${sy(h[1]).toFixed(1)}`; open = true } else open = false
+    }
     const nowC = Math.min(now, d1)
     const floorPast = line(floorAt, d0, nowC), floorFuture = now < d1 ? line(floorAt, now, d1, 60) : ''
     const trendPast = line(trendAt, d0, nowC), trendFuture = now < d1 ? line(trendAt, now, d1, 60) : ''
@@ -105,7 +111,7 @@ export default function PowerLawChart({ hist, now, price, k, sym, lows, lots, av
       }
     }
     xTicks = xTicks.filter((t) => t.x >= X0 + 8 && t.x <= X1 - 8).reduceRight((acc, t) => (acc.length && acc[0].x - t.x < 42 ? acc : [t, ...acc]), [])
-    return { log, d0, d1, sx, sy, inv, pts, pricePath, floorPast, floorFuture, trendPast, trendFuture, area, yTicks, xTicks }
+    return { log, d0, d1, sx, sy, inv, pts, pricePath, belowPath, floorPast, floorFuture, trendPast, trendFuture, area, yTicks, xTicks }
   }, [hist, dom, W, H, price, now, lots, avg]) // eslint-disable-line
 
   /* ---- interaction ---- */
@@ -234,6 +240,7 @@ export default function PowerLawChart({ hist, now, price, k, sym, lows, lots, av
               <path d={geo.floorPast} fill="none" stroke="#22c55e" strokeWidth="3" filter="url(#plGlow)" className="pl-draw" pathLength="1" />
               <path d={geo.floorFuture} fill="none" stroke="#22c55e" strokeWidth="3" strokeDasharray="1 6" strokeLinecap="round" />
               <path d={geo.pricePath} fill="none" stroke="#e5e7eb" strokeWidth={geo.log ? 1.1 : 1.6} strokeLinejoin="round" className="pl-draw slow" pathLength="1" />
+              {geo.belowPath && <path d={geo.belowPath} fill="none" stroke="#fb7185" strokeWidth={geo.log ? 2 : 2.4} strokeLinejoin="round" />}
               {avgY != null && avgY > Y0 && avgY < Y1 && <line x1={X0} x2={X1} y1={avgY} y2={avgY} stroke="#f59e0b" strokeWidth="1.4" strokeDasharray="4 4" />}
               {lows.filter((l) => l.d >= geo.d0 && l.d <= geo.d1).map((l) => (
                 <g key={l.d}>
@@ -277,6 +284,7 @@ export default function PowerLawChart({ hist, now, price, k, sym, lows, lots, av
             )}
             <text x={X0 + 8} y={Y0 + 14} fill="#cbd5e1" fontSize="11"><tspan fill="#94a3b8">━ </tspan>Trend</text>
             <text x={X0 + 8} y={Y0 + 30} fill="#4ade80" fontSize="11" fontWeight="700">━ Floor: 0.42× Trend</text>
+            {geo.belowPath && <text x={X0 + 8} y={Y0 + 46} fill="#fb7185" fontSize="11">━ ช่วงที่ราคาหลุด Floor</text>}
           </svg>
         )}
         {tip && (

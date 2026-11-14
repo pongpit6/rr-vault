@@ -75,7 +75,8 @@ export function computeStats(hist) {
   const below = []
   let run = null
   for (const [d, p] of hist) {
-    if (p < floorAt(d)) { if (!run) run = { from: d, to: d, n: 0 }; run.to = d; run.n++ } else if (run) { below.push(run); run = null }
+    const r = p / floorAt(d)
+    if (r < 1) { if (!run) run = { from: d, to: d, n: 0, low: r, lowD: d, lowP: p }; run.to = d; run.n++; if (r < run.low) { run.low = r; run.lowD = d; run.lowP = p } } else if (run) { below.push(run); run = null }
   }
   if (run) below.push(run)
   const n2016 = hist.filter((h) => h[0] >= daysAt(Date.UTC(2016, 0, 1)))
@@ -86,6 +87,8 @@ export function computeStats(hist) {
     belowDays: below.reduce((s, r) => s + r.n, 0), belowVisits: below.length, longest: below.reduce((m, r) => Math.max(m, r.n), 0),
     below2016Pct: n2016.length ? runs2016.reduce((s, r) => s + r.n, 0) / n2016.length : 0,
     longest2016: runs2016.reduce((m, r) => Math.max(m, r.n), 0),
+    runs: below,
+    deepest: below.reduce((m, r) => (!m || r.low < m.low ? r : m), null),
     shareCheaper: (x) => { let lo = 0, hi = xs.length; while (lo < hi) { const m = (lo + hi) >> 1; if (xs[m] < x) lo = m + 1; else hi = m } return lo / xs.length },
     sortedX: xs,
   }
@@ -103,14 +106,36 @@ export function zonesOf(st) {
   ]
 }
 
-/** Ladder rungs on a log scale of price ÷ trend. */
-export function ladderOf(hist, rungs = 18, lo = 0.25, hi = 6) {
-  const a = Math.log(lo), b = Math.log(hi), step = (b - a) / rungs
-  const bins = Array.from({ length: rungs }, (_, i) => ({ from: Math.exp(a + i * step), to: Math.exp(a + (i + 1) * step), n: 0 }))
+/** Ladder rungs of price ÷ trend, with edges exactly on the floor (0.42×) and on the trend (1×). */
+export function ladderOf(hist) {
+  const r = Math.pow(1 / FLOOR_K, 1 / 4) // 4 equal (log) steps from floor to trend
+  const edges = [0, FLOOR_K / r, FLOOR_K]
+  let e = FLOOR_K
+  while (e < 6) { e *= r; edges.push(+e.toFixed(4)) }
+  edges.push(Infinity)
+  const bins = edges.slice(0, -1).map((from, i) => ({ from, to: edges[i + 1], n: 0 }))
   for (const [d, p] of hist) {
-    const x = Math.log(p / trendAt(d))
-    const i = Math.min(rungs - 1, Math.max(0, Math.floor((x - a) / step)))
-    bins[i].n++
+    const x = p / trendAt(d)
+    const b = bins.find((b) => x >= b.from && x < b.to); if (b) b.n++
   }
   return bins
+}
+
+/** Below-floor runs merged into episodes (runs less than `gap` days apart belong to the same dip). */
+export function floorEpisodes(hist, runs, gap = 45) {
+  const eps = []
+  for (const r of runs) {
+    const last = eps[eps.length - 1]
+    if (last && r.from - last.to <= gap) {
+      last.to = r.to; last.days += r.n; last.visits++
+      if (r.low < last.low) { last.low = r.low; last.lowD = r.lowD; last.lowP = r.lowP }
+    } else eps.push({ from: r.from, to: r.to, days: r.n, visits: 1, low: r.low, lowD: r.lowD, lowP: r.lowP })
+  }
+  const priceAt = (d) => { let best = null; for (const h of hist) { if (h[0] > d) break; best = h } return best }
+  for (const e of eps) {
+    const after = hist.find((h) => h[0] >= e.lowD + 365)
+    e.after1y = after ? after[1] / e.lowP - 1 : null
+    e.lastClose = priceAt(e.to)?.[1] ?? null
+  }
+  return eps
 }
