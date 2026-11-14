@@ -10,6 +10,7 @@ import Portfolio from './screens/Portfolio'
 import Onboarding from './components/Onboarding'
 import ErrorBoundary from './components/ErrorBoundary'
 import { BackdropHost } from './components/PageBackdrop'
+import { InsightsRunner } from './components/Insights'
 import SlipScanner from './components/SlipScanner'
 import { useVault } from './lib/useVault'
 import { usePrices, assetPrice } from './lib/prices'
@@ -245,6 +246,7 @@ export default function App() {
       <Onboarding />
       <SlipHost shared={sharedFiles} clearShared={() => setSharedFiles(null)} />
       <SnapshotWriter />
+      <InsightsRunner />
       <AlertWatcher />
       <TxnForm open={!!form} initial={form} onClose={() => setForm(null)} />
       <TradeForm open={!!trade} initial={trade} onClose={() => setTrade(null)} />

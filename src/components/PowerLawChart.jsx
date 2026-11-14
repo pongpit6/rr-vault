@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { daysAt, trendAt, floorAt, dateOfDay } from '../lib/powerlaw'
+import { daysAt, trendAt, floorAt, dateOfDay, HALVINGS } from '../lib/powerlaw'
 
 const TH_M = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.']
 export const dLabel = (d) => { const t = dateOfDay(d); return `${t.getUTCDate()} ${TH_M[t.getUTCMonth()]} ${t.getUTCFullYear()}` }
@@ -18,7 +18,7 @@ export const RANGES = [
  * Bitcoin vs the power-law floor/trend.
  * Mouse: hover for details, wheel to zoom, drag to pan. Touch: slide one finger for details, two fingers to zoom/pan.
  */
-export default function PowerLawChart({ hist, now, price, k, sym, lows, lots, avg, range, setRange, privacy }) {
+export default function PowerLawChart({ hist, now, price, k, sym, lows, lots, avg, range, setRange, privacy, nextHalving = null }) {
   const boxRef = useRef(null)
   const [W, setW] = useState(640)
   const [hover, setHover] = useState(null)
@@ -39,6 +39,7 @@ export default function PowerLawChart({ hist, now, price, k, sym, lows, lots, av
 
   /* ---- domain ---- */
   const firstLot = lots.length ? Math.min(...lots.map((l) => l.d)) : null
+  const halvings = useMemo(() => (nextHalving ? [...HALVINGS, { n: 5, d: nextHalving, from: 3.125, to: 1.5625, est: true }] : HALVINGS), [nextHalving && Math.round(nextHalving)])
   const dom = useMemo(() => {
     if (custom) return { log: false, ...custom }
     if (range === 'all') return { log: true, d0: 560, d1: now + 5 * 365.25 }
@@ -105,7 +106,9 @@ export default function PowerLawChart({ hist, now, price, k, sym, lows, lots, av
       const stepM = span > 1500 ? 12 : span > 700 ? 6 : span > 300 ? 2 : span > 120 ? 1 : 0.5
       const s = dateOfDay(d0)
       for (let m = 0; m < 400; m++) {
-        const t = stepM >= 1 ? Date.UTC(s.getUTCFullYear(), s.getUTCMonth() + m * stepM + 1, 1) : Date.UTC(s.getUTCFullYear(), s.getUTCMonth(), 1 + (m + 1) * 14)
+        const t = stepM >= 12 ? Date.UTC(s.getUTCFullYear() + 1 + m, 0, 1) // 1 Jan of each year
+          : stepM >= 1 ? Date.UTC(s.getUTCFullYear(), s.getUTCMonth() + 1 + m * stepM, 1)
+          : Date.UTC(s.getUTCFullYear(), s.getUTCMonth(), 1 + (m + 1) * 14)
         const d = daysAt(t); if (d > d1) break
         if (d >= d0) xTicks.push({ x: sx(d), label: stepM >= 12 ? String(dateOfDay(d).getUTCFullYear()) : stepM >= 1 ? mLabel(d) : `${dateOfDay(d).getUTCDate()} ${TH_M[dateOfDay(d).getUTCMonth()]}` })
       }
@@ -123,6 +126,12 @@ export default function PowerLawChart({ hist, now, price, k, sym, lows, lots, av
     let lot = null, best = 16
     for (const l of lots) { if (l.d < geo.d0 || l.d > geo.d1) continue; const dx = Math.abs(geo.sx(l.d) - x), dy = Math.abs(geo.sy(l.p) - y); if (dx < best && dy < 60) { best = dx; lot = l } }
     if (lot) { setHover({ x: geo.sx(lot.d), y: geo.sy(lot.p), d: lot.d, p: lot.p, lot }); return }
+    const hv = halvings.find((h) => h.d >= geo.d0 && h.d <= geo.d1 && Math.abs(geo.sx(h.d) - x) < 7)
+    if (hv) {
+      const hp = geo.pts.find((h) => h[0] >= hv.d)
+      setHover({ x: geo.sx(hv.d), y: hp ? geo.sy(hp[1]) : geo.sy(floorAt(hv.d)), d: hv.d, p: hp && !hv.est ? hp[1] : null, halving: hv })
+      return
+    }
     let pt = null
     if (d <= now + 0.5 && geo.pts.length) {
       let lo = 0, hi = geo.pts.length - 1
@@ -196,6 +205,13 @@ export default function PowerLawChart({ hist, now, price, k, sym, lows, lots, av
         `ตอนซื้อ${atBuy >= 0 ? 'เหนือ' : 'ต่ำกว่า'} Floor ${Math.abs(atBuy).toFixed(1)}% · ${(l.usd / tr).toFixed(2)}× Trend`,
       ], pnl: l.pnl, lot: true }
     }
+    if (hover.halving) {
+      const h = hover.halving
+      return { title: `Halving ครั้งที่ ${h.n}${h.est ? ' (คาดการณ์)' : ''} · ${dLabel(h.d)}`, lines: [
+        `รางวัลขุดต่อบล็อก ${h.from} → ${h.to} BTC`,
+        hover.p ? `ราคาวันนั้น ${fmt(hover.p)} · ${hover.p >= fl ? 'เหนือ' : 'ต่ำกว่า'} Floor ${Math.abs((hover.p / fl - 1) * 100).toFixed(0)}%` : `Floor วันนั้น ${fmt(fl)} · Trend ${fmt(tr)}`,
+      ], halving: true }
+    }
     if (!hover.p) return { title: dLabel(hover.d), lines: [`Floor ${fmt(fl)} · Trend ${fmt(tr)}`, 'คาดการณ์ตามสูตร'] }
     const r = hover.p / fl
     return { title: dLabel(hover.d), lines: [`${fmt(hover.p)}, ${r >= 1 ? `เหนือ Floor ${((r - 1) * 100).toFixed(0)}%` : `ต่ำกว่า Floor ${((1 - r) * 100).toFixed(0)}%`}`, `${(hover.p / tr).toFixed(2)}× Trend`] }
@@ -233,6 +249,22 @@ export default function PowerLawChart({ hist, now, price, k, sym, lows, lots, av
               </g>
             ))}
             {geo.xTicks.map((t) => <text key={t.x} x={t.x} y={H - 9} fill="#64748b" fontSize="11" textAnchor="middle">{t.label}</text>)}
+            {/* halving epochs: alternate shading, dashed line + label at each halving */}
+            <g clipPath="url(#plClip)">
+              {halvings.map((h, i) => {
+                const a = Math.max(geo.d0, h.d), b = Math.min(geo.d1, halvings[i + 1]?.d ?? geo.d1)
+                return i % 2 === 0 && b > a ? <rect key={`e${h.n}`} x={geo.sx(a)} y={Y0} width={Math.max(0, geo.sx(b) - geo.sx(a))} height={Y1 - Y0} fill="#a78bfa" fillOpacity=".05" /> : null
+              })}
+              {halvings.filter((h) => h.d >= geo.d0 && h.d <= geo.d1).map((h) => (
+                <line key={`h${h.n}`} x1={geo.sx(h.d)} x2={geo.sx(h.d)} y1={Y0 + 18} y2={Y1} stroke="#a78bfa" strokeOpacity={h.est ? 0.55 : 0.75} strokeWidth="1.3" strokeDasharray={h.est ? '2 4' : '5 4'} />
+              ))}
+            </g>
+            {halvings.filter((h) => h.d >= geo.d0 && h.d <= geo.d1).map((h) => (
+              <g key={`hl${h.n}`}>
+                <rect x={geo.sx(h.d) - (W < 560 ? 15 : 34)} y={Y0} width={W < 560 ? 30 : 68} height="17" rx="8.5" fill={h.est ? '#2e1065' : '#4c1d95'} stroke="#a78bfa" strokeOpacity=".7" />
+                <text x={geo.sx(h.d)} y={Y0 + 12} fill="#ede9fe" fontSize="10" fontWeight="700" textAnchor="middle">{W < 560 ? `H${h.n}` : `Halving ${h.n}${h.est ? '?' : ''}`}</text>
+              </g>
+            ))}
             <g clipPath="url(#plClip)" key={drawKey}>
               <path d={geo.area} fill="url(#plArea)" />
               <path d={geo.trendPast} fill="none" stroke="#94a3b8" strokeOpacity=".55" strokeWidth="1.4" />
@@ -279,12 +311,13 @@ export default function PowerLawChart({ hist, now, price, k, sym, lows, lots, av
             {hover && (
               <g pointerEvents="none">
                 <line x1={hover.x} x2={hover.x} y1={Y0} y2={Y1} stroke="#e2e8f0" strokeOpacity=".4" />
-                <circle cx={hover.x} cy={hover.y} r="5" fill={hover.lot ? '#f59e0b' : '#f8fafc'} stroke="#0b1220" strokeWidth="2" />
+                <circle cx={hover.x} cy={hover.y} r="5" fill={hover.lot ? '#f59e0b' : hover.halving ? '#a78bfa' : '#f8fafc'} stroke="#0b1220" strokeWidth="2" />
               </g>
             )}
-            <text x={X0 + 8} y={Y0 + 14} fill="#cbd5e1" fontSize="11"><tspan fill="#94a3b8">━ </tspan>Trend</text>
-            <text x={X0 + 8} y={Y0 + 30} fill="#4ade80" fontSize="11" fontWeight="700">━ Floor: 0.42× Trend</text>
-            {geo.belowPath && <text x={X0 + 8} y={Y0 + 46} fill="#fb7185" fontSize="11">━ ช่วงที่ราคาหลุด Floor</text>}
+            <text x={X0 + 8} y={Y0 + 34} fill="#cbd5e1" fontSize="11"><tspan fill="#94a3b8">━ </tspan>Trend</text>
+            <text x={X0 + 8} y={Y0 + 50} fill="#4ade80" fontSize="11" fontWeight="700">━ Floor: 0.42× Trend</text>
+            <text x={X0 + 8} y={Y0 + 66} fill="#c4b5fd" fontSize="11">┆ Halving (รางวัลขุดลดครึ่ง)</text>
+            {geo.belowPath && <text x={X0 + 8} y={Y0 + 82} fill="#fb7185" fontSize="11">━ ช่วงที่ราคาหลุด Floor</text>}
           </svg>
         )}
         {tip && (

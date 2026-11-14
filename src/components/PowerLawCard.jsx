@@ -4,6 +4,8 @@ import { useStore } from '../store'
 import { useVault } from '../lib/useVault'
 import { daysAt, trendAt, floorAt, dateOfDay, dayFloorReaches, loadHistory, bearLows, dearerShare, computeStats, zonesOf, ladderOf, floorEpisodes, FLOOR_K } from '../lib/powerlaw'
 import PowerLawChart, { dLabel } from './PowerLawChart'
+import { useBtcNetwork } from '../lib/btcNetwork'
+import { HALVINGS, NEXT_HALVING_HEIGHT } from '../lib/powerlaw'
 
 /** live BTC price: our own small Binance stream, falling back to the app's quotes */
 function useLiveBtc() {
@@ -32,6 +34,8 @@ const TABS = [['chart', 'กราฟ'], ['stats', 'หลุด Floor กี่
 
 export default function PowerLawCard() {
   const { price, live } = useLiveBtc()
+  const { net, err: netErr } = useBtcNetwork()
+  const nextHalvingDay = net?.nextHalvingAt ? daysAt(net.nextHalvingAt) : null
   const fx = usePrices((s) => fxUSDTHB(s.quotes))
   const ccy = useStore((s) => s.ui.plCcy) || 'USD'
   const range = useStore((s) => s.ui.plRange) || 'all'
@@ -142,13 +146,15 @@ export default function PowerLawCard() {
         </div>
       </div>
 
+      <NetworkCard net={net} err={netErr} />
+
       <div className="card p-3 md:p-5">
         <div className="pl-seg mb-3" role="tablist">
           {TABS.map(([id, label]) => <button key={id} onClick={() => setTab(id)} className={tab === id ? 'on' : ''} data-testid={`pl-tab-${id}`}>{label}</button>)}
         </div>
         {tab === 'chart' && (
           <div className="pl-dark p-2.5 md:p-4">
-            <PowerLawChart hist={hist} now={now} price={p} k={k} sym={sym} lows={lows} lots={lots} avg={avg} range={range} setRange={(r) => setUi({ plRange: r })} privacy={privacy} />
+            <PowerLawChart hist={hist} now={now} price={p} k={k} sym={sym} lows={lows} lots={lots} avg={avg} range={range} setRange={(r) => setUi({ plRange: r })} privacy={privacy} nextHalving={nextHalvingDay} />
           </div>
         )}
         {tab === 'ladder' && <Ladder hist={hist} now={now} xTrend={xTrend} p={p} M={M} stats={stats} zones={zones} />}
@@ -317,6 +323,44 @@ function FloorStats({ now, p, M, k, sym, stats, hist }) {
             : when ? <>ประมาณ <b>{dLabel(when)}</b> (อีก {((when - now) / 365.25).toFixed(1)} ปี) — หลังจากนั้นตามโมเดล ราคาไม่ควรต่ำกว่านี้อีก</>
             : <span className="text-slate-500">ราคานี้ต่ำกว่า Floor ตอนนี้แล้ว</span>}
         </div>
+      </div>
+    </div>
+  )
+}
+
+/* ---------- the Bitcoin network today: blocks, reward, next halving ---------- */
+function NetworkCard({ net, err }) {
+  const [, tick] = useState(0)
+  useEffect(() => { const iv = setInterval(() => tick((n) => n + 1), 1000); return () => clearInterval(iv) }, [])
+  if (!net) return <div className="pl-dark p-4 text-sm text-slate-400">{err ? 'โหลดข้อมูลเครือข่าย Bitcoin ไม่ได้ (ออฟไลน์?)' : 'กำลังโหลดข้อมูลเครือข่าย Bitcoin…'}</div>
+  const ms = Math.max(0, net.nextHalvingAt - Date.now())
+  const days = Math.floor(ms / 86400000), hrs = Math.floor((ms % 86400000) / 3600000), mins = Math.floor((ms % 3600000) / 60000)
+  const when = new Date(net.nextHalvingAt)
+  const last = HALVINGS[HALVINGS.length - 1]
+  const b24 = net.blocks24h
+  return (
+    <div className="pl-dark p-4 md:p-5" data-testid="pl-network">
+      <div className="flex items-center justify-between gap-2">
+        <div className="text-[11px] font-semibold tracking-[.14em] text-slate-400">เครือข่าย BITCOIN วันนี้</div>
+        <div className="text-[10px] text-slate-500">mempool.space · อัปเดต {new Date(net.at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })}</div>
+      </div>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-3">
+        <div className="pl-stat text-left"><div>{b24 ?? '—'} <span className="text-xs text-slate-400 font-medium">/ 144</span></div><span>บล็อกที่ขุดได้ใน 24 ชม. {b24 ? (b24 >= 144 ? '(เร็วกว่าเป้า)' : '(ช้ากว่าเป้า)') : ''}</span></div>
+        <div className="pl-stat text-left"><div>{net.avgMin ? net.avgMin.toFixed(1) : '—'} <span className="text-xs text-slate-400 font-medium">นาที</span></div><span>เวลาเฉลี่ยต่อบล็อก (เป้า 10)</span></div>
+        <div className="pl-stat text-left"><div>{net.height.toLocaleString()}</div><span>บล็อกล่าสุด</span></div>
+        <div className="pl-stat text-left"><div>{net.reward} <span className="text-xs text-slate-400 font-medium">BTC</span></div><span>รางวัลขุดต่อบล็อก · ≈ {Math.round((b24 || 144) * net.reward).toLocaleString()} BTC/วัน</span></div>
+      </div>
+      <div className="mt-4 rounded-2xl p-3.5" style={{ background: 'linear-gradient(120deg, rgba(76,29,149,.55), rgba(30,27,75,.55))', border: '1px solid rgba(167,139,250,.35)' }}>
+        <div className="flex flex-wrap items-end justify-between gap-2">
+          <div>
+            <div className="text-xs text-violet-200">Halving ครั้งถัดไป (ครั้งที่ 5) · บล็อก {NEXT_HALVING_HEIGHT.toLocaleString()}</div>
+            <div className="text-white font-extrabold text-2xl tabular-nums" data-testid="pl-halving-days">อีก {days.toLocaleString()} วัน <span className="text-sm font-semibold text-violet-200">{hrs} ชม. {mins} นาที</span></div>
+            <div className="text-xs text-violet-200 mt-0.5">ประมาณ {when.toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' })} · เหลือ {net.remaining.toLocaleString()} บล็อก · รางวัล {net.reward} → {net.reward / 2} BTC</div>
+          </div>
+        </div>
+        <div className="h-2 rounded-full bg-white/10 mt-3 overflow-hidden"><div className="h-full rounded-full" style={{ width: `${Math.max(0, Math.min(1, net.epochPct)) * 100}%`, background: 'linear-gradient(90deg,#8b5cf6,#c4b5fd)' }} /></div>
+        <div className="flex justify-between text-[10px] text-violet-200/80 mt-1"><span>Halving 4 · {dLabel(last.d)}</span><span>รอบนี้ผ่านไป {(net.epochPct * 100).toFixed(1)}%</span></div>
+        <p className="text-[11px] text-violet-100/80 mt-2 leading-relaxed">วันที่คาดการณ์ขยับได้ตามความเร็วขุดจริง (ตอนนี้เฉลี่ย {net.avgMin?.toFixed(1)} นาทีต่อบล็อก) · Halving คือการลดรางวัลขุดลงครึ่งหนึ่งทุก 210,000 บล็อก (~4 ปี) ทำให้ BTC ใหม่เข้าตลาดน้อยลง</p>
       </div>
     </div>
   )

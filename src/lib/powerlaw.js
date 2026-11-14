@@ -139,3 +139,13 @@ export function floorEpisodes(hist, runs, gap = 45) {
   }
   return eps
 }
+
+/* ---------- halvings ---------- */
+export const HALVINGS = [
+  { n: 1, height: 210000, date: '2012-11-28', from: 50, to: 25 },
+  { n: 2, height: 420000, date: '2016-07-09', from: 25, to: 12.5 },
+  { n: 3, height: 630000, date: '2020-05-11', from: 12.5, to: 6.25 },
+  { n: 4, height: 840000, date: '2024-04-20', from: 6.25, to: 3.125 },
+].map((h) => ({ ...h, d: daysAt(Date.parse(`${h.date}T00:00:00Z`)) }))
+export const NEXT_HALVING_HEIGHT = 1050000
+export const rewardAt = (height) => 50 / Math.pow(2, Math.floor(height / 210000))

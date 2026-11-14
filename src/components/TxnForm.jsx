@@ -351,9 +351,10 @@ const samePct = (a, b) => BUCKETS.every((x) => (a?.[x.key] ?? 0) === (b?.[x.key]
  * and values are independent (the sum must reach 100). Without it (one-off income, onboarding) changes apply
  * at once and the other buckets rebalance to keep 100%.
  */
-export function AllocationEditor({ pct, cap, onPct, onCap, split, gap, compact = false, confirm = false }) {
+export function AllocationEditor({ pct, cap, onPct, onCap, split, gap, compact = false, confirm = false, suggestion = null }) {
   const [draft, setDraft] = useState(pct)
   const [saved, setSaved] = useState(false)
+  useEffect(() => { if (confirm && suggestion) { setDraft({ ...suggestion.pct }); setSaved(false) } }, [suggestion]) // eslint-disable-line
   useEffect(() => { if (!confirm) setDraft(pct) }, [pct, confirm])
   const cur = confirm ? draft : pct
   const sum = BUCKETS.reduce((s, b) => s + (cur[b.key] || 0), 0)

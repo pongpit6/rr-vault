@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Plus, Pencil, Scale, Archive, Trash2, Check, Info, ListFilter } from 'lucide-react'
 import { Sheet, Button, Money, IconBadge, Label, IconPicker, ColorPicker, Segmented, Progress } from '../components/ui'
 import { AllocationEditor } from '../components/TxnForm'
+import { StyleCard } from '../components/Insights'
 import TxnRow from '../components/TxnRow'
 import { useStore } from '../store'
 import { useVault } from '../lib/useVault'
@@ -25,6 +26,7 @@ export default function Wallets({ onEdit, go }) {
   const linkedOwed = (card) => accounts.filter((l) => l.viaCard === card.id && !l.archived).reduce((t, l) => t + Math.max(0, -(balances[l.id] || 0)), 0)
   const instLeft = (l) => { const owed = Math.max(0, -(balances[l.id] || 0)); return l.instPrincipal > 0 ? Math.ceil(owed / l.instPrincipal - 1e-9) : '-' }
   const alloc = settings.allocation
+  const [suggest, setSuggest] = useState(null)
   const saveAlloc = (patch) => put('settings', { ...settings, allocation: { ...alloc, ...patch } })
 
   return (
@@ -100,7 +102,8 @@ export default function Wallets({ onEdit, go }) {
           <div className="px-1 mb-2 text-sm text-slate-500">ระบบแบ่งเงินอัตโนมัติ (ค่าเริ่มต้นทุกครั้งที่มีรายรับ)</div>
           <AllocationEditor pct={alloc.pct} cap={alloc.capReserveAtGap} gap={summary.gap}
             onPct={(pct) => saveAlloc({ pct })} onCap={(capReserveAtGap) => saveAlloc({ capReserveAtGap })}
-            split={null} confirm />
+            split={null} confirm suggestion={suggest} />
+          <div className="mt-3"><StyleCard onSuggest={(pct) => { setSuggest({ pct, at: Date.now() }); document.querySelector('[data-testid=alloc-editor]')?.scrollIntoView({ behavior: 'smooth', block: 'center' }) }} /></div>
           <div className="card mt-3 p-4 space-y-3">
             <div className="text-sm font-medium">ปลายทางของแต่ละส่วน</div>
             {[['reserve', '① กันชำระหนี้'], ['cash', '② เงินใช้ได้'], ['invest', '③ ลงทุน']].map(([k, label]) => (

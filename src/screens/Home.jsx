@@ -1,3 +1,4 @@
+import { HomeInsightCard } from '../components/Insights'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Settings as Cog, Eye, EyeOff, ChevronRight, ChevronDown, Cloud, CloudOff, RefreshCw, Plus, ScanLine, Check } from 'lucide-react'
 import { Avatar, Money, IconBadge, Empty, Button } from '../components/ui'
@@ -149,6 +150,8 @@ export default function Home({ onAdd, onEdit, go }) {
             </div>
             <ChevronRight size={20} className="text-slate-300 shrink-0" />
           </button>
+
+          <HomeInsightCard />
 
           {/* to-do */}
           {todos.length > 0 && (

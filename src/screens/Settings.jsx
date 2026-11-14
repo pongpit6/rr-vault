@@ -1,4 +1,5 @@
 import { previewSfx } from '../lib/sfx'
+import { InsightsToggle } from '../components/Insights'
 import { useEffect, useRef, useState } from 'react'
 import { Camera, Pencil, Eye, EyeOff, Cloud, LogOut, Download, Upload, Tag, ChevronRight, Plus, Trash2, Check, Smartphone, RefreshCw, TriangleAlert } from 'lucide-react'
 import { Avatar, Button, Sheet, Label, IconBadge, IconPicker, ColorPicker, Segmented } from '../components/ui'
@@ -97,6 +98,8 @@ export default function Settings({ opt }) {
 
       <div className="text-sm text-slate-500 px-1">การใช้งาน</div>
       <ThemePicker />
+
+      <section className="card"><InsightsToggle /></section>
 
       <section className="card divide-y divide-slate-100">
         <Row icon="sparkles" color="#a78bfa" title="ซ่อนตัวเลข" sub="เหมาะกับการเปิดแอปในที่สาธารณะ"
