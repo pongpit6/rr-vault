@@ -8,11 +8,11 @@ import { useVault } from '../lib/useVault'
 import { usePrices, fetchQuotes } from '../lib/prices'
 import { ASSET_TYPES, symbolsToPoll, assetLabel } from '../lib/portfolio'
 import { money, shortDate, evalAmount } from '../lib/format'
-import { GOLD } from '../lib/prices'
+import { GOLD, ccyMark } from '../lib/prices'
 
 const pct = (v) => `${v >= 0 ? '+' : ''}${(v * 100).toFixed(2)}%`
 const fmtQ = (p) => (p == null ? '—' : p >= 1000 ? p.toLocaleString(undefined, { maximumFractionDigits: 2 }) : p.toLocaleString(undefined, { maximumFractionDigits: Math.abs(p) < 1 ? 8 : 6 }))
-const ccy = (a) => (a.currency === 'USD' ? '$' : '฿')
+const ccy = (a) => ccyMark(a.currency || 'THB')
 const Delta = ({ v, className = '' }) => (
   <span className={`num ${v > 0 ? 'text-emerald-600' : v < 0 ? 'text-rose' : 'text-slate-500'} ${className}`}>{v > 0 ? '▲' : v < 0 ? '▼' : ''} {pct(Math.abs(v)).replace('+', '')}</span>
 )
@@ -166,7 +166,7 @@ function AssetDetail({ id, onClose, onTrade }) {
       {h.qty > 0 && h.avgPrice > 0 && (
         <div className={`grid gap-2 mt-2 ${ccy(a) !== '฿' ? 'grid-cols-2' : 'grid-cols-1'}`}>
           <div className="rounded-2xl bg-amber-50/60 border border-amber-200/70 p-3">
-            <div className="text-[11px] text-slate-500">ต้นทุนเฉลี่ยต่อ{unit} ({ccy(a) === '฿' ? 'THB' : 'USD'})</div>
+            <div className="text-[11px] text-slate-500">ต้นทุนเฉลี่ยต่อ{unit} ({a.currency || 'THB'})</div>
             <div className="font-semibold num text-sm">{privacy ? '••••' : `${ccy(a)}${fmtQ(h.avgPrice)}`}</div>
             <div className="text-[11px]">ราคาตอนนี้ <Delta v={(h.price - h.avgPrice) / h.avgPrice} /></div>
           </div>

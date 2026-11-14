@@ -7,7 +7,7 @@ import { AccountChips } from './TxnForm'
 import { useStore } from '../store'
 import { useVault } from '../lib/useVault'
 import { ASSET_TYPES, POPULAR_CRYPTO, GOLD_PRESETS, COMMODITY_PRESETS, assetLabel } from '../lib/portfolio'
-import { searchSymbols, searchFunds, fetchQuotes, assetPrice, fxUSDTHB, GOLD, histPrice } from '../lib/prices'
+import { searchSymbols, searchFunds, fetchQuotes, assetPrice, fxUSDTHB, fxOf, fxSym, ccyMark, ccyOfSymbol, GOLD, histPrice } from '../lib/prices'
 import { evalAmount, todayISO, money, round2 } from '../lib/format'
 import { isDebt } from '../lib/defaults'
 
@@ -30,12 +30,13 @@ export default function TradeForm({ open, onClose, initial }) {
     setAdv(!!(initial?.fx && initial.fx !== 1) || !!initial?.note)
     const a = initial?.assetId ? assetById[initial.assetId] : initial?.asset || null
     setAsset(a)
+    if (a?.symbol && a.source !== 'manual') fetchQuotes([a.symbol, 'THB=X', fxSym(a.currency), a.source === 'thaigold' ? 'GC=F' : null])
     setStep(a ? 'form' : 'pick')
     const investAcc = settings.allocation.targets.invest || accounts.find((x) => x.type === 'invest')?.id
     setF({
       side: initial?.side || 'buy', date: initial?.date || todayISO(),
       qtyStr: initial?.qty ? String(initial.goldUnit ? initial.qty / GOLD_UNITS[initial.goldUnit][1] : initial.qty) : '',
-      priceStr: initial?.price ? String(initial.entryCcy === 'THB' && a?.currency === 'USD' ? round2(initial.price * initial.fx) : initial.price) : '',
+      priceStr: initial?.price ? String(initial.entryCcy === 'THB' && a?.currency && a.currency !== 'THB' ? round2(initial.price * initial.fx) : initial.price) : '',
       feeStr: initial?.feeIn != null ? String(initial.feeIn) : initial?.fee ? String(initial.fee) : '',
       entryCcy: initial?.entryCcy || a?.currency || 'THB',
       fxStr: initial?.fx && initial.fx !== 1 ? String(initial.fx) : '',
@@ -54,7 +55,7 @@ export default function TradeForm({ open, onClose, initial }) {
     if (f.date >= todayISO()) { if (f.histFx || f.histPx) setF((s) => ({ ...s, histFx: null, histPx: null })); return }
     let alive = true
     ;(async () => {
-      const fxP = asset.currency === 'USD' ? histPrice('THB=X', f.date) : Promise.resolve(null)
+      const fxP = fxSym(asset.currency) ? histPrice(fxSym(asset.currency), f.date) : Promise.resolve(null)
       const pxP = asset.source === 'yahoo' && asset.symbol ? histPrice(asset.symbol, f.date) : Promise.resolve(null)
       const [hf, hp] = await Promise.all([fxP, pxP])
       if (alive) setF((s) => ({ ...s, histFx: hf, histPx: hp }))
@@ -65,13 +66,15 @@ export default function TradeForm({ open, onClose, initial }) {
   if (!open || !f) return null
   const set = (p) => setF((s) => ({ ...s, ...p }))
 
-  if (step === 'pick') return <AssetPicker onClose={onClose} assets={assets} portfolio={portfolio} onPick={(a) => { setAsset(a); set({ entryCcy: a.currency || 'THB', priceStr: '', mode: ['crypto', 'gold', 'fund'].includes(a.type) ? 'total' : 'unit' }); setStep('form'); if (a.symbol && a.source !== 'manual') fetchQuotes([a.symbol, 'THB=X', a.source === 'thaigold' ? 'GC=F' : null]) }} />
+  if (step === 'pick') return <AssetPicker onClose={onClose} assets={assets} portfolio={portfolio} onPick={(a) => { setAsset(a); set({ entryCcy: a.currency || 'THB', priceStr: '', mode: ['crypto', 'gold', 'fund'].includes(a.type) ? 'total' : 'unit' }); setStep('form'); if (a.symbol && a.source !== 'manual') fetchQuotes([a.symbol, 'THB=X', fxSym(a.currency), a.source === 'thaigold' ? 'GC=F' : null]) }} />
 
   // ---------- trade form ----------
   const a = asset
   const T = ASSET_TYPES[a.type]
-  const fxLive = fxUSDTHB(quotes)
-  const usdAsset = a.currency === 'USD'
+  const usdFx = fxUSDTHB(quotes)
+  const usdAsset = !!a.currency && a.currency !== 'THB' // priced in a foreign currency (USD, HKD, CNY…)
+  const QC = a.currency || 'THB', qm = ccyMark(QC)
+  const fxLive = usdAsset ? fxOf(QC, quotes) || (QC === 'USD' ? usdFx : 1) : usdFx
   const fx = usdAsset ? (evalAmount(f.fxStr, 6) || f.histFx || fxLive) : 1
   const livePrice = assetPrice(a, quotes)
   const unitMul = a.source === 'thaigold' ? GOLD_UNITS[f.goldUnit][1] : 1
@@ -79,7 +82,7 @@ export default function TradeForm({ open, onClose, initial }) {
   // price is entered either in the asset's currency or in THB; stored in the asset's quote currency
   const totalMode = f.mode === 'total' && a.type !== 'derivative'
   const inCcy = totalMode ? f.totalCcy : f.entryCcy
-  const toQuote = (v) => (usdAsset && inCcy === 'THB' ? v / fx : !usdAsset && inCcy === 'USD' ? v * fxLive : v)
+  const toQuote = (v) => (usdAsset && inCcy === 'THB' ? v / fx : !usdAsset && inCcy === 'USD' ? v * usdFx : v)
   const priceIn = evalAmount(f.priceStr, 10)
   const feeIn = evalAmount(f.feeStr, 8) || 0
   const fee = toQuote(feeIn)
@@ -103,7 +106,7 @@ export default function TradeForm({ open, onClose, initial }) {
       amount = round2(marginShare + (price - avgEntry) * qty * mult * sign * fx - fee * fx)
     }
   } else if (totalMode) {
-    amount = round2(inCcy === 'THB' ? totalIn : totalIn * (usdAsset ? fx : fxLive))
+    amount = round2(inCcy === 'THB' ? totalIn : totalIn * (usdAsset ? fx : usdFx))
   } else {
     const gross = qty * price
     amount = round2((f.side === 'buy' ? gross + fee : gross - fee) * fx)
@@ -135,7 +138,7 @@ export default function TradeForm({ open, onClose, initial }) {
   }
 
   const fmtQ = (p) => (p >= 1000 ? p.toLocaleString(undefined, { maximumFractionDigits: 2 }) : p.toLocaleString(undefined, { maximumFractionDigits: Math.abs(p) < 1 ? 8 : 6 }))
-  const ccySym = (c) => (c === 'USD' ? '$' : '฿')
+  const ccySym = ccyMark
 
   return (
     <Sheet open onClose={onClose} title={editing ? 'แก้ไขรายการซื้อขาย' : 'บันทึกการซื้อขาย'}
@@ -192,7 +195,7 @@ export default function TradeForm({ open, onClose, initial }) {
             </div>
             <div>
               <Label>สกุล</Label>
-              <Segmented className="h-[54px]" value={f.totalCcy} onChange={(totalCcy) => set({ totalCcy })} options={[{ value: 'THB', label: '฿' }, { value: 'USD', label: '$' }]} />
+              <Segmented className="h-[54px]" value={f.totalCcy} onChange={(totalCcy) => set({ totalCcy })} options={[{ value: 'THB', label: '฿' }, { value: usdAsset ? QC : 'USD', label: usdAsset ? qm : '$' }]} />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-2 mt-3">
@@ -214,8 +217,8 @@ export default function TradeForm({ open, onClose, initial }) {
           )}
           {price > 0 && (
             <div className="mt-2 text-xs text-slate-500">
-              = ราคาเฉลี่ย <b className="text-slate-700 num">{usdAsset ? `$${fmtQ(price)}` : `฿${fmtQ(price)}`}</b>{usdAsset && <> (≈ ฿{fmtQ(round2(price * fx))})</>} ต่อ{a.source === 'thaigold' ? 'บาท' : a.unit || T.unit}
-              {f.histPx && <> · ราคาตลาดวันนั้น ≈ {usdAsset ? '$' : '฿'}{fmtQ(round2(f.histPx))}</>}
+              = ราคาเฉลี่ย <b className="text-slate-700 num">{`${qm}${fmtQ(price)}`}</b>{usdAsset && <> (≈ ฿{fmtQ(round2(price * fx))})</>} ต่อ{a.source === 'thaigold' ? 'บาท' : a.unit || T.unit}
+              {f.histPx && <> · ราคาตลาดวันนั้น ≈ {qm}{fmtQ(round2(f.histPx))}</>}
             </div>
           )}
         </>
@@ -242,7 +245,7 @@ export default function TradeForm({ open, onClose, initial }) {
           {usdAsset && (
             <div className="mt-3">
               <Label>กรอกราคาเป็น</Label>
-              <Segmented value={f.entryCcy} onChange={(entryCcy) => set({ entryCcy, priceStr: '', feeStr: '' })} options={[{ value: 'USD', label: '$ USD' }, { value: 'THB', label: '฿ THB' }]} />
+              <Segmented value={f.entryCcy} onChange={(entryCcy) => set({ entryCcy, priceStr: '', feeStr: '' })} options={[{ value: QC, label: `${qm} ${QC}` }, { value: 'THB', label: '฿ THB' }]} />
             </div>
           )}
           <div className="grid grid-cols-2 gap-2 mt-3">
@@ -264,7 +267,7 @@ export default function TradeForm({ open, onClose, initial }) {
       {!adv && (usdAsset || !totalMode) && <button onClick={() => setAdv(true)} className="mt-3 text-sm text-sky-600">+ เพิ่มเติม{usdAsset ? ' (เรตค่าเงิน' : ' ('}{!totalMode ? (usdAsset ? ', ค่าธรรมเนียม' : 'ค่าธรรมเนียม') : ''}, บันทึก)</button>}
       {usdAsset && adv && (
         <div className="mt-3">
-          <Label>เรต USD/THB ณ วันนั้น</Label>
+          <Label>เรต {QC}/THB ณ วันนั้น</Label>
           <input className="field num" inputMode="decimal" placeholder={(f.histFx || fxLive).toFixed(2)} value={f.fxStr} onChange={(e) => set({ fxStr: e.target.value })} />
           <div className="text-[10px] text-slate-500 mt-1">{f.histFx ? `ว่างไว้ = ใช้เรตจริงของวันนั้น (${f.histFx.toFixed(2)}) อัตโนมัติ` : 'ว่างไว้ = ใช้เรตล่าสุด'} · ใช้แยกกำไรจากราคาและจากค่าเงิน</div>
         </div>
@@ -295,7 +298,7 @@ export default function TradeForm({ open, onClose, initial }) {
       )}
       <div className="mt-4 rounded-2xl bg-slate-50 border border-slate-200 p-3 text-sm space-y-1">
         <div className="flex justify-between"><span className="text-slate-500">{f.side === 'buy' ? 'เงินที่ใช้ทั้งหมด' : 'เงินที่ได้รับ'}</span><span className="font-semibold num">{money(amount || 0)}</span></div>
-        {usdAsset && qty > 0 && <div className="flex justify-between text-xs text-slate-500"><span>ในสกุล USD</span><span className="num">${round2((amount || 0) / fx).toLocaleString()}</span></div>}
+        {usdAsset && qty > 0 && <div className="flex justify-between text-xs text-slate-500"><span>ในสกุล {QC}</span><span className="num">{qm}{round2((amount || 0) / fx).toLocaleString()}</span></div>}
         <details className="text-xs text-slate-500">
           <summary className="cursor-pointer">ยอดจริงไม่ตรง? แก้ยอดเงินเอง</summary>
           <input className="field num mt-2" inputMode="decimal" placeholder="ยอดเงินบาทจริงจากแอปโบรกเกอร์" value={f.amountOverride} onChange={(e) => set({ amountOverride: e.target.value })} />
@@ -336,7 +339,7 @@ function AssetPicker({ onClose, assets, portfolio, onPick }) {
   const owned = assets.filter((a) => portfolio.holdings.some((h) => h.asset.id === a.id && h.qty > 0))
   const pickYahoo = (r, t) => {
     if (r.type === 'THFUND') return onPick({ type: 'fund', symbol: r.symbol, code: r.code, name: r.name, source: 'yahoo', currency: 'THB', unit: 'หน่วย', exchange: 'กองทุนรวมไทย' })
-    const ccy = r.symbol.endsWith('.BK') ? 'THB' : 'USD'
+    const ccy = ccyOfSymbol(r.symbol)
     onPick({ type: t, symbol: r.symbol, name: r.name, source: 'yahoo', currency: ccy, unit: t === 'crypto' ? r.symbol.replace('-USD', '') : ASSET_TYPES[t].unit, exchange: r.exchange })
   }
 

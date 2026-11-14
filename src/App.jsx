@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { LayoutDashboard, List, Plus, Wallet, Settings as Cog, Swords, LineChart } from 'lucide-react'
+import { LayoutDashboard, List, Plus, Wallet, Settings as Cog, Swords, LineChart, CandlestickChart } from 'lucide-react'
 import { useStore, selectList } from './store'
 import Home from './screens/Home'
 import Transactions from './screens/Transactions'
@@ -7,6 +7,7 @@ import Money from './screens/Money'
 import Settings from './screens/Settings'
 import VaultRpg from './screens/VaultRpg'
 import Portfolio from './screens/Portfolio'
+import Market from './screens/Market'
 import Onboarding from './components/Onboarding'
 import ErrorBoundary from './components/ErrorBoundary'
 import { BackdropHost } from './components/PageBackdrop'
@@ -32,6 +33,7 @@ const NAV = [
   { id: 'txns', label: 'รายการ', icon: List },
   { id: 'money', label: 'เงิน', icon: Wallet },
   { id: 'portfolio', label: 'ลงทุน', icon: LineChart },
+  { id: 'market', label: 'ตลาด', icon: CandlestickChart },
   { id: 'vault', label: 'Vault', icon: Swords },
 ]
 const ALL_TABS = [...NAV.map((n) => n.id), 'settings']
@@ -179,7 +181,7 @@ export default function App() {
       if (e.target.closest('input,textarea,select') || e.metaKey || e.ctrlKey || document.querySelector('.fixed.inset-0.z-50')) return
       if (e.key === 'n' || e.key === 'N') { e.preventDefault(); setForm({}) }
       if (e.key === 't' || e.key === 'T') { e.preventDefault(); setTrade({}) }
-      if (e.key >= '1' && e.key <= '5') setTab(NAV[Number(e.key) - 1].id)
+      if (e.key >= '1' && e.key <= '6') setTab(NAV[Number(e.key) - 1].id)
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
@@ -196,6 +198,7 @@ export default function App() {
     txns: <Transactions onEdit={onEdit} onAdd={onAdd} onTrade={setTrade} go={go} opt={tabOpt} />,
     money: <Money onEdit={onEdit} onAdd={onAdd} go={go} opt={tabOpt} />,
     portfolio: <Portfolio onTrade={setTrade} />,
+    market: <Market onTrade={setTrade} />,
     vault: <VaultRpg onAdd={onAdd} go={go} />,
     settings: <Settings opt={tabOpt} />,
   }[tab] || null
@@ -222,7 +225,7 @@ export default function App() {
           </button>
         ))}
         <button onClick={() => setTab('settings')} className={`mt-auto flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition ${tab === 'settings' ? 'bg-slate-900/[.05] text-slate-900' : 'text-slate-500 hover:text-slate-900'}`}><Cog size={18} /> ตั้งค่า</button>
-        <div className="text-[11px] text-slate-400 px-2">คีย์ลัด: N บันทึก · T ซื้อขาย · 1-5 สลับหน้า</div>
+        <div className="text-[11px] text-slate-400 px-2">คีย์ลัด: N บันทึก · T ซื้อขาย · 1-6 สลับหน้า</div>
       </aside>
 
       <main className="relative flex-1 min-w-0 px-4 md:px-8 pt-safe pb-28 md:pb-10">
@@ -232,10 +235,10 @@ export default function App() {
 
       {/* mobile bottom nav */}
       <nav className="ui-nav md:hidden fixed bottom-0 inset-x-0 z-40 pb-safe bg-white/90 backdrop-blur-xl border-t border-slate-200">
-        <div className="grid grid-cols-6 items-center h-16 px-1">
+        <div className="grid grid-cols-7 items-center h-16 px-0.5">
           {NAV.slice(0, 2).map((n) => <NavBtn key={n.id} n={n} active={tab === n.id} onClick={() => go(n.id)} />)}
           <div className="flex justify-center">
-            <button onClick={() => (tab === 'portfolio' ? setTrade({}) : setForm({}))} aria-label="บันทึกรายการ" className="ui-fab w-14 h-14 -mt-7 rounded-2xl grad-bg text-white grid place-items-center shadow-xl shadow-emerald-500/30 active:scale-95 transition">
+            <button onClick={() => (tab === 'portfolio' || tab === 'market' ? setTrade({}) : setForm({}))} aria-label="บันทึกรายการ" className="ui-fab w-[52px] h-[52px] -mt-7 rounded-2xl grad-bg text-white grid place-items-center shadow-xl shadow-emerald-500/30 active:scale-95 transition">
               <Plus size={26} strokeWidth={2.4} />
             </button>
           </div>
@@ -257,7 +260,7 @@ export default function App() {
 
 function NavBtn({ n, active, onClick }) {
   return (
-    <button onClick={onClick} className={`ui-nav-item flex flex-col items-center gap-1 text-[10.5px] ${active ? 'ui-on text-slate-900' : 'text-slate-500'}`}>
+    <button onClick={onClick} className={`ui-nav-item flex flex-col items-center gap-1 text-[10px] whitespace-nowrap ${active ? 'ui-on text-slate-900' : 'text-slate-500'}`}>
       <n.icon size={21} className={active ? 'text-emerald-600' : ''} strokeWidth={active ? 2.2 : 1.8} />
       {n.label}
     </button>

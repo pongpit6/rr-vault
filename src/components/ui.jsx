@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { X, Undo2 } from 'lucide-react'
 import { ICONS } from '../lib/icons'
 import { money } from '../lib/format'
@@ -46,7 +47,8 @@ export function Sheet({ open, onClose, title, children, footer, wide = false }) 
     return () => { window.removeEventListener('keydown', onKey); document.body.style.overflow = prev }
   }, [open, onClose])
   if (!open) return null
-  return (
+  // portal to <body> so a sheet opened inside a page always sits above the bottom nav
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center">
       <div className="absolute inset-0 bg-slate-900/25 backdrop-blur-sm anim-fade" onClick={onClose} />
       <div
@@ -60,7 +62,8 @@ export function Sheet({ open, onClose, title, children, footer, wide = false }) 
         <div className="overflow-y-auto px-5 pb-4 flex-1">{children}</div>
         {footer && <div className="px-5 pt-3 pb-5 pb-safe border-t border-slate-200/70">{footer}</div>}
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }
 

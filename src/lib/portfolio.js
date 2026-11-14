@@ -1,5 +1,5 @@
 import { round2 } from './format'
-import { assetPrice, assetChange, fxUSDTHB } from './prices'
+import { assetPrice, assetChange, fxUSDTHB, fxOf, fxSym } from './prices'
 
 export const ASSET_TYPES = {
   stock: { label: 'หุ้น / ETF', item: 'stock', unit: 'หุ้น', color: '#3b82f6', desc: 'หุ้นไทย หุ้นต่างประเทศ ETF ดัชนี' },
@@ -91,13 +91,14 @@ export function computePortfolio(assets, txns, quotes) {
   let value = 0, cost = 0, realized = 0, dayPnl = 0
   for (const h of Object.values(byAsset)) {
     const a = h.asset
-    const ccyFx = a.currency === 'USD' ? fxNow : 1
+    const ccyFxLive = a.currency === 'USD' ? fxNow : fxOf(a.currency, quotes)
     const p = assetPrice(a, quotes)
     const chg = assetChange(a, quotes)
     const mult = a.type === 'derivative' ? Number(a.multiplier) || 1 : 1
     let hv = 0, hc = 0, qty = 0
     const lots = h.lots.map((l) => {
       const frac = l.qtyOpen / l.qty
+      const ccyFx = ccyFxLive ?? l.fx
       const c = l.costTHB * frac
       let v, pricePnl, fxPnl
       if (a.type === 'derivative') {
@@ -140,6 +141,7 @@ export function symbolsToPoll(assets) {
   for (const a of assets) {
     if (a.source === 'thaigold') s.add('GC=F')
     else if (a.source !== 'manual' && a.symbol) s.add(a.symbol)
+    if (fxSym(a.currency)) s.add(fxSym(a.currency))
   }
   return [...s]
 }

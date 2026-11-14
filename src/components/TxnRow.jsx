@@ -6,6 +6,7 @@ import { AssetLogo, SubLogo } from './Logos'
 import { TXN_KINDS } from '../lib/defaults'
 import { useStore } from '../store'
 import { assetLabel } from '../lib/portfolio'
+import { ccyMark } from '../lib/prices'
 
 const itemData = (id) => { const it = id && useStore.getState().items[id]; return it ? it.data : null }
 const fmtQ = (q) => Number(q).toLocaleString(undefined, { maximumFractionDigits: Math.abs(Number(q)) < 1 ? 8 : 6 })
@@ -18,7 +19,7 @@ export function txnVisual(t, catById, accById) {
     const a = itemData(t.assetId)
     const label = a ? assetLabel(a) : 'สินทรัพย์'
     const unit = a?.source === 'thaigold' ? 'บาท' : a?.unit || ''
-    const ccy = a?.currency === 'USD' ? '$' : '฿'
+    const ccy = ccyMark(a?.currency || 'THB')
     return { asset: a, title: `${t.side === 'sell' ? 'ขาย' : 'ซื้อ'} ${label}`, sub: `${fmtQ(t.qty)} ${unit} @ ${ccy}${fmtQ(t.price)} · ${t.backfill ? 'บันทึกย้อนหลัง' : accById[t.account]?.name || ''}` }
   }
   const c = catById[t.category]

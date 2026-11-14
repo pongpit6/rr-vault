@@ -104,6 +104,43 @@ const SCENES = {
       for (let i = 0; i < 4; i++) { const t = ((now / 900 + i / 4) % 1); R(g, '#bae6fd', 160 + t * 120, GY - 40 - t * 60 - i * 6, 3, 3) }
     }
   },
+  market(g, now) {
+    // trading bazaar at dusk: a big price board with live-ish candles, a fuel pump and the merchant
+    const s = skyFor(18)
+    sky(g, s.top, s.bottom); hills(g, ...s.hill)
+    R(g, '#1e293b', 46, 18, 108, 62); R(g, '#0f172a', 49, 21, 102, 56)
+    R(g, '#78350f', 56, 80, 3, 16); R(g, '#78350f', 141, 80, 3, 16)
+    const n = 16, base = Math.floor(now / 900)
+    let y = 50
+    for (let i = 0; i < n; i++) {
+      const k = base + i
+      const d = Math.sin(k * 1.7) * 5 + Math.sin(k * 0.37) * 3
+      const o = y, c = Math.max(26, Math.min(72, y - d))
+      const hi = Math.min(o, c) - 2 - (k % 3), lo = Math.max(o, c) + 2 + (k % 2)
+      const col = c <= o ? '#34d399' : '#fb7185'
+      R(g, col, 52 + i * 6 + 2, hi, 1, lo - hi)
+      R(g, col, 52 + i * 6, Math.min(o, c), 5, Math.max(1, Math.abs(c - o)))
+      y = c
+    }
+    for (let x = 52; x < 150; x += 4) R(g, '#334155', x, 70, 2, 1)
+    const blink = Math.sin(now / 300) > 0
+    R(g, blink ? '#34d399' : '#065f46', 140, 24, 6, 3)
+    // fuel pump
+    R(g, '#dc2626', 170, 70, 12, 26); R(g, '#fef9c3', 172, 73, 8, 6); R(g, '#111827', 174, 84, 4, 8); R(g, '#475569', 182, 76, 3, 2); R(g, '#475569', 184, 76, 1, 14)
+    R(g, (Math.floor(now / 250) % 3) ? '#16a34a' : '#22c55e', 173, 75, 2, 1)
+    // awning stall
+    for (let i = 0; i < 26; i++) R(g, i % 2 ? '#f59e0b' : '#fff7ed', 8 + i, 74, 1, 4)
+    R(g, '#92400e', 8, 78, 1, 18); R(g, '#92400e', 33, 78, 1, 18); R(g, '#92400e', 8, 88, 26, 2)
+    R(g, '#fbbf24', 12, 86, 3, 2); R(g, '#a3e635', 18, 86, 3, 2); R(g, '#ef4444', 24, 86, 3, 2)
+    ground(g, { ...GROUND[2], cobble: true })
+    return () => {
+      drawStill(g, 'npc_merchant', 30, GY, 34)
+      const x = 210 + Math.sin(now / 2400) * 40
+      const im = frame('hero_idle', 0)
+      if (im) { g.save(); if (Math.cos(now / 2400) < 0) { g.translate(x + 48, 0); g.scale(-1, 1); g.drawImage(im, 0, GY - 62 + bob(now, 3)) } else g.drawImage(im, x, GY - 62 + bob(now, 3)); g.restore() }
+      if (Math.sin(now / 260) > 0.6) R(g, '#fde047', 120 + (now / 40) % 30, 40, 3, 3)
+    }
+  },
   settings(g, now) {
     const s = skyFor(18)
     sky(g, s.top, s.bottom); hills(g, ...s.hill)

@@ -65,7 +65,7 @@ html[data-theme^="pixel"] .ui-progress > div {
 
 /* navigation */
 html[data-theme^="pixel"] .ui-nav { border-top: 2px solid var(--px-ink); background: var(--px-card); backdrop-filter: none; }
-html[data-theme^="pixel"] .ui-nav-item.ui-on { background: var(--px-ink); color: #fff; padding: 5px 0; margin: 0 4px; border-radius: 6px; }
+html[data-theme^="pixel"] .ui-nav-item.ui-on { background: var(--px-ink); color: #fff; padding: 5px 0; margin: 0 2px; border-radius: 6px; }
 html[data-theme^="pixel"] .ui-nav-item.ui-on svg { color: #34d399; }
 html[data-theme^="pixel"] .ui-aside { border-right: 2px solid var(--px-ink); background: var(--px-card); backdrop-filter: none; }
 html[data-theme^="pixel"] .ui-side-item.ui-on { background: var(--px-ink); color: #fff; }

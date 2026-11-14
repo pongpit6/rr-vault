@@ -65,6 +65,14 @@ export async function searchFunds(q) {
 }
 
 export const fxUSDTHB = (quotes) => quotes['THB=X']?.price || 34
+/** Yahoo symbol for THB per 1 unit of a currency (null for THB). */
+export const fxSym = (c) => (!c || c === 'THB' ? null : c === 'USD' ? 'THB=X' : `${c}THB=X`)
+/** THB per 1 unit of a currency (null when the rate isn't loaded yet). */
+export const fxOf = (c, quotes) => (!c || c === 'THB' ? 1 : c === 'USD' ? fxUSDTHB(quotes) : quotes[`${c}THB=X`]?.price || null)
+/** Quote currency guessed from a Yahoo ticker suffix. */
+export const ccyOfSymbol = (s = '') => (/\.BK$/.test(s) ? 'THB' : /\.HK$/.test(s) ? 'HKD' : /\.(SS|SZ)$/.test(s) ? 'CNY' : /\.T$/.test(s) ? 'JPY' : /\.SI$/.test(s) ? 'SGD' : /\.L$/.test(s) ? 'GBP' : 'USD')
+/** Short currency mark for prices. */
+export const ccyMark = (c) => ({ THB: '฿', USD: '$', HKD: 'HK$', CNY: '¥', JPY: '¥', EUR: '€', GBP: '£', SGD: 'S$' }[c] ?? (c ? c + ' ' : '฿'))
 
 /** Current unit price of an asset in its quote currency. */
 export function assetPrice(asset, quotes) {
