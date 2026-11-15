@@ -4,6 +4,7 @@
 // GET ?spark=AAPL,0700.HK&range=1mo      -> quote + close series per symbol (Market rows)
 // GET ?chart=AAPL&range=1y               -> one symbol's chart (Market detail)
 // GET ?oil=1                             -> Thai retail fuel prices (Bangchak + PTT OR)
+// GET ?fng=1                             -> Bitcoin Fear & Greed (CoinMarketCap intraday + Alternative.me daily)
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
 const CORS = {
@@ -181,6 +182,36 @@ async function oil() {
   return oilCache;
 }
 
+// Bitcoin Fear & Greed: CoinMarketCap's index (re-scored through the day) + Alternative.me (daily, the classic one)
+let fngCache: any = null, fngAt = 0;
+async function fng() {
+  if (fngCache && Date.now() - fngAt < 5 * 60_000) return fngCache;
+  const end = Math.floor(Date.now() / 1000), start = end - 90 * 86400;
+  const [c, a] = await Promise.allSettled([
+    fetch(`https://api.coinmarketcap.com/data-api/v3/fear-greed/chart?start=${start}&end=${end}`, { headers: UA }).then((r) => r.json()),
+    fetch("https://api.alternative.me/fng/?limit=90", { headers: UA }).then((r) => r.json()),
+  ]);
+  const out: any = { at: Date.now() };
+  if (c.status === "fulfilled" && c.value?.data) {
+    const d = c.value.data, hv = d.historicalValues || {};
+    const pick = (x: any) => (x ? { score: +x.score, name: x.name, t: +x.timestamp * 1000 } : null);
+    out.cmc = {
+      now: pick(hv.now), yesterday: pick(hv.yesterday), lastWeek: pick(hv.lastWeek), lastMonth: pick(hv.lastMonth),
+      yearHigh: pick(hv.yearlyHigh), yearLow: pick(hv.yearlyLow),
+      series: (d.dataList || []).map((x: any) => ({ t: +x.timestamp * 1000, v: +x.score, btc: +x.btcPrice || null })),
+    };
+  } else out.cmcError = c.status === "rejected" ? String(c.reason) : "no data";
+  if (a.status === "fulfilled" && a.value?.data?.length) {
+    const d = a.value.data;
+    out.alt = {
+      now: { score: +d[0].value, name: d[0].value_classification, t: +d[0].timestamp * 1000, nextIn: +d[0].time_until_update || null },
+      series: d.slice().reverse().map((x: any) => ({ t: +x.timestamp * 1000, v: +x.value })),
+    };
+  } else out.altError = a.status === "rejected" ? String(a.reason) : "no data";
+  if (out.cmc || out.alt) { fngCache = out; fngAt = Date.now(); }
+  return out;
+}
+
 async function search(q: string) {
   const r = await fetch(`https://query2.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(q)}&quotesCount=12&newsCount=0`, { headers: UA });
   if (!r.ok) return [];
@@ -195,6 +226,7 @@ Deno.serve(async (req) => {
   const url = new URL(req.url);
   try {
     if (url.searchParams.get("oil")) return json(await oil());
+    if (url.searchParams.get("fng")) return json(await fng());
     const ch = url.searchParams.get("chart");
     if (ch) return json(await chart(ch, url.searchParams.get("range") || "1mo"));
     const sp = url.searchParams.get("spark");

@@ -1,4 +1,5 @@
 import { previewSfx, sfx } from '../lib/sfx'
+import { AUTO_DARK_DEFAULT, useActiveTheme } from '../lib/theme'
 import { ACCENTS, DEFAULT_ACCENT, accentColors, applyAccent } from '../lib/accent'
 import { InsightsToggle } from '../components/Insights'
 import { useEffect, useRef, useState } from 'react'
@@ -267,9 +268,15 @@ function ThemePicker() {
   const backdropOff = useStore((s) => s.ui.backdropOff)
   const sfxOn = useStore((s) => s.ui.sfx)
   const setUi = useStore((s) => s.setUi)
+  const auto = { ...AUTO_DARK_DEFAULT, ...(useStore((s) => s.ui.autoDark) || {}) }
+  const active = useActiveTheme()
+  const setAuto = (p) => setUi({ autoDark: { ...auto, ...p } })
   return (
     <section className="card p-4 space-y-3" data-testid="theme-picker">
-      <div className="font-semibold">ธีมของแอป</div>
+      <div className="flex items-baseline justify-between">
+        <div className="font-semibold">ธีมของแอป</div>
+        {auto.on && theme !== 'pixel-night' && <div className="text-[11px] text-slate-500">ธีมที่เลือก = ใช้ตอนกลางวัน</div>}
+      </div>
       <div className="grid grid-cols-3 gap-2">
         {THEMES.map((t) => {
           const on = theme === t.id
@@ -288,7 +295,26 @@ function ThemePicker() {
           )
         })}
       </div>
-      {theme !== 'minimal' && (
+      <div className="rounded-2xl border border-slate-200 p-3 space-y-2.5" data-testid="auto-dark">
+        <button onClick={() => setAuto({ on: !auto.on })} className="w-full flex items-center gap-3 text-left text-sm" data-testid="auto-dark-toggle" aria-pressed={auto.on}>
+          <span className="text-lg">🌙</span>
+          <span className="flex-1">มืดอัตโนมัติ<span className="block text-[11px] text-slate-500">
+            {auto.on ? (active === 'pixel-night' && theme !== 'pixel-night' ? `ตอนนี้เป็นโหมดกลางคืน · กลับเป็นธีมกลางวันเวลา ${auto.to} น.` : `จะเปลี่ยนเป็น Pixel Night เวลา ${auto.from} น.`) : 'สลับเป็น Pixel Night ตอนค่ำ แล้วกลับเป็นธีมเดิมตอนเช้า'}
+          </span></span>
+          <span className={`w-10 h-[22px] rounded-full p-0.5 shrink-0 ${auto.on ? 'bg-ac' : 'bg-slate-900/10'}`}><span className={`block w-[18px] h-[18px] rounded-full bg-white transition ${auto.on ? 'translate-x-[18px]' : ''}`} /></span>
+        </button>
+        {auto.on && (
+          <div className="grid grid-cols-2 gap-2 pl-9">
+            <label className="text-[11px] text-slate-500">เริ่มมืด
+              <input type="time" value={auto.from} onChange={(e) => e.target.value && setAuto({ from: e.target.value })} className="field !py-1.5 mt-0.5 num" data-testid="auto-dark-from" />
+            </label>
+            <label className="text-[11px] text-slate-500">กลับสว่าง
+              <input type="time" value={auto.to} onChange={(e) => e.target.value && setAuto({ to: e.target.value })} className="field !py-1.5 mt-0.5 num" data-testid="auto-dark-to" />
+            </label>
+          </div>
+        )}
+      </div>
+      {active !== 'minimal' && (
         <button onClick={() => setUi({ backdropOff: !backdropOff })} className="w-full flex items-center gap-3 text-left text-sm py-1">
           <span className="flex-1">ฉากเกมจาง ๆ หลังแต่ละหน้า<span className="block text-[11px] text-slate-500">หน้าแรก = หมู่บ้าน · รายการ = ตลาด · เงิน = คลังสมบัติ · ลงทุน = หอคอยนักเวท · ตั้งค่า = โรงตีเหล็ก</span></span>
           <span className={`w-10 h-[22px] rounded-full p-0.5 shrink-0 ${!backdropOff ? 'bg-ac' : 'bg-slate-900/10'}`}><span className={`block w-[18px] h-[18px] rounded-full bg-white transition ${!backdropOff ? 'translate-x-[18px]' : ''}`} /></span>

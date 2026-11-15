@@ -1,4 +1,5 @@
 import PowerLawCard from '../components/PowerLawCard'
+import FearGreedCard from '../components/FearGreedCard'
 import { useEffect, useState } from 'react'
 import { Plus, RefreshCw, Radio, Pencil, Check, TrendingUp, TrendingDown, Trash2 } from 'lucide-react'
 import { Sheet, Button, Money, Empty, Label } from '../components/ui'
@@ -111,6 +112,8 @@ export default function Portfolio({ onTrade }) {
           )}
         </section>
       </div>
+
+      <FearGreedCard />
 
       <PowerLawCard />
 

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { LayoutDashboard, List, Plus, Wallet, Settings as Cog, Swords, LineChart, CandlestickChart } from 'lucide-react'
 import { applyAccent, DEFAULT_ACCENT } from './lib/accent'
+import { useActiveTheme } from './lib/theme'
 import { useStore, selectList } from './store'
 import Home from './screens/Home'
 import Transactions from './screens/Transactions'
@@ -128,7 +129,7 @@ export default function App() {
   const [form, setForm] = useState(null) // null | {} | txn
   const [trade, setTrade] = useState(null)
   const [sharedFiles, setSharedFiles] = useState(null)
-  const themeName = useStore((s) => s.ui.theme)
+  const themeName = useActiveTheme()
   const backdropOff = useStore((s) => s.ui.backdropOff)
   const [tabOpt, setTabOpt] = useState(() => (ALIAS[location.hash.slice(1)] || [])[1] || null)
   const go = (t, o = null) => { if (ALIAS[t]) { o = o || ALIAS[t][1]; t = ALIAS[t][0] } setTabOpt(o); setTab(t) }
@@ -277,15 +278,21 @@ function useTimeOfDay() {
 }
 
 function useTheme() {
-  const theme = useStore((s) => s.ui.theme) || 'pixel'
+  const theme = useActiveTheme()
+  const pick = useStore((s) => s.ui.theme) || 'pixel'
+  const auto = useStore((s) => s.ui.autoDark)
   const accent = useStore((s) => s.items.settings?.data?.accent) || DEFAULT_ACCENT
   const accentKey = JSON.stringify(accent)
   useEffect(() => {
     document.documentElement.dataset.theme = theme
-    try { localStorage.setItem('vault:theme', theme) } catch { /* private mode */ }
+    try {
+      localStorage.setItem('vault:theme', theme)
+      localStorage.setItem('vault:themePick', pick)
+      localStorage.setItem('vault:autoDark', JSON.stringify(auto || null))
+    } catch { /* private mode */ }
     const vars = applyAccent(accent)
     document.querySelector('meta[name=theme-color]')?.setAttribute('content', theme === 'pixel-night' ? '#0b1220' : vars['--ac-mid'])
-  }, [theme, accentKey]) // eslint-disable-line
+  }, [theme, pick, JSON.stringify(auto), accentKey]) // eslint-disable-line
 }
 
 function SlipHost({ shared, clearShared }) {

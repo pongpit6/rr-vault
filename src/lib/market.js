@@ -194,3 +194,27 @@ export const FUEL_TYPES = [
   { id: 'pd', label: 'ดีเซลพรีเมียม', color: '#7c3aed', bc: /พรีเมียม ดีเซล/, ptt: /Super Power Diesel/ },
   { id: 'p98', label: 'เบนซินพรีเมียม 98', color: '#db2777', bc: /98/, ptt: /^เบนซิน$/ },
 ]
+
+// ---------- Bitcoin Fear & Greed ----------
+export const useFng = create(() => ({ data: (() => { try { return JSON.parse(localStorage.getItem('vault:fng')) } catch { return null } })(), status: 'idle' }))
+export async function loadFng(force = false) {
+  const cur = useFng.getState()
+  if (!force && cur.data && Date.now() - (cur.data.at || 0) < 4 * 60_000) return
+  useFng.setState({ status: 'loading' })
+  try {
+    const d = await (await fetch(`${FN}?fng=1`, H)).json()
+    if (d.cmc?.now || d.alt?.now) {
+      useFng.setState({ data: d, status: 'ok' })
+      try { localStorage.setItem('vault:fng', JSON.stringify(d)) } catch { /* */ }
+    } else useFng.setState({ status: 'error' })
+  } catch { useFng.setState({ status: 'error' }) }
+}
+/** gauge bands (CoinMarketCap's 20-point bands); labels prefer the source's own classification */
+export const FNG_ZONES = [
+  { max: 20, th: 'กลัวสุดขีด', en: 'Extreme Fear', color: '#dc2626' },
+  { max: 40, th: 'กลัว', en: 'Fear', color: '#f97316' },
+  { max: 60, th: 'กลางๆ', en: 'Neutral', color: '#eab308' },
+  { max: 80, th: 'โลภ', en: 'Greed', color: '#84cc16' },
+  { max: 100, th: 'โลภสุดขีด', en: 'Extreme Greed', color: '#16a34a' },
+]
+export const fngZone = (v, name) => (name && FNG_ZONES.find((z) => z.en.toLowerCase() === String(name).toLowerCase())) || FNG_ZONES.find((z) => v <= z.max) || FNG_ZONES[4]

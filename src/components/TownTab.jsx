@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useActiveTheme } from '../lib/theme'
 import { Hammer, Users, Smile, Coins, ArrowUpCircle, Trash2, Sparkles, Repeat, TrendingUp } from 'lucide-react'
 import TownScene from './TownScene'
 import { Portrait } from './RpgBits'
@@ -40,7 +41,7 @@ const btn = 'px-3 py-1.5 text-xs font-semibold border-2 border-slate-800 disable
 export default function TownTab({ rpg }) {
   const T = rpg.town
   const showToast = useStore((s) => s.showToast)
-  const theme = useStore((s) => s.ui.theme)
+  const theme = useActiveTheme()
   const [sel, setSel] = useState(null) // plot index | 'hall' | null
   const [res, setRes] = useState(null)
   const party = rpg.party.filter((p) => p.joined && p.id !== 'knight').map((p) => p.id)

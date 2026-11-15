@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import { useActiveTheme } from '../lib/theme'
 import { useStore } from '../store'
 import { frame, drawStill, drawRealm, skyFor, mix, GROUND } from './BattleScene'
 import { drawTown, plotX } from './TownScene'
@@ -174,7 +175,7 @@ const SCENES = {
 
 export default function PageBackdrop({ tab, tier = 1, party = [], pet = 'pet_fox', hue = 0, town = null }) {
   const ref = useRef(null)
-  const theme = useStore((s) => s.ui.theme) || 'pixel'
+  const theme = useActiveTheme()
   const off = useStore((s) => s.ui.backdropOff)
   const O = useRef({})
   O.current = { tier, party, pet, hue, town, dark: theme === 'pixel-night' }
