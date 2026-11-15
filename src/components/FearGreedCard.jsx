@@ -23,13 +23,10 @@ const ago = (t) => {
 /** value at (or just before) `t` in a time-sorted series */
 const at = (series, t) => { let v = null; for (const p of series) { if (p.t <= t + 3600_000) v = p; else break } return v }
 
-export default function FearGreedCard() {
+/** keeps the index fresh (every 5 min while visible) and returns the chosen source's latest reading */
+export function useFngLive() {
   const data = useFng((s) => s.data)
-  const status = useFng((s) => s.status)
   const src0 = useStore((s) => s.ui.fngSrc) || 'cmc'
-  const setUi = useStore((s) => s.setUi)
-  const [range, setRange] = useState(30)
-
   useEffect(() => {
     loadFng()
     const id = setInterval(() => document.visibilityState === 'visible' && loadFng(), 5 * 60_000)
@@ -37,6 +34,21 @@ export default function FearGreedCard() {
     document.addEventListener('visibilitychange', vis)
     return () => { clearInterval(id); document.removeEventListener('visibilitychange', vis) }
   }, [])
+  const src = data?.[src0] ? src0 : data?.cmc ? 'cmc' : 'alt'
+  const d = data?.[src]
+  if (!d?.now) return null
+  const series = (d.series || []).slice().sort((a, b) => a.t - b.t)
+  const week = d.lastWeek || at(series, d.now.t - 7 * DAY)
+  return { now: d.now, zone: fngZone(d.now.score, d.now.name), week: week ? (week.score ?? week.v) : null, src }
+}
+
+export default function FearGreedCard({ bare = false }) {
+  const data = useFng((s) => s.data)
+  const status = useFng((s) => s.status)
+  const src0 = useStore((s) => s.ui.fngSrc) || 'cmc'
+  const setUi = useStore((s) => s.setUi)
+  const [range, setRange] = useState(30)
+  useFngLive()
 
   const src = data?.[src0] ? src0 : data?.cmc ? 'cmc' : 'alt'
   const d = data?.[src]
@@ -59,13 +71,13 @@ export default function FearGreedCard() {
   const fresh = view && Date.now() - view.now.t < 45 * 60_000
 
   return (
-    <section className="card p-4 md:p-5 space-y-4" data-testid="fng-card">
+    <section className={bare ? 'space-y-4' : 'card p-4 md:p-5 space-y-4'} data-testid="fng-card">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <div className="font-semibold flex items-center gap-2">
+          {!bare && <div className="font-semibold flex items-center gap-2">
             <span>Fear &amp; Greed Index</span>
             <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-orange-500/15 text-orange-600">BTC</span>
-          </div>
+          </div>}
           <div className="text-[11px] text-slate-500 flex items-center gap-1.5 mt-0.5">
             {view ? (
               <>
@@ -91,7 +103,7 @@ export default function FearGreedCard() {
       </div>
 
       {view && (
-        <div className="grid md:grid-cols-[minmax(240px,300px)_1fr] gap-5 items-center">
+        <div className={`grid gap-5 items-center ${bare ? '' : 'md:grid-cols-[minmax(240px,300px)_1fr]'}`}>
           <div className="flex flex-col items-center">
             <Gauge value={view.now.score} />
             <div className="mt-1 text-center">
@@ -152,7 +164,7 @@ export default function FearGreedCard() {
 }
 
 /** semicircle gauge: five coloured bands + needle */
-function Gauge({ value }) {
+export function Gauge({ value, dark = false, ticks = true, className = 'w-full max-w-[260px]' }) {
   const W = 240, R = 96, cx = W / 2, cy = 112, sw = 18
   const pt = (v, r = R) => { const a = Math.PI * (1 - v / 100); return [cx + r * Math.cos(a), cy - r * Math.sin(a)] }
   const arc = (a, b) => { const [x1, y1] = pt(a), [x2, y2] = pt(b); return `M${x1},${y1} A${R},${R} 0 0 1 ${x2},${y2}` }
@@ -161,14 +173,14 @@ function Gauge({ value }) {
   const ang = -90 + (shown / 100) * 180
   let lo = 0
   return (
-    <svg viewBox={`0 0 ${W} 128`} className="w-full max-w-[260px]" role="img" aria-label={`Fear and Greed ${value}`}>
+    <svg viewBox={`0 0 ${W} 128`} className={className} role="img" aria-label={`Fear and Greed ${value}`}>
       {FNG_ZONES.map((z) => { const p = arc(lo + 0.8, z.max - 0.8); lo = z.max; return <path key={z.en} d={p} stroke={z.color} strokeWidth={sw} fill="none" strokeLinecap="butt" opacity={0.9} /> })}
-      {[0, 25, 50, 75, 100].map((v) => { const [x, y] = pt(v, R - sw - 6); return <text key={v} x={x} y={y + 3} textAnchor="middle" fontSize="9" fill="currentColor" opacity=".45">{v}</text> })}
+      {ticks && [0, 25, 50, 75, 100].map((v) => { const [x, y] = pt(v, R - sw - 6); return <text key={v} x={x} y={y + 3} textAnchor="middle" fontSize="9" fill="currentColor" opacity=".45">{v}</text> })}
       <g style={{ transform: `rotate(${ang}deg)`, transformOrigin: `${cx}px ${cy}px`, transition: 'transform 900ms cubic-bezier(.2,.9,.25,1.15)' }}>
-        <path d={`M${cx - 5},${cy} L${cx},${cy - R + 4} L${cx + 5},${cy} Z`} fill="currentColor" className="text-slate-800" />
+        <path d={`M${cx - 5},${cy} L${cx},${cy - R + 4} L${cx + 5},${cy} Z`} fill={dark ? '#f8fafc' : 'currentColor'} className={dark ? '' : 'text-slate-800'} />
       </g>
-      <circle cx={cx} cy={cy} r="9" fill="currentColor" className="text-slate-800" />
-      <circle cx={cx} cy={cy} r="3.5" fill="#fff" />
+      <circle cx={cx} cy={cy} r="9" fill={dark ? '#f8fafc' : 'currentColor'} className={dark ? '' : 'text-slate-800'} />
+      <circle cx={cx} cy={cy} r="3.5" fill={dark ? '#0b1220' : '#fff'} />
     </svg>
   )
 }

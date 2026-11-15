@@ -1,4 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
+import { ChevronRight } from 'lucide-react'
+import { Sheet } from './ui'
+import FearGreedCard, { Gauge, useFngLive } from './FearGreedCard'
 import { usePrices, fxUSDTHB } from '../lib/prices'
 import { useStore } from '../store'
 import { useVault } from '../lib/useVault'
@@ -43,6 +46,8 @@ export default function PowerLawCard() {
   const privacy = useStore((s) => s.ui.privacy)
   const { portfolio } = useVault()
   const [tab, setTab] = useState('chart')
+  const [open, setOpen] = useState(null) // detail sheet: price | fng | net
+  const [allLots, setAllLots] = useState(false)
   const [hist, setHist] = useState(null)
   const [now, setNow] = useState(() => daysAt())
   useEffect(() => { loadHistory().then(setHist).catch(() => setHist([])) }, [])
@@ -82,19 +87,13 @@ export default function PowerLawCard() {
   }).sort((a, b) => a.d - b.d)
   const avg = btc?.qty > 0 && btc.avgPrice ? (ccy === 'THB' ? btc.cost / btc.qty / fx : btc.avgPrice) : null
 
-  return (
-    <section className="space-y-4" data-testid="powerlaw">
-      <div className="flex items-end justify-between gap-3">
-        <div>
-          <div className="text-[11px] font-bold tracking-[.14em] text-teal-700">BITCOIN POWER LAW</div>
-          <h2 className="text-xl font-bold">Floor อยู่ตรงไหนวันนี้?</h2>
-        </div>
-        <div className="pl-seg" role="group" aria-label="สกุลเงิน">
-          {['USD', 'THB'].map((c) => <button key={c} onClick={() => setUi({ plCcy: c })} className={ccy === c ? 'on' : ''}>{c}</button>)}
-        </div>
-      </div>
+  const fng = useFngLive()
+  const secs = String(Math.floor((now % 1) * 86400) % 60).padStart(2, '0')
+  const pctColor = pct == null ? '#94a3b8' : pct >= 0 ? (zone?.id === 'hot' ? '#fb923c' : '#4ade80') : '#fb7185'
+  const halvDays = net?.nextHalvingAt ? Math.floor(Math.max(0, net.nextHalvingAt - Date.now()) / 86400000) : null
 
-      <div className="grid lg:grid-cols-[1.15fr_1fr] gap-4">
+  const detailPanels = (
+      <div className="grid gap-3">
         {/* floor headline */}
         <div className="pl-dark p-5 flex flex-col justify-between gap-4">
           <div>
@@ -145,8 +144,61 @@ export default function PowerLawCard() {
           </p>
         </div>
       </div>
+  )
 
-      <NetworkCard net={net} err={netErr} />
+  return (
+    <section className="space-y-4" data-testid="powerlaw">
+      <div className="pl-dark p-4 md:p-5" data-testid="btc-today">
+        <div className="flex items-center justify-between gap-3 mb-3">
+          <div>
+            <div className="text-[11px] font-bold tracking-[.14em] text-amber-400">BITCOIN วันนี้</div>
+            <div className="text-[11px] text-slate-400">แตะแต่ละช่องเพื่อดูรายละเอียด</div>
+          </div>
+          <div className="pl-seg" role="group" aria-label="สกุลเงิน">
+            {['USD', 'THB'].map((c) => <button key={c} onClick={() => setUi({ plCcy: c })} className={ccy === c ? 'on' : ''}>{c}</button>)}
+          </div>
+        </div>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
+          <Tile label="ราคา BTC" badge={<span className={`flex items-center gap-1 text-[10px] ${live ? 'text-emerald-400' : 'text-slate-500'}`}><span className={`w-1.5 h-1.5 rounded-full ${live ? 'bg-emerald-400 animate-pulse' : 'bg-slate-500'}`} />{live ? 'LIVE' : 'ล่าสุด'}</span>} onClick={() => setOpen('price')} testid="tile-price">
+            <div className="text-xl md:text-2xl font-extrabold text-white tabular-nums leading-tight" data-testid="pl-price">{p ? M(p) : '—'}</div>
+            <div className="text-[11px] font-semibold tabular-nums" style={{ color: pctColor }} data-testid="pl-pct">{pct == null ? '' : `${Math.abs(pct).toFixed(pct > -10 && pct < 10 ? 1 : 0)}% ${pct >= 0 ? 'เหนือ Floor' : 'ต่ำกว่า Floor'}`}</div>
+            <div className="relative mt-2.5">
+              <div className="flex h-1.5 rounded-full overflow-hidden">
+                {zones.map((z) => <span key={z.id} style={{ width: `${(pos(Math.min(4, z.to)) - pos(Math.max(0.3, z.from))) * 100}%`, background: z.color }} />)}
+              </div>
+              {xTrend && <span className="absolute top-[3px] w-3 h-3 rounded-full bg-white -translate-x-1/2 -translate-y-1/2 shadow" style={{ left: `${pos(xTrend) * 100}%`, boxShadow: `0 0 0 2px ${zone?.color || '#fff'}` }} />}
+            </div>
+            {zone && <div className="text-[10px] text-slate-400 mt-1.5 truncate" data-testid="pl-zone">โซน: <b className="text-slate-200">{zone.name}</b></div>}
+          </Tile>
+          <Tile label="Floor · Power Law" onClick={() => setOpen('price')} testid="tile-floor">
+            <div className="flex items-start gap-0.5"><span className="text-xl md:text-2xl font-extrabold text-white tabular-nums leading-tight" data-testid="pl-floor">{M(floor)}</span><span className="text-[10px] font-bold text-emerald-400 tabular-nums">{secs}</span></div>
+            <div className="text-[11px] text-slate-400 tabular-nums">Trend {M(trend)}</div>
+            <div className="text-[10px] text-slate-400 mt-2.5">ตอนนี้ <b className="text-slate-200">{xTrend ? `${xTrend.toFixed(2)}×` : '—'}</b> Trend · Floor ขึ้นวันละ {M(floorAt(now + 1) - floor, 0)}</div>
+          </Tile>
+          <Tile label="Fear & Greed" onClick={() => setOpen('fng')} testid="tile-fng">
+            {fng ? (
+              <div className="flex items-center gap-2">
+                <Gauge value={fng.now.score} dark ticks={false} className="w-[64px] md:w-[72px] shrink-0 -mb-1" />
+                <div className="min-w-0">
+                  <div className="text-xl md:text-2xl font-extrabold tabular-nums leading-tight" style={{ color: fng.zone.color }} data-testid="tile-fng-score">{fng.now.score}</div>
+                  <div className="text-[11px] font-semibold truncate" style={{ color: fng.zone.color }}>{fng.zone.th}</div>
+                </div>
+              </div>
+            ) : <div className="text-sm text-slate-500">กำลังโหลด…</div>}
+            {fng?.week != null && <div className="text-[10px] text-slate-400 mt-1.5">7 วันก่อน {fng.week} · <span className={fng.now.score - fng.week >= 0 ? 'text-emerald-400' : 'text-rose-400'}>{fng.now.score - fng.week >= 0 ? '▲' : '▼'} {Math.abs(fng.now.score - fng.week)} จุด</span></div>}
+          </Tile>
+          <Tile label="Halving ครั้งที่ 5" onClick={() => setOpen('net')} testid="tile-halving">
+            <div className="text-xl md:text-2xl font-extrabold text-white tabular-nums leading-tight" data-testid="pl-halving-days">{halvDays != null ? `อีก ${halvDays.toLocaleString()} วัน` : '—'}</div>
+            <div className="text-[11px] text-slate-400 tabular-nums">{net ? `บล็อก ${net.height.toLocaleString()} · ${net.avgMin ? net.avgMin.toFixed(1) : '—'} นาที` : netErr ? 'ออฟไลน์' : 'กำลังโหลด…'}</div>
+            {net && <div className="h-1.5 rounded-full bg-white/10 mt-2.5 overflow-hidden"><div className="h-full rounded-full" style={{ width: `${Math.max(0, Math.min(1, net.epochPct)) * 100}%`, background: 'linear-gradient(90deg,#8b5cf6,#c4b5fd)' }} /></div>}
+            {net && <div className="text-[10px] text-slate-400 mt-1.5">รอบนี้ผ่านไป {(net.epochPct * 100).toFixed(1)}% · รางวัล {net.reward} BTC</div>}
+          </Tile>
+        </div>
+      </div>
+
+      <Sheet open={open === 'price'} onClose={() => setOpen(null)} title="ราคา BTC เทียบ Floor" wide>{detailPanels}</Sheet>
+      <Sheet open={open === 'fng'} onClose={() => setOpen(null)} title="Fear & Greed Index · BTC" wide><FearGreedCard bare /></Sheet>
+      <Sheet open={open === 'net'} onClose={() => setOpen(null)} title="เครือข่าย Bitcoin วันนี้" wide><NetworkCard net={net} err={netErr} /></Sheet>
 
       <div className="card p-3 md:p-5">
         <div className="pl-seg mb-3" role="tablist">
@@ -167,7 +219,7 @@ export default function PowerLawCard() {
               <table className="w-full text-sm min-w-[420px]">
                 <thead><tr className="text-[11px] text-slate-500 text-left"><th className="font-medium px-1 pb-1.5">วันที่ซื้อ</th><th className="font-medium px-1 pb-1.5 text-right">ราคา</th><th className="font-medium px-1 pb-1.5 text-right">ตอนซื้อเทียบ Floor</th><th className="font-medium px-1 pb-1.5 text-right">ตอนนี้</th></tr></thead>
                 <tbody>
-                  {lots.map((l, i) => (
+                  {(allLots ? lots : lots.slice(-3)).map((l, i) => (
                     <tr key={i} className="border-t border-slate-100">
                       <td className="px-1 py-2">{dLabel(l.d)}</td>
                       <td className="px-1 py-2 text-right tabular-nums">{M(l.p)}</td>
@@ -178,6 +230,7 @@ export default function PowerLawCard() {
                 </tbody>
               </table>
             </div>
+            {lots.length > 3 && <button onClick={() => setAllLots(!allLots)} className="ui-link text-xs font-medium mt-1.5" data-testid="lots-more">{allLots ? 'ย่อ' : `ดูทั้งหมด (${lots.length})`}</button>}
             <div className="text-[11px] text-slate-500 mt-1.5">ยิ่ง % ตอนซื้อใกล้ 0 = ซื้อใกล้ Floor (ถูกตามโมเดล) · กด “ช่วงที่ฉันซื้อ” เพื่อซูมไปดูไม้บนกราฟ</div>
           </div>
         )}
@@ -188,6 +241,15 @@ export default function PowerLawCard() {
         {ccy === 'THB' && <> · แปลงเป็นบาทด้วยเรทวันนี้ {fx.toFixed(2)}</>} · เป็นโมเดลสถิติจากอดีต ไม่ได้รับประกันอนาคต และไม่ใช่คำแนะนำการลงทุน
       </p>
     </section>
+  )
+}
+
+function Tile({ label, badge, onClick, children, testid }) {
+  return (
+    <button onClick={onClick} data-testid={testid} className="pl-tile p-3 text-left flex flex-col min-w-0 transition group">
+      <span className="flex items-center justify-between gap-1 mb-1 text-[10.5px] text-slate-400 font-semibold tracking-wide">{label}<span className="flex items-center gap-1">{badge}<ChevronRight size={12} className="text-slate-500 group-hover:text-slate-300" /></span></span>
+      {children}
+    </button>
   )
 }
 

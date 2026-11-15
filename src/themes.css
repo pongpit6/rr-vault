@@ -175,3 +175,5 @@ html[data-theme="pixel-night"] { --color-sky-600: var(--ac-hi); }
 html[data-theme="pixel-night"] .ui-link, html[data-theme="pixel-night"] .text-ac { color: var(--ac-hi); }
 html[data-theme="pixel-night"] :is(button, label).bg-slate-900.text-white, html[data-theme="pixel-night"] .ui-pick-on { background-color: var(--ac-hi); border-color: var(--ac-hi); color: #04140f; }
 html[data-theme="pixel-night"] .grad-bg.text-white, html[data-theme="pixel-night"] .grad-bg .text-white { color: #fff; }
+.pl-tile { background: rgba(148,163,184,.08); border: 1px solid rgba(148,163,184,.15); border-radius: 12px; }
+.pl-tile:hover { background: rgba(148,163,184,.14); }
