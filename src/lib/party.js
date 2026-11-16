@@ -72,8 +72,10 @@ export function computeParty({ accounts, txns, summary, portfolio, settings, cat
   const avgExp = monthsArr.length ? monthsArr.reduce((s, m) => s + m.exp, 0) / monthsArr.length : 0
   const safeCash = (summary.byType.cash || 0) + (summary.byType.savings || 0) + (summary.byType.saving || 0) + Math.max(0, (summary.reserve || 0) - (summary.target || 0))
   const emergencyMonths = avgExp > 0 ? Math.max(0, safeCash) / avgExp : 0
-  let debtPaid = 0, reserveIn = 0, investIn = 0, buys = 0, incomes = 0
+  let debtPaid = 0, reserveIn = 0, investIn = 0, buys = 0, incomes = 0, savingIn = 0
   for (const t of txns) {
+    if (t.kind === 'transfer' && isType(t.to, 'saving') && !isType(t.account, 'saving')) savingIn += t.amount
+    if (t.kind === 'income' && t.split) for (const [k, v] of Object.entries(t.split)) if (isType(k, 'saving')) savingIn += v
     if (t.kind === 'payment' && isType(t.to, 'credit', 'loan')) debtPaid += t.amount
     if (t.kind === 'transfer' && isType(t.to, 'reserve') && !isType(t.account, 'reserve')) reserveIn += t.amount
     if (t.kind === 'transfer' && isType(t.to, 'invest') && !isType(t.account, 'invest')) investIn += t.amount
@@ -81,7 +83,7 @@ export function computeParty({ accounts, txns, summary, portfolio, settings, cat
     if (t.kind === 'trade' && t.side === 'buy') buys++
     if (t.kind === 'income') incomes++
   }
-  debtPaid = round2(debtPaid); reserveIn = round2(reserveIn); investIn = round2(investIn)
+  debtPaid = round2(debtPaid); reserveIn = round2(reserveIn); investIn = round2(investIn); savingIn = round2(savingIn)
 
   // joining: once true it stays (the date is kept in the rpg item)
   const joinedData = data.joined || {}
@@ -133,7 +135,7 @@ export function computeParty({ accounts, txns, summary, portfolio, settings, cat
   const decos = Object.fromEntries(SHOP.filter((i) => i.type === 'deco' && owned[i.id] && !(data.decoOff || {})[i.id]).map((i) => [i.id, true]))
 
   const log = buildLog({ txns, accById, catById, pm, gearBy, has, data, privacy, avgDaily: avgExp / 30, summary })
-  return { party, newlyJoined, gear, gearBy, skills, owned, equip, pet, skin, decos, log, totals: { debtPaid, reserveIn, investIn, incomes, invTotal, emergencyMonths } }
+  return { party, newlyJoined, gear, gearBy, skills, owned, equip, pet, skin, decos, log, totals: { debtPaid, reserveIn, investIn, savingIn, incomes, invTotal, emergencyMonths } }
 }
 
 /* ---------------- adventure log ---------------- */

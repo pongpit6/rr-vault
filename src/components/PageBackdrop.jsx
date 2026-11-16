@@ -47,7 +47,7 @@ const SCENES = {
       const span = Math.max(0, plotX(last) + 70 - 200)
       const off = Math.round(((Math.sin(now / 24000) + 1) / 2) * span)
       g.save(); g.translate(-off, 0)
-      const fg = drawTown(g, o.town, now, { party: o.party.filter((p) => p !== 'knight'), pet: o.pet, hue: o.hue, dark: o.dark })
+      const fg = drawTown(g, o.town, now, { party: o.party.filter((p) => p !== 'knight'), pet: o.pet, hue: o.hue, dark: o.dark, world: o.world })
       g.restore()
       return () => { g.save(); g.translate(-off * 2, 0); fg(); g.restore() }
     }
@@ -173,12 +173,12 @@ const SCENES = {
   },
 }
 
-export default function PageBackdrop({ tab, tier = 1, party = [], pet = 'pet_fox', hue = 0, town = null }) {
+export default function PageBackdrop({ tab, tier = 1, party = [], pet = 'pet_fox', hue = 0, town = null, world = null }) {
   const ref = useRef(null)
   const theme = useActiveTheme()
   const off = useStore((s) => s.ui.backdropOff)
   const O = useRef({})
-  O.current = { tier, party, pet, hue, town, dark: theme === 'pixel-night' }
+  O.current = { tier, party, pet, hue, town, world, dark: theme === 'pixel-night' }
   const scene = SCENES[tab]
   const show = scene && !off && theme !== 'minimal'
   useEffect(() => {
@@ -213,5 +213,6 @@ export function BackdropHost({ tab }) {
   const hue = (data.owned || {})[data.equip?.skin] ? ({ skin_royal: 120, skin_flame: 200 }[data.equip.skin] || 0) : 0
   const tier = data.tier ?? (net == null ? 1 : net < 0 ? 0 : net < 10000 ? 1 : net < 100000 ? 2 : net < 1000000 ? 3 : 4)
   const town = data.town ? computeTown(data, { realmTier: tier }) : null
-  return <PageBackdrop tab={tab} tier={tier} party={party} pet={pet} hue={hue} town={town} />
+  const world = useStore((s) => s.ui._worldCache) || null
+  return <PageBackdrop tab={tab} tier={tier} party={party} pet={pet} hue={hue} town={town} world={world} />
 }

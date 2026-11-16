@@ -13,7 +13,7 @@ export function useBattleEvents(rpg) {
     owed: Object.fromEntries(rpg.bosses.map((b) => [b.id, b.hp])),
     level: rpg.level,
     ach: rpg.achievements.filter((a) => a.unlockedAt || a.ready).map((a) => a.id),
-    inv: rpg.totals.investIn, res: rpg.totals.reserveIn, inc: rpg.totals.incomes,
+    inv: rpg.totals.investIn, res: rpg.totals.reserveIn, inc: rpg.totals.incomes, sav: rpg.totals.savingIn || 0,
     party: rpg.party.filter((p) => p.joined).map((p) => p.id),
   }), [rpg])
   const snapKey = JSON.stringify(snap), seenKey = JSON.stringify(seen || null)
@@ -21,7 +21,7 @@ export function useBattleEvents(rpg) {
   useEffect(() => { if (!seen) setUi({ rpgSeen: snap }) }, [seenKey]) // eslint-disable-line
   const consume = () => setUi({ rpgSeen: snap })
   // older saved snapshots lack the new fields: fill them in without replaying history
-  useEffect(() => { if (seen && seen.inv === undefined) setUi({ rpgSeen: { ...seen, inv: snap.inv, res: snap.res, inc: snap.inc, party: snap.party } }) }, [seenKey]) // eslint-disable-line
+  useEffect(() => { if (seen && (seen.inv === undefined || seen.sav === undefined)) setUi({ rpgSeen: { ...seen, inv: seen.inv ?? snap.inv, res: seen.res ?? snap.res, inc: seen.inc ?? snap.inc, sav: seen.sav ?? snap.sav, party: seen.party ?? snap.party } }) }, [seenKey]) // eslint-disable-line
   return { events, consume }
 }
 

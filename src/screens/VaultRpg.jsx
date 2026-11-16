@@ -359,9 +359,10 @@ function QuestsTab({ rpg, onAdd }) {
   const groups = ['รายวัน', 'รายสัปดาห์', 'รายเดือน', 'เควสต์หลัก']
   return (
     <div className="space-y-4">
-      <Section icon={Swords} title="BOSS · หนี้ที่ต้องปราบ">
+      <RankCard rpg={rpg} />
+      <Section icon={Swords} title="BOSS · หนี้และเป้าหมาย">
         {rpg.bosses.length === 0 ? (
-          <div className="text-sm text-slate-500 py-2">ยังไม่มีบอส ถ้ามีหนี้บัตรหรือเงินกู้ ให้ใส่ยอดในหน้า “เงิน” แล้วบอสจะปรากฏ</div>
+          <div className="text-sm text-slate-500 py-2">ยังไม่มีบอส ตั้งเป้าหมายการออมในหน้าแผน หรือถ้ามีหนี้บัตรหรือเงินกู้ ให้ใส่ยอดในหน้า “เงิน” แล้วบอสจะปรากฏ</div>
         ) : (
           <div className="space-y-3">
             {rpg.bosses.map((b) => (
@@ -376,7 +377,7 @@ function QuestsTab({ rpg, onAdd }) {
                   <div className="px-hp mt-1.5"><div style={{ width: `${(b.hp / b.maxHp) * 100}%` }} /></div>
                   <div className="flex justify-between text-[11px] text-slate-500 mt-1"><span>HP <Money value={b.hp} decimals={false} /></span><span>ดาเมจรวม <Money value={b.damage} decimals={false} /></span></div>
                 </div>
-                {b.active && <button onClick={() => onAdd({ kind: 'payment', to: b.id })} className="px-btn shrink-0" title="บันทึกชำระหนี้"><Swords size={15} /><span className="hidden sm:inline">โจมตี</span></button>}
+                {b.active && <button onClick={() => onAdd(b.isGoal ? { kind: 'transfer', to: b.goal.account } : { kind: 'payment', to: b.id })} className="px-btn shrink-0" title={b.isGoal ? 'โอนเงินเข้าเป้าหมาย' : 'บันทึกชำระหนี้'}><Swords size={15} /><span className="hidden sm:inline">โจมตี</span></button>}
               </div>
             ))}
           </div>
@@ -469,6 +470,23 @@ function StatusTab({ rpg, go }) {
           <div className="space-y-1.5 text-sm">{rpg.xpParts.map(([label, v]) => <div key={label} className="flex justify-between"><span className="text-slate-600">{label}</span><span className="px-font text-[10px] text-amber-600">+{v}</span></div>)}</div>
         ) : <div className="text-sm text-slate-500">เริ่มบันทึกรายการเพื่อรับ XP แรก</div>}
       </Section>
+    </div>
+  )
+}
+
+/** Saver rank: share of this month's income that went to saving/investing/reserve. Shown as the flag on the town hall too. */
+function RankCard({ rpg }) {
+  const r = rpg.rank
+  const pct = (x) => x == null ? '—' : `${Math.round(x * 100)}%`
+  return (
+    <div className="px-inner p-3 flex items-center gap-3" data-testid="rank-card">
+      <div className="w-12 h-12 grid place-items-center text-2xl bg-amber-50 shrink-0">{r.emoji}</div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-baseline gap-2"><span className="font-semibold text-sm">{r.name}</span><span className="text-[11px] text-slate-500">ยศนักออม</span></div>
+        <div className="text-xs text-slate-500">เดือนนี้ออม+ลงทุน <b className="num text-slate-700">{pct(r.thisMonth)}</b> ของรายรับ{r.lastMonth != null ? <> · เดือนก่อน {pct(r.lastMonth)}</> : null}</div>
+        <div className="px-hp mt-1.5"><div style={{ width: `${Math.min(100, (r.ratio / 0.3) * 100)}%`, background: '#f59e0b' }} /></div>
+        <div className="text-[11px] text-slate-500 mt-1">{r.next ? `ถึง ${Math.round(r.next * 100)}% เพื่อเลื่อนยศ` : 'ยศสูงสุดแล้ว ธงทองปักบนศาลากลาง'}</div>
+      </div>
     </div>
   )
 }

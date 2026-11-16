@@ -5,6 +5,9 @@ import { useVault } from './useVault'
 import { postingsOf } from './ledger'
 import { round2, todayISO, monthKey } from './format'
 import { computeParty } from './party'
+import { useWeather, loadWeather, sceneWeather, thaiEvent, isThaiHoliday, moneyMood } from './world'
+import { usePrices } from './prices'
+import { budgetStatus } from './plan'
 import { computeTown, computeWallet, priceOf, inflationMult, exchangeRate, EXCHANGE_WEEKLY, BUILDINGS, HALL, NPC_BY_ID, DECOR_BY_ID, GEM_TO_FIAT, weekKey } from './town'
 
 /**
@@ -63,11 +66,12 @@ export const ACHIEVEMENTS = [
   { id: 'nw1m', name: 'ราชาแห่งเกาะ', desc: 'มูลค่าสุทธิถึง 1,000,000', icon: 'gem' },
 ]
 
-function computeRpg({ accounts, txns, settings, balances, summary, unlocked, portfolio, goals = [], budgets = [], catById = {}, data = {}, privacy = false }) {
+function computeRpg({ accounts, txns, settings, balances, summary, unlocked, portfolio, goals = [], budgets = [], catById = {}, data = {}, privacy = false, wx = null, btcPct = null }) {
   portfolio ||= { open: [], value: 0, pnlPct: 0, byType: {} }
   const typesHeld = Object.keys(portfolio.byType).filter((k) => portfolio.byType[k] > 0).length
   const accById = Object.fromEntries(accounts.map((a) => [a.id, a]))
   const today = todayISO()
+  const evNow = thaiEvent(today, settings.payday)
   const chrono = [...txns].sort((a, b) => (a.date + (a.createdAt || '')).localeCompare(b.date + (b.createdAt || '')))
 
   // ---------- bosses (each debt account) ----------
@@ -90,6 +94,17 @@ function computeRpg({ accounts, txns, settings, balances, summary, unlocked, por
       defeated: peak > 0 && owed <= 0, active: owed > 0,
     }
   }).filter((b) => b.maxHp > 0)
+  // ---------- goal bosses: each savings goal is a creature you defeat by filling it ----------
+  const goalBosses = goals.filter((g) => g.target > 0 && g.account).map((g) => {
+    const saved = Math.max(0, balances[g.account] || 0)
+    const left = Math.max(0, round2(g.target - saved))
+    return {
+      id: `goal:${g.id}`, goal: g, sprite: 'slime', name: 'สไลม์เป้าหมาย', en: 'Goal Slime', accName: g.name,
+      hp: left, maxHp: g.target, damage: round2(Math.min(saved, g.target)), hits: 0,
+      level: Math.max(1, Math.ceil(g.target / 10000)), defeated: saved >= g.target, active: left > 0, isGoal: true,
+    }
+  })
+  bosses.push(...goalBosses)
 
   // ---------- activity ----------
   const days = new Map()
@@ -140,6 +155,25 @@ function computeRpg({ accounts, txns, settings, balances, summary, unlocked, por
     if (t.kind === 'income' && t.split) for (const [k, v] of Object.entries(t.split)) if (investIds.has(k)) investIn += v
     if (t.kind === 'transfer' && investIds.has(t.to) && !investIds.has(t.account)) investIn += t.amount
   }
+
+  // ---------- saver rank: (saving + invest + reserve inflow) / income, this month and last ----------
+  const rankOf = (ratio) => ratio >= 0.3 ? { id: 'legend', name: 'ตำนานนักออม', emoji: '👑', min: 0.3 } : ratio >= 0.2 ? { id: 'sage', name: 'ปราชญ์การเงิน', emoji: '🔮', min: 0.2 } : ratio >= 0.1 ? { id: 'saver', name: 'นักออม', emoji: '🐷', min: 0.1 } : { id: 'novice', name: 'ฝึกหัด', emoji: '🌱', min: 0 }
+  const saveRatioOf = (mk) => {
+    let inc = 0, sav = 0
+    const typeOf = (id) => accById[id]?.type
+    for (const t of txns) {
+      if (monthKey(t.date) !== mk) continue
+      if (t.kind === 'income') { inc += t.amount; if (t.split) for (const [k, v] of Object.entries(t.split)) if (['saving', 'invest', 'reserve'].includes(typeOf(k))) sav += v }
+      if (t.kind === 'transfer' && ['saving', 'invest', 'reserve'].includes(typeOf(t.to)) && !['saving', 'invest', 'reserve'].includes(typeOf(t.account))) sav += t.amount
+      if (t.kind === 'trade' && t.side === 'buy' && t.account && !['invest'].includes(typeOf(t.account))) sav += t.total || t.amount || 0
+    }
+    return inc > 0 ? Math.min(1, sav / inc) : null
+  }
+  const thisMonthRatio = saveRatioOf(monthKey(today))
+  const lastMonthKey = (() => { const d = new Date(today + 'T12:00:00'); d.setMonth(d.getMonth() - 1); return monthKey(d.toISOString().slice(0, 10)) })()
+  const lastMonthRatio = saveRatioOf(lastMonthKey)
+  const rankRatio = thisMonthRatio ?? lastMonthRatio ?? 0
+  const rank = { ...rankOf(rankRatio), ratio: rankRatio, thisMonth: thisMonthRatio, lastMonth: lastMonthRatio, next: [0.1, 0.2, 0.3].find((x) => x > rankRatio) ?? null }
 
   // ---------- achievements (persisted once unlocked) ----------
   const goodMonths = Object.values(months).filter((m) => m.inc > 0 && (m.inc - m.exp) / m.inc >= 0.2).length
@@ -224,8 +258,8 @@ function computeRpg({ accounts, txns, settings, balances, summary, unlocked, por
   const aliveBosses = bosses.filter((b) => b.active)
   const mk = monthKey(today)
   const quests = [
-    { tier: 'รายวัน', key: `d:${today}:1`, name: 'บันทึกรายการวันนี้', progress: Math.min(1, todayCount), goal: 1, fiat: 20 },
-    { tier: 'รายวัน', key: `d:${today}:3`, name: 'บันทึกให้ครบ 3 รายการ', progress: Math.min(3, todayCount), goal: 3, fiat: 20 },
+    { tier: 'รายวัน', key: `d:${today}:1`, name: 'บันทึกรายการวันนี้', progress: Math.min(1, todayCount), goal: 1, fiat: 20 * (evNow?.id === 'newyear' ? 2 : 1) },
+    { tier: 'รายวัน', key: `d:${today}:3`, name: 'บันทึกให้ครบ 3 รายการ', progress: Math.min(3, todayCount), goal: 3, fiat: 20 * (evNow?.id === 'newyear' ? 2 : 1) },
     { tier: 'รายสัปดาห์', key: `w:${startOfWeek}:days`, name: 'บันทึกครบ 5 วันในสัปดาห์นี้', progress: Math.min(5, weekDays), goal: 5, gold: 2 },
     { tier: 'รายสัปดาห์', key: `w:${startOfWeek}:nospend`, name: 'มีวันที่ไม่ใช้จ่ายเลย 2 วัน', progress: Math.min(2, noSpend), goal: 2, gold: 2, hint: 'นับวันที่ผ่านไปแล้วของสัปดาห์นี้' },
     aliveBosses.length
@@ -251,19 +285,34 @@ function computeRpg({ accounts, txns, settings, balances, summary, unlocked, por
   // weather mirrors this month's money: overspending brings storms, otherwise the Thai season
   const mo = new Date().getMonth() + 1
   const dayHash = [...today].reduce((h, c) => (h * 31 + c.charCodeAt(0)) % 997, 7) / 997
-  const weather = cur.inc > 0 && cur.exp > cur.inc ? 'storm'
-    : mo >= 6 && mo <= 10 && dayHash < 0.45 ? 'rain'
-    : (mo >= 11 || mo <= 2) ? 'leaves' : 'sun'
+  const overspend = cur.inc > 0 && cur.exp > cur.inc
+  const real = sceneWeather(wx)
+  const weather = overspend ? 'storm'
+    : real === 'rain' || real === 'storm' || real === 'fog' ? real
+    : real === 'sun' && (mo >= 11 || mo <= 2) ? 'leaves'
+    : real || (mo >= 6 && mo <= 10 && dayHash < 0.45 ? 'rain' : (mo >= 11 || mo <= 2) ? 'leaves' : 'sun')
 
   const realm = realmNow
   const nextRealm = REALMS.find((r) => r.min > summary.net)
   const party = computeParty({ accounts, txns, summary, portfolio, settings, catById, level: lv.level, into: lv.into, need: lv.need, streak, bestStreak, goodMonths, months, data: { ...data, unlocked }, privacy })
+  // ---------- the living world: real weather, Thai calendar, money mood, market mood ----------
+  const budgetStates = budgetStatus(budgets, txns)
+  const event = evNow
+  const world = {
+    weather, real, wx, event, holiday: isThaiHoliday(today),
+    mood: moneyMood({ budgets: budgetStates, rank, overspend }),
+    btc: btcPct == null ? 'flat' : btcPct <= -5 ? 'crash' : btcPct >= 5 ? 'pump' : 'flat', btcPct,
+    aurora: noSpendStreak >= 7,
+    tree: Math.min(5, Math.floor((party.totals.savingIn || 0) / 2000)), // golden tree grows with lifetime saving
+    sunrise: wx?.sunrise || '06:10', sunset: wx?.sunset || '18:10', temp: wx?.temp,
+  }
 
   return {
     inventory: portfolio.open, portfolioValue: portfolio.value,
     xp, xpParts, ...lv, title: title[1], titleEn: title[2], stats, bosses, quests, achievements, newlyUnlocked,
     streak, bestStreak, realm, nextRealm, weather, loggedToday: todayCount, debtFog, town, wallet, days,
     noSpendStreak, noSpendTotal, noSpendToday: !!noSpendMarks[today], spentToday: spendDays.has(today),
+    rank, goalBosses, world,
     ...party,
   }
 }
@@ -279,8 +328,20 @@ export function useRpg() {
   const items = useStore((s) => s.items)
   const goals = useMemo(() => Object.values(items).filter((i) => i.kind === 'goal' && !i.deleted).map((i) => i.data), [items])
   const budgets = useMemo(() => Object.values(items).filter((i) => i.kind === 'budget' && !i.deleted).map((i) => i.data), [items])
-  const rpg = useMemo(() => computeRpg({ ...v, unlocked, goals, budgets, data, privacy }), [key, goals.length, budgets.length, JSON.stringify(data)]) // eslint-disable-line
+  const wx = useWeather((s) => s.data)
+  const btcPct = usePrices((s) => s.quotes['BTC-USD']?.changePct ?? null)
+  useEffect(() => {
+    const w = v.settings?.weather
+    if (!w?.lat) return
+    loadWeather(w.lat, w.lon)
+    const id = setInterval(() => document.visibilityState === 'visible' && loadWeather(w.lat, w.lon), 20 * 60_000)
+    return () => clearInterval(id)
+  }, [v.settings?.weather?.lat, v.settings?.weather?.lon])
+  const rpg = useMemo(() => computeRpg({ ...v, unlocked, goals, budgets, data, privacy, wx, btcPct: btcPct == null ? null : Math.round(btcPct) }), [key, goals.length, budgets.length, JSON.stringify(data), wx?.at, wx?.code, btcPct == null ? null : Math.round(btcPct)]) // eslint-disable-line
   const chestReady = rpg.loggedToday > 0 && data.chestLast !== todayISO()
+  const setUi = useStore((s) => s.setUi)
+  const worldLite = JSON.stringify({ weather: rpg.world.weather, event: rpg.world.event?.id || null, mood: rpg.world.mood.id, btc: rpg.world.btc, aurora: rpg.world.aurora, tree: rpg.world.tree, rank: rpg.rank.id, holiday: rpg.world.holiday })
+  useEffect(() => { if (JSON.stringify(useStore.getState().ui._worldCache || null) !== worldLite) setUi({ _worldCache: JSON.parse(worldLite) }) }, [worldLite]) // eslint-disable-line
   const fresh = () => useStore.getState().items.rpg?.data || {}
   const save = (patch) => put('rpg', { ...fresh(), id: 'rpg', ...patch })
   const { fiat, gold } = rpg.wallet
@@ -295,7 +356,8 @@ export function useRpg() {
   /** "วันนี้ไม่ใช้เงิน": FIAT grows with the run, every 3rd day in a row pays GOLD */
   const noSpendReward = (() => {
     const run = rpg.noSpendToday ? rpg.noSpendStreak : rpg.noSpendStreak + 1
-    return { run, fiat: 30 + 10 * Math.min(7, run), gold: run % 3 === 0 ? 1 : 0 }
+    const x2 = rpg.world.event?.id === 'songkran' ? 2 : 1
+    return { run, fiat: (30 + 10 * Math.min(7, run)) * x2, gold: run % 3 === 0 ? 1 : 0 }
   })()
   const markNoSpend = () => {
     if (rpg.noSpendToday || rpg.spentToday) return null
@@ -318,7 +380,7 @@ export function useRpg() {
     save({ fiat: (d.fiat || 0) + gain, chestLast: todayISO(), chestCount: (d.chestCount || 0) + 1, chestLog: [...(d.chestLog || []).slice(-40), { at: now(), gain, ccy: 'fiat', rare: roll > 0.9 }] })
     return { gain, rare: roll > 0.9, tip, bonus, double }
   }
-  const shopPrice = (item) => priceOf([item.price * GEM_TO_FIAT, 0], data, { discount: rpg.town.shopDiscount })
+  const shopPrice = (item) => priceOf([item.price * GEM_TO_FIAT, 0], data, { discount: rpg.town.shopDiscount + (rpg.world.event?.id === 'payday' ? 10 : 0) })
   const buy = (item) => {
     const d = fresh(), p = shopPrice(item)
     if ((d.owned || {})[item.id] || !afford(p)) return false
@@ -391,7 +453,8 @@ export function useRpg() {
     if (!collectReady) return null
     const interest = T.bankRate ? Math.min(T.bankCap, Math.round((fiat * T.bankRate) / 100)) : 0
     const luckyGold = T.goldChance && Math.random() * 100 < T.goldChance ? 1 : 0
-    const f = T.dailyFiat + interest
+    const festive = rpg.world.event?.id === 'xmas' ? 1.5 : 1
+    const f = Math.round(T.dailyFiat * festive) + interest
     sfx('coin')
     pay(f, luckyGold, { icon: '🧺', text: `เก็บรายได้เมือง${interest ? ` (ดอกเบี้ยธนาคาร ${interest})` : ''}${luckyGold ? ' · เหมืองเจอทองคำ!' : ''}` }, { collectLast: todayISO() })
     return { fiat: f, interest, gold: luckyGold }
@@ -464,6 +527,7 @@ export function diffEvents(prev, snap, bosses) {
   if (prev.inv !== undefined && snap.inv > prev.inv + 0.5) ev.push({ type: 'skill', member: 'mage', skill: snap.inv - prev.inv >= 5000 ? 'meteor' : 'fireball', amount: round2(snap.inv - prev.inv) })
   if (prev.res !== undefined && snap.res > prev.res + 0.5) ev.push({ type: 'skill', member: 'healer', skill: 'shield', amount: round2(snap.res - prev.res) })
   if (prev.inc !== undefined && snap.inc > prev.inc) ev.push({ type: 'skill', member: 'healer', skill: 'heal' })
+  if (prev.sav !== undefined && snap.sav > prev.sav + 0.5) ev.push({ type: 'skill', member: 'mage', skill: 'bless', amount: round2(snap.sav - prev.sav), text: `ร่ายเวทออม +${Math.round(snap.sav - prev.sav).toLocaleString()}` })
   for (const id of snap.party || []) if (prev.party && !prev.party.includes(id)) ev.push({ type: 'join', member: id })
   if (snap.level > (prev.level || 0) && prev.level) ev.push({ type: 'levelup', level: snap.level })
   for (const id of snap.ach || []) if (!(prev.ach || []).includes(id)) ev.push({ type: 'achievement', id })

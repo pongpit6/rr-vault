@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { drawStill, frame, skyFor, mix, GROUND } from './BattleScene'
 import { NPC_BY_ID, RESIDENTS } from '../lib/town'
+import { worldBack, worldFront } from './WorldFx'
 
 /**
  * Side-view pixel town. Background shapes are drawn at half resolution (×2), sprites at full res.
@@ -42,8 +43,9 @@ export function drawTown(g, t, now, o = {}) {
   sky(g, S.top, S.bottom, w)
   if (night) { for (let i = 0; i < 40; i++) { const x = (i * 73) % w, y = (i * 37) % 60; if (Math.sin(now / 500 + i) > -0.2) R('#e0f2fe', x, y, 1, 1) } R('#fef9c3', w - 40, 10, 7, 7) }
   else R('#fde047', w - 46, 12, 8, 8)
-  // drifting clouds
-  if (!night) for (let i = 0; i < 4; i++) { const x = ((now / 260 + i * 97) % (w + 40)) - 30; R('#ffffff', x, 14 + i * 7, 18, 3); R('#ffffff', x + 4, 12 + i * 7, 10, 2) }
+  // drifting clouds (light; the world layer adds the heavy deck)
+  if (!night && !(o.world && ['rain', 'storm', 'cloud'].includes(o.world.weather))) for (let i = 0; i < 4; i++) { const x = ((now / 260 + i * 97) % (w + 40)) - 30; R('#ffffff', x, 14 + i * 7, 18, 3); R('#ffffff', x + 4, 12 + i * 7, 10, 2) }
+  worldBack(g, now, { w, G, night, world: o.world })
   const GR = GROUND[2]
   hills(g, ...(S.hill || ['#86efac', '#4ade80']), w)
   R(GR.grass, 0, G, w, 2)
@@ -194,6 +196,8 @@ export function drawTown(g, t, now, o = {}) {
     g.restore()
   })
 
+  // living world on top of buildings
+  worldFront(g, now, { w, G, TH, night, world: o.world, hx: hx, hallTop: G - (hl === 1 ? 30 : hl === 2 ? 40 : 58) * K + 8 })
   // night tint
   if (night) { g.fillStyle = 'rgba(15,23,42,.18)'; g.fillRect(0, 0, w, TH) }
 
@@ -201,7 +205,9 @@ export function drawTown(g, t, now, o = {}) {
   return () => {
     const W2 = w * 2, GY = G * 2 + 4
     const walkers = [...RESIDENTS.map((r) => r.sprite), ...t.npcs.map((id) => NPC_BY_ID[id]?.sprite).filter(Boolean)]
+    const resting = (o.world && o.world.holiday) || (hour >= 22 || hour < 6)
     walkers.forEach((sp, k) => {
+      if (resting && k % 2) return // half the town is asleep / off work
       const span = W2 - 140, speed = 5200 + k * 900
       const ph = now / speed + k * 1.7
       const x = 70 + ((Math.sin(ph) + 1) / 2) * span
@@ -218,10 +224,10 @@ export function drawTown(g, t, now, o = {}) {
 }
 
 /** Canvas wrapper: animates at ~8 fps, horizontally scrollable, tap a plot to select it. */
-export default function TownScene({ town, party = [], pet, hue, dark, selected, onSelect, height = 220 }) {
+export default function TownScene({ town, party = [], pet, hue, dark, selected, onSelect, height = 220, world = null }) {
   const cv = useRef(null), box = useRef(null)
   const O = useRef({})
-  O.current = { town, party, pet, hue, dark, selected }
+  O.current = { town, party, pet, hue, dark, selected, world }
   const w = townWidth(town.plotCount)
   useEffect(() => {
     const c = cv.current, g = c.getContext('2d')
@@ -232,7 +238,7 @@ export default function TownScene({ town, party = [], pet, hue, dark, selected, 
       if (document.visibilityState === 'visible') {
         const o = O.current, now = performance.now()
         g.setTransform(2, 0, 0, 2, 0, 0)
-        const fg = drawTown(g, o.town, now, { party: o.party, pet: o.pet, hue: o.hue, dark: o.dark, selected: o.selected })
+        const fg = drawTown(g, o.town, now, { party: o.party, pet: o.pet, hue: o.hue, dark: o.dark, selected: o.selected, world: o.world })
         g.setTransform(1, 0, 0, 1, 0, 0)
         fg()
       }

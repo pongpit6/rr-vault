@@ -5,6 +5,7 @@ import TownScene from './TownScene'
 import { Portrait } from './RpgBits'
 import { Sheet } from './ui'
 import { useStore } from '../store'
+import { weatherTH } from '../lib/world'
 import { BUILDINGS, HALL, NPCS, DECOR, priceOf, EXCHANGE_WEEKLY, RESIDENTS } from '../lib/town'
 
 /* ---------- money chips ---------- */
@@ -57,8 +58,9 @@ export default function TownTab({ rpg }) {
           </div>
           <Wallet rpg={rpg} />
         </div>
-        <TownScene town={T} party={party} pet={rpg.pet.sprite} hue={rpg.skin?.hue || 0} dark={theme === 'pixel-night'} selected={typeof sel === 'number' ? sel : null} onSelect={setSel} />
+        <TownScene town={T} party={party} pet={rpg.pet.sprite} hue={rpg.skin?.hue || 0} dark={theme === 'pixel-night'} selected={typeof sel === 'number' ? sel : null} onSelect={setSel} world={{ weather: rpg.world.weather, event: rpg.world.event?.id || null, mood: rpg.world.mood.id, btc: rpg.world.btc, aurora: rpg.world.aurora, tree: rpg.world.tree, rank: rpg.rank.id, holiday: rpg.world.holiday }} />
         <div className="grid grid-cols-4 text-center text-[11px] border-t-2 border-slate-800">
+          <WorldStrip world={rpg.world} rank={rpg.rank} />
           <Stat icon={<Users size={13} />} label="ประชากร" v={T.pop} />
           <Stat icon={<Smile size={13} />} label="ความสุข" v={`${T.happiness}%`} />
           <Stat icon={<Coins size={13} />} label="FIAT/วัน" v={`+${T.dailyFiat}`} />
@@ -227,5 +229,27 @@ function PlotSheet({ rpg, sel, onClose, ok }) {
         <Trash2 size={13} /> {confirm ? 'แตะอีกครั้งเพื่อยืนยันการรื้อ (ได้คืน 30% ของค่าสร้างระดับ 1)' : 'รื้อถอน'}
       </button>
     </Sheet>
+  )
+}
+
+/** One quiet line about the living world: real weather, festival, mood. Rendered only when there is something to say. */
+function WorldStrip({ world, rank }) {
+  const W = { storm: '⛈️', rain: '🌧️', fog: '🌫️', cloud: '☁️', sun: '☀️', leaves: '🍂' }
+  const parts = []
+  if (world.wx) parts.push(`${W[world.weather] || '☀️'} ${weatherTH(world.weather)}${world.temp != null ? ` ${Math.round(world.temp)}°` : ''}`)
+  if (world.aurora) parts.push('🌌 แสงเหนือ (ไม่ใช้เงิน 7 วัน)')
+  if (world.mood.line) parts.push(`${world.mood.id === 'bloom' ? '🌸' : world.mood.id === 'gloom' ? '🌫️' : '🌥️'} ${world.mood.line}`)
+  if (world.btc !== 'flat') parts.push(world.btc === 'crash' ? `📉 BTC ร่วง ${world.btcPct}% ป้ายตลาดกะพริบ` : `🎆 BTC พุ่ง +${world.btcPct}%`)
+  if (world.holiday && !world.event) parts.push('🏖️ วันหยุด ชาวเมืองพักงาน')
+  return (
+    <div className="col-span-full space-y-1.5" data-testid="world-strip">
+      {world.event && (
+        <div className="px-inner px-3 py-2 flex items-center gap-2 text-xs" style={{ background: 'linear-gradient(90deg, rgba(251,191,36,.18), rgba(244,114,182,.12))' }} data-testid="event-banner">
+          <span className="text-lg">{world.event.emoji}</span>
+          <div className="flex-1 min-w-0"><b>{world.event.name}</b> · {world.event.line}<div className="text-[10px] text-slate-500">{world.event.bonus}</div></div>
+        </div>
+      )}
+      {parts.length > 0 && <div className="text-[11px] text-slate-500 px-1 flex flex-wrap gap-x-3 gap-y-0.5">{parts.map((p, i) => <span key={i}>{p}</span>)}</div>}
+    </div>
   )
 }
