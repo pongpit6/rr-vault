@@ -69,6 +69,7 @@ export default function TxnForm({ open, onClose, initial }) {
   const remove = useStore((s) => s.remove)
   const showToast = useStore((s) => s.showToast)
   const { accounts, txns, settings, categories, balances, accById, cycles } = useVault()
+  const items = useStore((s) => s.items)
   const editing = !!initial?.id
 
   const firstOf = (type) => accounts.find((a) => a.type === type && !a.archived)?.id
@@ -110,6 +111,15 @@ export default function TxnForm({ open, onClose, initial }) {
     return summarize(accounts, bal)
   }, [open, editing, balances]) // eslint-disable-line
 
+  // budget of the chosen category, before and after this entry (expense in the current month only)
+  const budgetLine = useMemo(() => {
+    if (!f || f.kind !== 'expense' || !f.category || monthKey(f.date || todayISO()) !== monthKey(todayISO())) return null
+    const b = selectList(items, 'budget').find((x) => x.category === f.category)
+    if (!b) return null
+    const [bs] = budgetStatus([b], txns.filter((t) => t.id !== initial?.id))
+    const amt = Number(evalAmount(f.amountStr)) || 0
+    return { name: categories.find((c) => c.id === f.category)?.name || '', left: bs.left, leftAfter: round2(bs.left - amt), after: b.limit > 0 ? (bs.spent + amt) / b.limit : 0 }
+  }, [f?.kind, f?.category, f?.date, f?.amountStr, items]) // eslint-disable-line
   if (!open || !f) return <Sheet open={open} onClose={onClose} title="" />
   const set = (patch) => setF((s) => ({ ...s, ...patch }))
   const amount = evalAmount(f.amountStr)
@@ -249,6 +259,12 @@ export default function TxnForm({ open, onClose, initial }) {
               </button>
             ))}
           </div>
+          {budgetLine && (
+            <div className={`mt-2 flex items-center gap-2 text-xs rounded-xl px-3 py-2 ${budgetLine.after >= 1 ? 'bg-rose-50 text-rose-700' : budgetLine.after >= 0.8 ? 'bg-amber-50 text-amber-700' : 'bg-slate-900/[.04] text-slate-600'}`} data-testid="budget-line">
+              <div className="flex-1 min-w-0 truncate">งบ{budgetLine.name}เดือนนี้ เหลือ <b className="num">{money(budgetLine.left, { decimals: false })}</b>{amount > 0 ? <> → หลังรายการนี้ <b className="num">{money(budgetLine.leftAfter, { decimals: false })}</b></> : null}</div>
+              <div className="w-16 h-1.5 rounded-full bg-black/10 overflow-hidden shrink-0"><div className="h-full rounded-full" style={{ width: `${Math.min(100, budgetLine.after * 100)}%`, background: budgetLine.after >= 1 ? '#e11d48' : budgetLine.after >= 0.8 ? '#f59e0b' : 'var(--ac-mid)' }} /></div>
+            </div>
+          )}
         </div>
       )}
 

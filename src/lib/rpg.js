@@ -94,6 +94,16 @@ function computeRpg({ accounts, txns, settings, balances, summary, unlocked, por
   // ---------- activity ----------
   const days = new Map()
   for (const t of txns) { const d = loggedDay(t); days.set(d, (days.get(d) || 0) + 1) }
+  // "วันนี้ไม่ใช้เงิน" days count as logged days (no entry, but a conscious decision)
+  const noSpendMarks = data?.noSpend || {}
+  for (const d of Object.keys(noSpendMarks)) if (!days.has(d)) days.set(d, 1)
+  let noSpendStreak = 0
+  {
+    const d = new Date(today + 'T12:00:00')
+    if (!noSpendMarks[today]) d.setDate(d.getDate() - 1)
+    while (noSpendMarks[localDate(d.toISOString())]) { noSpendStreak++; d.setDate(d.getDate() - 1) }
+  }
+  const noSpendTotal = Object.keys(noSpendMarks).length
   let streak = 0
   {
     const d = new Date()
@@ -253,6 +263,7 @@ function computeRpg({ accounts, txns, settings, balances, summary, unlocked, por
     inventory: portfolio.open, portfolioValue: portfolio.value,
     xp, xpParts, ...lv, title: title[1], titleEn: title[2], stats, bosses, quests, achievements, newlyUnlocked,
     streak, bestStreak, realm, nextRealm, weather, loggedToday: todayCount, debtFog, town, wallet, days,
+    noSpendStreak, noSpendTotal, noSpendToday: !!noSpendMarks[today], spentToday: spendDays.has(today),
     ...party,
   }
 }
@@ -281,6 +292,18 @@ export function useRpg() {
     save({ fiat: (d.fiat || 0) + dF, gold: (d.gold || 0) + dG, econLog: logE(d, { ...e, fiat: dF || undefined, gold: dG || undefined }), ...patch })
   }
   const afford = (p) => fiat >= p.fiat && gold >= p.gold
+  /** "วันนี้ไม่ใช้เงิน": FIAT grows with the run, every 3rd day in a row pays GOLD */
+  const noSpendReward = (() => {
+    const run = rpg.noSpendToday ? rpg.noSpendStreak : rpg.noSpendStreak + 1
+    return { run, fiat: 30 + 10 * Math.min(7, run), gold: run % 3 === 0 ? 1 : 0 }
+  })()
+  const markNoSpend = () => {
+    if (rpg.noSpendToday || rpg.spentToday) return null
+    const d = fresh()
+    const r = noSpendReward
+    pay(r.fiat, r.gold, { type: 'nospend', run: r.run, text: `วันนี้ไม่ใช้เงิน ✨ ติดกัน ${r.run} วัน` }, { noSpend: { ...(d.noSpend || {}), [localDate(now())]: true } })
+    return r
+  }
   const openChest = () => {
     if (!chestReady) return null
     const bonus = rpg.streak >= 3 ? Math.min(10, rpg.streak) : 0
@@ -412,6 +435,7 @@ export function useRpg() {
     ...rpg, vault: v, fiat, gold, chestReady, openChest, buy, shopPrice, setEquip, toggleDeco, chestCount: data.chestCount || 0,
     inflation: inflationMult(data), afford, buildPrice, build, upgrade, demolish, hallPrice, upgradeHall, hire, dismiss, buyDecor,
     collectReady, collect, claim, exchange, exchangeRate: exchangeRate(data), exchangedThisWeek, econData: data,
+    markNoSpend, noSpendReward,
   }
 }
 

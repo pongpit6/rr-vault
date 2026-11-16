@@ -6,6 +6,7 @@ import TxnRow from '../components/TxnRow'
 import { SubLogo, AssetLogo } from '../components/Logos'
 import { RpgHomeCard } from '../components/RpgBits'
 import { useRpg } from '../lib/rpg'
+import { sfx } from '../lib/sfx'
 import { useSubs } from './Subscriptions'
 import { upcoming } from '../lib/subs'
 import { budgetStatus } from '../lib/plan'
@@ -114,6 +115,17 @@ export default function Home({ onAdd, onEdit, go }) {
     const c = catById[b.category]
     todos.push({ key: b.id, urgent: b.status === 'over', icon: <IconBadge name={c?.icon} color={c?.color} size={36} icon={17} />, title: `${c?.name}: ${b.status === 'over' ? 'เกินงบแล้ว' : `ใช้ไป ${Math.round(b.ratio * 100)}%`}`, sub: b.status === 'over' ? `เกิน ${money(-b.left, { decimals: false })}` : `เหลือ ${money(b.left, { decimals: false })} · วันละ ${money(b.perDayLeft, { decimals: false })}`, onClick: () => go('money', 'plan') })
   }
+  // payday: from the payday until the salary is logged (up to 5 days after)
+  {
+    const pd = settings.payday
+    const d = new Date(), day = d.getDate(), dim = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate()
+    const pday = Math.min(pd?.day || 0, dim)
+    if (pd?.day && day >= pday && day <= pday + 5) {
+      const since = `${month}-${String(pday).padStart(2, '0')}`
+      const logged = txns.some((t) => t.kind === 'income' && t.category === 'cat-salary' && t.date >= since)
+      if (!logged) todos.unshift({ key: 'payday', icon: <IconBadge name="briefcase" color="#10b981" size={36} icon={17} />, title: day === pday ? 'วันนี้เงินเดือนออก 🎉' : 'เงินเดือนออกแล้ว ยังไม่ได้บันทึก', sub: `บันทึก ${pd.amount ? money(pd.amount, { decimals: false }) : 'รายรับ'} แล้วแบ่งตามแผนในครั้งเดียว`, onClick: () => onAdd({ kind: 'income', amount: pd.amount || undefined, category: 'cat-salary', note: 'เงินเดือน' }) })
+    }
+  }
   if (summary.target > 0 && summary.gap > 0) todos.push({ key: 'gap', icon: <IconBadge name="shield" color="#a78bfa" size={36} icon={17} />, title: 'เงินกันจ่ายหนี้ยังไม่ครบ', sub: `ขาดอีก ${money(summary.gap, { decimals: false })} · แตะเพื่อย้ายเงินไปกันไว้`, onClick: () => onAdd({ kind: 'transfer', amount: Math.min(summary.gap, Math.max(0, cash)) || summary.gap, to: settings.allocation.targets.reserve, note: 'กันเงินจ่ายหนี้' }) })
 
   return (
@@ -183,6 +195,8 @@ export default function Home({ onAdd, onEdit, go }) {
           <HomeInsightCard />
 
           {/* to-do */}
+          <NoSpendCard rpg={rpg} />
+
           {todos.length > 0 && (
             <section className="card p-2">
               <div className="px-3 pt-2 pb-1 text-sm font-semibold">วันนี้ต้องทำ</div>
@@ -258,5 +272,39 @@ export default function Home({ onAdd, onEdit, go }) {
         </div>
       </div>
     </div>
+  )
+}
+
+/** "วันนี้ไม่ใช้เงิน": a conscious no-spend day is worth more than a logged one. Hidden once money was spent today. */
+function NoSpendCard({ rpg }) {
+  const showToast = useStore((s) => s.showToast)
+  const [burst, setBurst] = useState(false)
+  if (rpg.spentToday && !rpg.noSpendToday) return null
+  const r = rpg.noSpendReward
+  const claim = () => {
+    const res = rpg.markNoSpend()
+    if (!res) return
+    sfx('coin'); setBurst(true); setTimeout(() => setBurst(false), 1500)
+    showToast(`✨ วันไม่ใช้เงิน ติดกัน ${res.run} วัน · +${res.fiat} FIAT${res.gold ? ` +${res.gold} GOLD` : ''}`)
+  }
+  if (rpg.noSpendToday) return (
+    <section className="card px-4 py-3 flex items-center gap-3" data-testid="nospend-done">
+      <span className="text-2xl">✨</span>
+      <div className="flex-1 min-w-0 text-sm">
+        <div className="font-semibold">วันนี้ไม่ใช้เงิน · ติดกัน {rpg.noSpendStreak} วัน</div>
+        <div className="text-xs text-slate-500">ดาวแห่งวินัยรวม {rpg.noSpendTotal} ดวง{rpg.noSpendStreak >= 7 ? ' · แสงเหนือส่องเมืองคืนนี้' : rpg.noSpendStreak % 3 === 2 ? ' · พรุ่งนี้ได้ GOLD' : ''}</div>
+      </div>
+      <span className="text-amber-500 text-sm font-semibold">⭐ {rpg.noSpendTotal}</span>
+    </section>
+  )
+  return (
+    <section className={`card px-4 py-3 flex items-center gap-3 relative overflow-hidden ${burst ? 'anim-pop' : ''}`} data-testid="nospend-card">
+      <span className="text-2xl">🌙</span>
+      <div className="flex-1 min-w-0 text-sm">
+        <div className="font-semibold">วันนี้ยังไม่ใช้เงินเลย?</div>
+        <div className="text-xs text-slate-500">กดยืนยันเพื่อรับ +{r.fiat} FIAT{r.gold ? ` +${r.gold} GOLD` : ''}{rpg.noSpendStreak ? ` · ติดกัน ${r.run} วัน` : ''} และนับเป็นวันที่บันทึกแล้ว</div>
+      </div>
+      <Button className="!py-2 !px-3 text-sm shrink-0" onClick={claim} data-testid="nospend-btn">ไม่ใช้เงิน ✨</Button>
+    </section>
   )
 }

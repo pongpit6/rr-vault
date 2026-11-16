@@ -98,6 +98,9 @@ export default function Settings({ opt }) {
         )}
       </section>
 
+      <div className="text-sm text-slate-500 px-1">เงินเดือนและเมือง</div>
+      <LifeCard />
+
       <div className="text-sm text-slate-500 px-1">การใช้งาน</div>
       <ThemePicker />
       <AccentPicker />
@@ -391,6 +394,62 @@ function AccentPicker() {
         <span className="flex-1 min-w-16 h-2 rounded-full bg-slate-900/[.06] overflow-hidden"><span className="block h-full w-2/3 grad-bg rounded-full" /></span>
       </div>
       <div className="text-[11px] text-slate-500">สีเขียว/แดงของกำไร-ขาดทุนและรายรับ-รายจ่ายยังคงเดิม · ซิงก์ไปทุกเครื่องในบัญชีนี้</div>
+    </section>
+  )
+}
+
+/** Payday (for the monthly "split your salary" prompt) and the province the town's real weather comes from. */
+function LifeCard() {
+  const settings = useStore((s) => s.items.settings?.data) || {}
+  const put = useStore((s) => s.put)
+  const pd = { day: 28, amount: 0, ...(settings.payday || {}) }
+  const wx = { province: 'กาญจนบุรี', lat: 14.0227, lon: 99.5328, ...(settings.weather || {}) }
+  const savePd = (p) => put('settings', { ...settings, id: 'settings', payday: { ...pd, ...p } })
+  const saveWx = (p) => put('settings', { ...settings, id: 'settings', weather: { ...wx, ...p } })
+  const [q, setQ] = useState('')
+  const [hits, setHits] = useState([])
+  useEffect(() => {
+    const t = q.trim()
+    if (t.length < 2) { setHits([]); return }
+    const id = setTimeout(async () => {
+      try {
+        const r = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(t)}&count=6&language=th&countryCode=TH`)
+        const j = await r.json()
+        setHits((j.results || []).map((x) => ({ name: x.name, admin: x.admin1, lat: x.latitude, lon: x.longitude })))
+      } catch { setHits([]) }
+    }, 300)
+    return () => clearTimeout(id)
+  }, [q])
+  return (
+    <section className="card p-4 space-y-4" data-testid="life-card">
+      <div>
+        <div className="font-semibold">วันเงินเดือนออก</div>
+        <div className="text-[11px] text-slate-500 mb-2">ถึงวันนี้แอปจะชวนบันทึกรายรับและแบ่งเงินตามแผนในครั้งเดียว</div>
+        <div className="grid grid-cols-2 gap-2">
+          <label className="text-[11px] text-slate-500">ทุกวันที่
+            <select value={pd.day} onChange={(e) => savePd({ day: +e.target.value })} className="field !py-2 mt-0.5 num" data-testid="payday-day">
+              {Array.from({ length: 31 }, (_, i) => i + 1).map((d) => <option key={d} value={d}>{d}</option>)}
+            </select>
+          </label>
+          <label className="text-[11px] text-slate-500">จำนวน (บาท)
+            <input type="number" inputMode="decimal" value={pd.amount || ''} onChange={(e) => savePd({ amount: +e.target.value || 0 })} placeholder="เช่น 11400" className="field !py-2 mt-0.5 num" data-testid="payday-amount" />
+          </label>
+        </div>
+      </div>
+      <div>
+        <div className="font-semibold">อากาศจริงในเมือง</div>
+        <div className="text-[11px] text-slate-500 mb-2">ฉากเกมใช้สภาพอากาศจริงของที่นี่ · ตอนนี้: <b className="text-slate-700">{wx.province}</b></div>
+        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="ค้นหาจังหวัด/อำเภอ เช่น กาญจนบุรี" className="field !py-2" data-testid="wx-search" />
+        {hits.length > 0 && (
+          <div className="mt-1.5 rounded-2xl border border-slate-200 divide-y divide-slate-100 overflow-hidden">
+            {hits.map((h, i) => (
+              <button key={i} onClick={() => { saveWx({ province: h.name, lat: h.lat, lon: h.lon }); setQ(''); setHits([]) }} className="w-full text-left px-3 py-2 text-sm hover:bg-slate-900/[.03]">
+                {h.name}{h.admin && h.admin !== h.name ? <span className="text-xs text-slate-500"> · {h.admin}</span> : null}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
     </section>
   )
 }

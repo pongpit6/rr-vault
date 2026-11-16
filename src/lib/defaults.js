@@ -55,6 +55,8 @@ export const DEFAULT_SETTINGS = {
   },
   earmarkCredit: true,
   earmarkFrom: 'acc-cash',
+  payday: { day: 28, amount: 0 },
+  weather: { province: 'กาญจนบุรี', lat: 14.0227, lon: 99.5328 },
 }
 
 export const DEFAULT_PROFILE = {

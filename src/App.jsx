@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { LayoutDashboard, List, Plus, Wallet, Settings as Cog, Swords, LineChart, CandlestickChart } from 'lucide-react'
 import { applyAccent, DEFAULT_ACCENT } from './lib/accent'
+import Reminders from './components/Reminders'
 import { useActiveTheme } from './lib/theme'
 import { useStore, selectList } from './store'
 import Home from './screens/Home'
@@ -254,6 +255,7 @@ export default function App() {
       <SnapshotWriter />
       <InsightsRunner />
       <AlertWatcher />
+      <Reminders />
       <TxnForm open={!!form} initial={form} onClose={() => setForm(null)} />
       <TradeForm open={!!trade} initial={trade} onClose={() => setTrade(null)} />
       <Toast />
