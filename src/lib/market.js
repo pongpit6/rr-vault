@@ -15,6 +15,10 @@ export const CATS = [
     C('BTC-USD', 'Bitcoin', 'crypto'), C('ETH-USD', 'Ethereum', 'crypto'), C('SOL-USD', 'Solana', 'crypto'),
     C('BNB-USD', 'BNB', 'crypto'), C('XRP-USD', 'XRP', 'crypto'), C('DOGE-USD', 'Dogecoin', 'crypto'),
   ] },
+  { id: 'bkub', label: 'Bitkub (บาท)', emoji: '🟢', items: [
+    C('BKUB:BTC', 'Bitcoin', 'crypto', { ccy: 'THB', code: 'BTC' }), C('BKUB:KUB', 'Bitkub Coin', 'crypto', { ccy: 'THB', code: 'KUB' }), C('BKUB:ETH', 'Ethereum', 'crypto', { ccy: 'THB', code: 'ETH' }),
+    C('BKUB:XRP', 'XRP', 'crypto', { ccy: 'THB', code: 'XRP' }), C('BKUB:USDT', 'Tether', 'crypto', { ccy: 'THB', code: 'USDT' }), C('BKUB:SOL', 'Solana', 'crypto', { ccy: 'THB', code: 'SOL' }), C('BKUB:DOGE', 'Dogecoin', 'crypto', { ccy: 'THB', code: 'DOGE' }),
+  ] },
   { id: 'th', label: 'หุ้นไทย', emoji: '🇹🇭', items: [
     C('^SET.BK', 'ดัชนี SET', 'index'), C('^SET50.BK', 'SET50', 'index'), C('PTT.BK', 'ปตท.', 'stock'), C('AOT.BK', 'ท่าอากาศยานไทย', 'stock'),
     C('CPALL.BK', 'ซีพี ออลล์', 'stock'), C('KBANK.BK', 'ธนาคารกสิกรไทย', 'stock'), C('DELTA.BK', 'เดลต้า อีเลคโทรนิคส์', 'stock'), C('ADVANC.BK', 'แอดวานซ์ อินโฟร์', 'stock'),
@@ -45,8 +49,9 @@ const KNOWN = Object.fromEntries(CATS.flatMap((c) => c.items.map((i) => [i.symbo
 
 /** Item metadata for any symbol (catalog entry or a guess for searched symbols). */
 export function itemFor(symbol, extra = {}) {
-  if (KNOWN[symbol]) return { ...KNOWN[symbol], ...extra, name: KNOWN[symbol].name }
+  if (KNOWN[symbol]) return { ...KNOWN[symbol], ...extra, name: KNOWN[symbol].name, ...(symbol.startsWith('BKUB:') ? { code: symbol.slice(5) } : {}) }
   if (symbol.startsWith('FUND:')) return { symbol, kind: 'fund', cat: 'fund', ...extra }
+  if (symbol.startsWith('BKUB:')) return { symbol, kind: 'crypto', cat: 'bkub', ccy: 'THB', code: symbol.slice(5), name: extra.name || `${symbol.slice(5)}/THB`, ...extra }
   const kind = symbol.endsWith('-USD') ? 'crypto' : symbol.startsWith('^') ? 'index' : /=X$/.test(symbol) ? 'fx' : /=F$/.test(symbol) ? 'commodity' : 'stock'
   return { symbol, kind, name: extra.name || symbol, ...extra }
 }
@@ -58,6 +63,7 @@ export function catOf(it) {
   const s = it.symbol || ''
   if (KNOWN[s]) return KNOWN[s].cat
   if (s.startsWith('FUND:') || it.kind === 'fund') return 'fund'
+  if (s.startsWith('BKUB:')) return 'bkub'
   if (s.endsWith('-USD') || it.kind === 'crypto') return 'crypto'
   if (/=X$/.test(s)) return 'fx'
   if (/^(GC|SI|PL|PA|HG|MGC|SIL)=F$/.test(s)) return 'gold'
@@ -128,7 +134,7 @@ export async function loadChart(symbol, range) {
     return { ...g, symbol, currency: 'THB', price: Math.round((g.price * k) / 10) * 10, c: g.c.map((x) => Math.round(x * k)), hi52: null, lo52: null, dayHi: null, dayLo: null }
   }
   try {
-    const r = await fetch(`${FN}?chart=${encodeURIComponent(symbol)}&range=${range}`, H)
+    const r = await fetch(symbol.startsWith('BKUB:') ? `${FN}?bkchart=${encodeURIComponent(symbol.slice(5))}&range=${range}` : `${FN}?chart=${encodeURIComponent(symbol)}&range=${range}`, H)
     const d = await r.json()
     if (d.error) return null
     chartCache[key] = { at: Date.now(), d }
@@ -137,11 +143,30 @@ export async function loadChart(symbol, range) {
 }
 
 export async function searchMarket(q) {
-  const [a, b] = await Promise.all([
+  const [a, b, bk] = await Promise.all([
     fetch(`${FN}?search=${encodeURIComponent(q)}`, H).then((r) => r.json()).catch(() => ({})),
     fetch(`${FN}?funds=${encodeURIComponent(q)}`, H).then((r) => r.json()).catch(() => ({})),
+    loadBitkubList().catch(() => []),
   ])
-  return [...(a.results || []), ...(b.results || []).slice(0, 8)]
+  const s = q.trim().toUpperCase()
+  const bkHits = bk.filter((x) => x.code.includes(s)).sort((x, y) => (x.code.startsWith(s) ? 0 : 1) - (y.code.startsWith(s) ? 0 : 1) || x.code.length - y.code.length).slice(0, 6)
+    .map((x) => ({ symbol: `BKUB:${x.code}`, name: `${x.code}/THB`, type: 'BITKUB', exchange: 'Bitkub' }))
+  return [...bkHits, ...(a.results || []), ...(b.results || []).slice(0, 8)]
+}
+
+/* ---------- Bitkub: every THB pair (for search + the "all coins" list), cached 1 min ---------- */
+let bkList = null, bkListAt = 0
+export async function loadBitkubList() {
+  if (bkList && Date.now() - bkListAt < 60_000) return bkList
+  const j = await (await fetch(`${FN}?bitkub=1`, H)).json()
+  if (j.items) { bkList = j.items; bkListAt = Date.now() }
+  return bkList || []
+}
+/** Thai-market premium: Bitkub THB price vs Binance USD price × USD/THB. Null when any leg is missing. */
+export function bitkubPremium(code, q) {
+  const bk = q[`BKUB:${code}`]?.price, us = q[`${code}-USD`]?.price, fx = q['THB=X']?.price
+  if (!bk || !us || !fx) return null
+  return (bk / (us * fx) - 1) * 100
 }
 
 /* ---------- live crypto (Binance miniTicker) while the Market tab is open ---------- */

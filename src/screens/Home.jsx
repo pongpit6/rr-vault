@@ -1,6 +1,6 @@
 import { HomeInsightCard } from '../components/Insights'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Settings as Cog, Eye, EyeOff, ChevronRight, ChevronDown, Cloud, CloudOff, RefreshCw, Plus, ScanLine, Check } from 'lucide-react'
+import { Settings as Cog, Eye, EyeOff, ChevronRight, ChevronDown, Landmark, Cloud, CloudOff, RefreshCw, Plus, ScanLine, Check } from 'lucide-react'
 import { Avatar, Money, IconBadge, Empty, Button } from '../components/ui'
 import TxnRow from '../components/TxnRow'
 import { SubLogo, AssetLogo } from '../components/Logos'
@@ -89,6 +89,16 @@ export default function Home({ onAdd, onEdit, go }) {
     return { inc: round2(inc), exp: round2(exp), today: round2(today), top: Object.entries(byCat).sort((a, b) => b[1] - a[1]).slice(0, 3), rate: inc > 0 ? (inc - exp) / inc : null }
   }, [txns, month])
   const cash = summary.byType.cash || 0
+  // real money in accounts (cash + reserve + saving + invest-cash); credit/loan and the market value of holdings stay out
+  const liquid = round2(Math.max(0, (summary.byType.cash || 0) + (summary.byType.reserve || 0) + (summary.byType.saving || 0) + (summary.byType.invest || 0)))
+  const split = [
+    { key: 'cash', label: 'ใช้ได้เลย', v: Math.max(0, cash), color: '#ffffff', onClick: () => go('money') },
+    { key: 'reserve', label: 'กันจ่ายหนี้', v: Math.max(0, summary.byType.reserve || 0), color: '#c4b5fd', onClick: () => go('money', 'plan') },
+    { key: 'saving', label: 'ออมไว้', v: Math.max(0, summary.byType.saving || 0), color: '#99f6e4', onClick: () => go('money', 'plan') },
+    { key: 'invest', label: 'รอลงทุน', v: Math.max(0, summary.byType.invest || 0), color: '#7dd3fc', onClick: () => go('portfolio') },
+  ].filter((x) => x.v > 0)
+  const budgetTotal = budgets.reduce((a, b) => a + b.limit, 0)
+  const budgetLeft = round2(budgets.reduce((a, b) => a + b.left, 0))
   const recent = txns.slice(0, 5)
   const slipToday = useMemo(() => txns.filter((t) => t.fromSlip && t.date === todayISO()), [txns])
   const warnBudgets = budgets.filter((b) => b.status === 'over' || b.status === 'warn')
@@ -121,19 +131,38 @@ export default function Home({ onAdd, onEdit, go }) {
 
       <div className="grid lg:grid-cols-[1.2fr_1fr] gap-4">
         <div className="space-y-4">
-          {/* money now */}
-          <section className="hero p-5 md:p-6 anim-pop relative overflow-hidden">
+          {/* money now: everything you have, then what's free to spend, then where the rest is parked */}
+          <section className="hero p-5 md:p-6 anim-pop relative overflow-hidden" data-testid="hero">
             <div className="absolute -right-10 -top-10 w-40 h-40 rounded-full border border-white/20" />
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <div className="text-sm text-white/75">เงินที่ใช้ได้ตอนนี้</div>
-                <Money value={cash} className="text-4xl md:text-5xl font-bold tracking-tight" decimals={false} />
-              </div>
-              <button onClick={() => go('money')} className="text-xs bg-white/20 hover:bg-white/30 rounded-xl px-2.5 py-1.5 flex items-center gap-1 mt-1">กระเป๋า <ChevronRight size={13} /></button>
+            <button onClick={() => go('money')} className="flex items-center gap-1.5 text-xs text-white/80 hover:text-white" data-testid="hero-total">
+              <Landmark size={13} /> เงินทั้งหมดในบัญชี <b className="num text-white">{privacy ? '••••' : money(liquid, { decimals: false })}</b> <ChevronRight size={13} />
+            </button>
+            <div className="mt-1.5">
+              <div className="text-sm text-white/75">ใช้ได้เลย</div>
+              <Money value={cash} className="text-4xl md:text-5xl font-bold tracking-tight" decimals={false} />
             </div>
+            {liquid > 0 && (
+              <div className="mt-3" data-testid="hero-split">
+                <div className="flex h-2.5 rounded-full overflow-hidden bg-white/15">
+                  {split.map((x) => <span key={x.key} style={{ width: `${(x.v / liquid) * 100}%`, background: x.color }} title={x.label} />)}
+                </div>
+                <div className="flex flex-wrap gap-x-3 gap-y-1 mt-2 text-[11px]">
+                  {split.map((x) => (
+                    <button key={x.key} onClick={x.onClick} className="flex items-center gap-1 text-white/85 hover:text-white">
+                      <span className="w-2 h-2 rounded-sm" style={{ background: x.color }} />{x.label} <b className="num">{privacy ? '••' : money(x.v, { decimals: false })}</b>
+                    </button>
+                  ))}
+                  {summary.portfolio > 0 && <button onClick={() => go('portfolio')} className="flex items-center gap-1 text-white/60 hover:text-white"><span className="w-2 h-2 rounded-sm border border-white/60" />ลงทุน (ราคาตลาด) <b className="num">{privacy ? '••' : money(summary.portfolio, { decimals: false })}</b></button>}
+                </div>
+              </div>
+            )}
             <div className="mt-4 grid grid-cols-3 gap-2 text-xs">
               <div className="rounded-2xl bg-white/15 px-3 py-2"><div className="text-white/70">วันนี้ใช้ไป</div><Money value={stats.today} decimals={false} className="font-semibold text-sm" /></div>
-              <div className="rounded-2xl bg-white/15 px-3 py-2"><div className="text-white/70">กันจ่ายหนี้</div><Money value={summary.reserve} decimals={false} className="font-semibold text-sm" /></div>
+              {budgetTotal ? (
+                <button onClick={() => go('money', 'plan')} className="rounded-2xl bg-white/15 px-3 py-2 text-left"><div className="text-white/70">เดือนนี้เหลือตามงบ</div><span className={`font-semibold text-sm num ${budgetLeft < 0 ? 'text-rose-200' : ''}`}>{privacy ? '••••' : money(budgetLeft, { decimals: false })}</span></button>
+              ) : (
+                <div className="rounded-2xl bg-white/15 px-3 py-2"><div className="text-white/70">เดือนนี้ใช้ไป</div><Money value={stats.exp} decimals={false} className="font-semibold text-sm" /></div>
+              )}
               <button onClick={() => go('money', 'plan')} className="rounded-2xl bg-white/15 px-3 py-2 text-left"><div className="text-white/70">มูลค่าสุทธิ</div><span className="font-semibold text-sm num">{privacy ? '••••' : money(net, { decimals: false })}</span></button>
             </div>
           </section>

@@ -6,7 +6,7 @@ import { Sheet, Button } from '../components/ui'
 import { AssetLogo } from '../components/Logos'
 import FuelCard from '../components/FuelCard'
 import { useSyncedPref, unionBySymbol } from '../lib/prefs'
-import { CATS, CAT_BY_ID, catOf, WATCH_MAX, itemFor, itemCcy, useMarket, loadSpark, loadChart, searchMarket, streamMarketCrypto, stopMarketStream, loadOil } from '../lib/market'
+import { CATS, CAT_BY_ID, catOf, WATCH_MAX, bitkubPremium, loadBitkubList, itemFor, itemCcy, useMarket, loadSpark, loadChart, searchMarket, streamMarketCrypto, stopMarketStream, loadOil } from '../lib/market'
 import { ccyMark, ccyOfSymbol, fetchQuotes, fxSym } from '../lib/prices'
 import { GOLD_PRESETS, COMMODITY_PRESETS } from '../lib/portfolio'
 import { sfx } from '../lib/sfx'
@@ -49,10 +49,11 @@ function Badge({ it, size = 38 }) {
   return <AssetLogo asset={asset} size={size} />
 }
 
-function Row({ it, q, starred, held, onStar, onOpen }) {
+function Row({ it, q, starred, held, onStar, onOpen, premium }) {
   const up = (q?.changePct ?? 0) >= 0
   const named = ['index', 'gold', 'commodity'].includes(it.kind) && KNOWN_NAME(it)
-  const label = named ? it.name : it.kind === 'crypto' ? it.symbol.replace('-USD', '') : it.kind === 'fund' ? it.code || it.name : it.kind === 'fx' ? `${it.ccy}/THB` : it.symbol.replace(/\.BK$/, '')
+  const label = named ? it.name : it.kind === 'crypto' ? it.symbol.replace('-USD', '').replace('BKUB:', '') : it.kind === 'fund' ? it.code || it.name : it.kind === 'fx' ? `${it.ccy}/THB` : it.symbol.replace(/\.BK$/, '')
+  const prem = it.symbol.startsWith('BKUB:') ? premium?.(it.code) : null
   const sub = named ? (it.symbol === 'TH-GOLD' ? 'ต่อบาททองคำ · ประมาณ' : `${it.symbol.replace(/^\^/, '')}${it.unit ? ` · ต่อ${it.unit}` : ''}`) : it.name
   return (
     <div onClick={onOpen} className="mkt-row flex items-center gap-3 px-2 py-2.5 rounded-xl hover:bg-slate-900/[.025] cursor-pointer">
@@ -63,7 +64,7 @@ function Row({ it, q, starred, held, onStar, onOpen }) {
           {q?.live && <Radio size={11} className="text-emerald-500 shrink-0" />}
           {held && <span className="text-[9.5px] px-1.5 rounded bg-sky-100 text-sky-700 font-semibold shrink-0">ถืออยู่</span>}
         </div>
-        <div className="text-[11px] text-slate-500 truncate">{sub}</div>
+        <div className="text-[11px] text-slate-500 truncate">{sub}{prem != null && <span className={`ml-1.5 font-semibold ${prem > 0.5 ? 'text-amber-600' : prem < -0.5 ? 'text-emerald-600' : 'text-slate-400'}`} title="ส่วนต่างเทียบ Binance">{prem > 0 ? '+' : ''}{prem.toFixed(1)}% vs Binance</span>}</div>
       </div>
       <div className="hidden min-[380px]:block"><Spark c={q?.c} up={up} /></div>
       <div className="text-right min-w-[84px]">
@@ -102,12 +103,19 @@ export default function Market({ onTrade }) {
   }
   const watchIn = (id) => watchItems.filter((w) => catOf(w) === id)
   // full list for a category tab: watched first, then the rest of the catalog
+  // every Bitkub pair (by volume) when that tab is open
+  const [bkAll, setBkAll] = useState([])
+  useEffect(() => {
+    if (cat !== 'bkub' || bkAll.length) return
+    loadBitkubList().then((l) => setBkAll(l.filter((x) => !x.frozen).slice(0, 60).map((x) => itemFor(`BKUB:${x.code}`)))).catch(() => {})
+  }, [cat]) // eslint-disable-line
   const catItems = (id) => {
     if (id === 'watch') return watchItems
     if (id === 'other') return watchIn('other')
     const w = watchIn(id)
-    const base = id === 'fund' ? heldFunds : CAT_BY_ID[id]?.items || []
-    return [...w, ...base.filter((b) => !w.some((x) => x.symbol === b.symbol))]
+    const base = id === 'fund' ? heldFunds : id === 'bkub' ? [...CAT_BY_ID.bkub.items, ...bkAll] : CAT_BY_ID[id]?.items || []
+    const seen = new Set(w.map((x) => x.symbol))
+    return [...w, ...base.filter((b) => !seen.has(b.symbol) && seen.add(b.symbol))]
   }
   // overview card: your stars in this category (max 6); none starred → catalog defaults (3)
   const overviewItems = (id) => {
@@ -124,12 +132,17 @@ export default function Market({ onTrade }) {
     if (cat === 'all') return overviewCats.flatMap((c) => overviewItems(c.id).list).map((i) => i.symbol)
     return catItems(cat).map((i) => i.symbol)
   }, [cat, watch.map((w) => w.symbol).join(','), heldFunds.length]) // eslint-disable-line
-  useEffect(() => {
-    if (!visible.length) return
-    loadSpark(visible)
-    const iv = setInterval(() => document.visibilityState === 'visible' && loadSpark(visible), 60_000)
-    return () => clearInterval(iv)
+  // Bitkub premium needs the Binance leg + USD/THB
+  const pollSyms = useMemo(() => {
+    const bk = visible.filter((s) => s.startsWith('BKUB:')).map((s) => `${s.slice(5)}-USD`)
+    return bk.length ? [...new Set([...visible, ...bk, 'THB=X'])] : visible
   }, [visible.join(',')]) // eslint-disable-line
+  useEffect(() => {
+    if (!pollSyms.length) return
+    loadSpark(pollSyms)
+    const iv = setInterval(() => document.visibilityState === 'visible' && loadSpark(pollSyms), cat === 'bkub' ? 30_000 : 60_000)
+    return () => clearInterval(iv)
+  }, [pollSyms.join(',')]) // eslint-disable-line
   useEffect(() => {
     streamMarketCrypto([...CAT_BY_ID.crypto.items.map((i) => i.symbol), ...watch.map((w) => w.symbol)])
     return () => stopMarketStream()
@@ -146,7 +159,8 @@ export default function Market({ onTrade }) {
   }, [query])
 
   const open = (it) => { sfx('click'); setDetail(it) }
-  const rowProps = (it) => ({ it, q: q[it.symbol], starred: isWatched(it.symbol), held: heldSyms.has(it.symbol), onStar: () => toggleWatch(it), onOpen: () => open(it) })
+  const premium = (code) => bitkubPremium(code, q)
+  const rowProps = (it) => ({ it, q: q[it.symbol], starred: isWatched(it.symbol), held: heldSyms.has(it.symbol), onStar: () => toggleWatch(it), onOpen: () => open(it), premium })
   const tabs = [{ id: 'all', label: 'ภาพรวม', emoji: '🗺️' }, ...(watch.length ? [{ id: 'watch', label: `ติดตาม ${watch.length}`, emoji: '⭐' }] : []), { id: 'fuel', label: 'น้ำมันไทย', emoji: '⛽' }, ...CATS]
 
   return (
@@ -261,6 +275,7 @@ function draftAsset(it, q) {
   const com = COMMODITY_PRESETS.find((p) => p.symbol === it.symbol)
   if (com) return { type: 'commodity', ...com }
   if (it.kind === 'fund') return { type: 'fund', symbol: it.symbol, code: it.code, name: it.name, source: 'yahoo', currency: 'THB', unit: 'หน่วย', exchange: 'กองทุนรวมไทย' }
+  if (it.symbol.startsWith('BKUB:')) return { type: 'crypto', symbol: it.symbol, name: `${it.code} (Bitkub)`, source: 'yahoo', currency: 'THB', unit: it.code, exchange: 'Bitkub' }
   if (it.kind === 'crypto') return { type: 'crypto', symbol: it.symbol, name: it.name, source: 'yahoo', currency: 'USD', unit: it.symbol.replace('-USD', '') }
   return { type: 'stock', symbol: it.symbol, name: q?.name || it.name, source: 'yahoo', currency: q?.currency || ccyOfSymbol(it.symbol), unit: 'หุ้น', exchange: q?.exchange || it.exchange }
 }
@@ -293,7 +308,7 @@ function DetailSheet({ it, onClose, starred, onStar, assets, onTrade }) {
     onClose()
     onTrade(existing ? { assetId: existing.id } : { asset })
   }
-  const title = it.kind === 'crypto' ? it.symbol.replace('-USD', '') : it.kind === 'fx' ? `${it.ccy}/THB` : ['index', 'gold', 'commodity'].includes(it.kind) && KNOWN_NAME(it) ? it.name : it.code || it.symbol
+  const title = it.kind === 'crypto' ? it.symbol.replace('-USD', '').replace('BKUB:', '') : it.kind === 'fx' ? `${it.ccy}/THB` : ['index', 'gold', 'commodity'].includes(it.kind) && KNOWN_NAME(it) ? it.name : it.code || it.symbol
   return (
     <Sheet open={!!it} onClose={onClose} title={title} wide
       footer={canBuy ? <div className="flex gap-2"><Button variant="ghost" onClick={onStar}><Star size={16} className={starred ? 'fill-amber-400 text-amber-400' : ''} /> {starred ? 'ติดตามอยู่' : 'ติดตาม'}</Button><Button className="flex-1" onClick={buy}><Plus size={16} /> บันทึกซื้อ{existing ? ' (เพิ่มไม้)' : ''}</Button></div>
@@ -302,7 +317,7 @@ function DetailSheet({ it, onClose, starred, onStar, assets, onTrade }) {
         <Badge it={it} size={44} />
         <div className="min-w-0">
           <div className="font-semibold truncate">{q.name && it.kind !== 'fx' && !KNOWN_TH(it) ? q.name : it.name}</div>
-          <div className="text-xs text-slate-500 truncate">{it.symbol.startsWith('FUND:') ? 'กองทุนรวมไทย · NAV' : `${it.symbol} · ${q.exchange || ''}`}{c && it.kind !== 'index' ? ` · ${c}` : ''}</div>
+          <div className="text-xs text-slate-500 truncate">{it.symbol.startsWith('FUND:') ? 'กองทุนรวมไทย · NAV' : it.symbol.startsWith('BKUB:') ? `${it.code}/THB · Bitkub · ราคาบาทจริง` : `${it.symbol} · ${q.exchange || ''}`}{c && it.kind !== 'index' ? ` · ${c}` : ''}</div>
         </div>
       </div>
       <div className="mt-3 flex items-end gap-3 flex-wrap">

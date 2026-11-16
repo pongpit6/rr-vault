@@ -4,6 +4,7 @@
 // GET ?spark=AAPL,0700.HK&range=1mo      -> quote + close series per symbol (Market rows)
 // GET ?chart=AAPL&range=1y               -> one symbol's chart (Market detail)
 // GET ?oil=1                             -> Thai retail fuel prices (Bangchak + PTT OR)
+// GET ?bitkub=1                          -> all Bitkub THB pairs (ticker)   ?bkchart=KUB&range=1mo -> one pair's history
 // GET ?fng=1                             -> Bitcoin Fear & Greed (CoinMarketCap intraday + Alternative.me daily)
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
@@ -52,6 +53,10 @@ async function fundHist(symbol: string, date: string) {
 
 async function quote(symbol: string) {
   if (symbol.startsWith("FUND:")) return fundQuote(symbol);
+  if (symbol.startsWith("BKUB:")) {
+    const q = (await bitkub()).items.find((x: any) => x.code === symbol.slice(5));
+    return q ? { symbol, price: q.price, changePct: q.changePct, currency: "THB", name: `${q.code}/THB`, exchange: "Bitkub", time: Date.now() } : { symbol, error: "not_found" };
+  }
   for (const host of ["query1", "query2"]) {
     try {
       const r = await fetch(`https://${host}.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1m&range=1d`, { headers: UA });
@@ -75,6 +80,14 @@ async function quote(symbol: string) {
 // Close price of a symbol on (or just before) a date: ?hist=THB=X&date=2025-03-01
 async function hist(symbol: string, date: string) {
   if (symbol.startsWith("FUND:")) return fundHist(symbol, date);
+  if (symbol.startsWith("BKUB:")) {
+    const t = Math.floor(new Date(date + "T00:00:00Z").getTime() / 1000);
+    const h = await fetch(`https://api.bitkub.com/tradingview/history?symbol=${symbol.slice(5)}_THB&resolution=1D&from=${t - 7 * 86400}&to=${t + 86400}`, { headers: UA }).then((r) => r.json());
+    const ts: number[] = h?.t || [], cl: number[] = h?.c || [];
+    let best: number | null = null, bestT = 0;
+    ts.forEach((x, i) => { if (cl[i] != null && x <= t + 86400 && x >= bestT) { best = +cl[i]; bestT = x; } });
+    return best == null ? { symbol, date, error: "no_data" } : { symbol, date, price: best, at: bestT * 1000, currency: "THB" };
+  }
   const t = Math.floor(new Date(date + "T00:00:00Z").getTime() / 1000);
   const r = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&period1=${t - 7 * 86400}&period2=${t + 86400}`, { headers: UA });
   if (!r.ok) return { symbol, date, error: "not_found" };
@@ -212,6 +225,33 @@ async function fng() {
   return out;
 }
 
+// ---------- Bitkub (Thai exchange, THB pairs) ----------
+let bkCache: any = null, bkAt = 0;
+async function bitkub() {
+  if (bkCache && Date.now() - bkAt < 30_000) return bkCache;
+  const r = await fetch("https://api.bitkub.com/api/market/ticker", { headers: UA });
+  if (!r.ok) throw new Error("bitkub " + r.status);
+  const d = await r.json();
+  const items = Object.entries(d).filter(([k]) => k.startsWith("THB_")).map(([k, v]: [string, any]) => ({
+    code: k.slice(4), price: +v.last, changePct: +v.percentChange, hi: +v.high24hr, lo: +v.low24hr, volTHB: +v.quoteVolume, frozen: !!v.isFrozen,
+  })).sort((a, b) => b.volTHB - a.volTHB);
+  bkCache = { items, at: Date.now() }; bkAt = Date.now();
+  return bkCache;
+}
+const BK_RES: Record<string, [string, number]> = { "1d": ["15", 1], "5d": ["60", 5], "1mo": ["1D", 31], "3mo": ["1D", 92], "6mo": ["1D", 183], "1y": ["1D", 366], "5y": ["1W", 1830], "max": ["1W", 3650] };
+async function bkChart(code: string, range: string) {
+  const [res, days] = BK_RES[range] || BK_RES["1mo"];
+  const to = Math.floor(Date.now() / 1000), from = to - days * 86400;
+  const [h, t] = await Promise.all([
+    fetch(`https://api.bitkub.com/tradingview/history?symbol=${code}_THB&resolution=${res}&from=${from}&to=${to}`, { headers: UA }).then((r) => r.json()),
+    bitkub(),
+  ]);
+  const q = t.items.find((x: any) => x.code === code);
+  if (!q) return { symbol: `BKUB:${code}`, error: "not_found" };
+  const tt: number[] = (h?.t || []).map((x: number) => x * 1000), c: number[] = (h?.c || []).map((x: number) => +x);
+  return { symbol: `BKUB:${code}`, price: q.price, changePct: q.changePct, currency: "THB", name: `${code}/THB`, exchange: "Bitkub", time: t.at, dayHi: q.hi, dayLo: q.lo, hi52: c.length > 300 ? Math.max(...c.slice(-365)) : undefined, lo52: c.length > 300 ? Math.min(...c.slice(-365)) : undefined, t: tt, c };
+}
+
 async function search(q: string) {
   const r = await fetch(`https://query2.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(q)}&quotesCount=12&newsCount=0`, { headers: UA });
   if (!r.ok) return [];
@@ -227,13 +267,16 @@ Deno.serve(async (req) => {
   try {
     if (url.searchParams.get("oil")) return json(await oil());
     if (url.searchParams.get("fng")) return json(await fng());
+    if (url.searchParams.get("bitkub")) return json(await bitkub());
+    const bk = url.searchParams.get("bkchart");
+    if (bk) return json(await bkChart(bk.toUpperCase(), url.searchParams.get("range") || "1mo"));
     const ch = url.searchParams.get("chart");
     if (ch) return json(await chart(ch, url.searchParams.get("range") || "1mo"));
     const sp = url.searchParams.get("spark");
     if (sp) {
       const list = sp.split(",").map((s) => s.trim()).filter(Boolean).slice(0, 30);
       const range = url.searchParams.get("range") || "1mo";
-      return json({ quotes: await Promise.all(list.map((s) => s.startsWith("FUND:") ? fundQuote(s) : chart(s, range))), at: Date.now() });
+      return json({ quotes: await Promise.all(list.map((s) => s.startsWith("FUND:") ? fundQuote(s) : s.startsWith("BKUB:") ? bkChart(s.slice(5), range) : chart(s, range))), at: Date.now() });
     }
     const h = url.searchParams.get("hist");
     if (h) return json(await hist(h, url.searchParams.get("date") || new Date().toISOString().slice(0, 10)));
