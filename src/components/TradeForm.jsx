@@ -4,6 +4,7 @@ import { Search, Check, Trash2, ChevronLeft, Loader2, Info, History } from 'luci
 import { Sheet, Button, Segmented, Label, Money } from './ui'
 import { AssetLogo, ItemSprite } from './Logos'
 import { AccountChips } from './TxnForm'
+import { deductionOf } from '../lib/tax'
 import { useStore } from '../store'
 import { useVault } from '../lib/useVault'
 import { ASSET_TYPES, POPULAR_CRYPTO, GOLD_PRESETS, COMMODITY_PRESETS, assetLabel } from '../lib/portfolio'
@@ -172,6 +173,9 @@ export default function TradeForm({ open, onClose, initial }) {
         </>
       )}
 
+      {a && f.side === 'buy' && deductionOf('', `${a.symbol || ''} ${a.code || ''} ${a.name || ''}`) && (
+        <div className="mt-3 text-xs rounded-xl px-3 py-2 bg-emerald-50 text-emerald-800" data-testid="trade-tax-hint">🧾 กองทุนนี้ <b>ลดหย่อนภาษีได้</b> ({deductionOf('', `${a.symbol || ''} ${a.code || ''} ${a.name || ''}`).tip}) · แอปจะนับให้ในหน้าภาษี</div>
+      )}
       {/* date first: it drives the historical rate & price */}
       <div className="grid grid-cols-2 gap-2 mt-4">
         <div>

@@ -26,4 +26,8 @@ const SOUNDS = {
 export function sfx(name) {
   try { if (useStore.getState().ui.sfx) SOUNDS[name]?.() } catch { /* audio blocked */ }
 }
+/** Meditation bell: always plays (the user started the timer), soft sine with a long tail. */
+export function bell() {
+  try { const a = ac(); if (!a) return; for (const [f, d, v] of [[528, 2.8, 0.09], [792, 2.2, 0.04], [1056, 1.6, 0.02]]) tone(f, 0, d, 'sine', v) } catch { /* */ }
+}
 export const previewSfx = (name) => { try { SOUNDS[name]?.() } catch { /* audio blocked */ } }

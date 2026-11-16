@@ -3,8 +3,9 @@
  *
  * 💵 FIAT  — easy to earn (logging, slips, daily chest, farms, quests of the day), but it
  *            inflates: FIAT prices rise 2% every month since the town was founded.
- * 🪙 GOLD  — scarce, only from weekly/monthly/main quests, beating bosses, achievements
- *            and lucky mines. Gold prices never inflate.
+ * 🪙 GOLD  — scarce, only from milestones: habit streaks (7/30/100), finished books, words learnt,
+ *            the weekly habit quest, monthly/main quests, bosses, achievements and new investment profit.
+ *            Daily actions never pay GOLD. Gold prices never inflate.
  *
  * Earnings from real activity are *derived* (so they sync and can't be farmed twice);
  * everything bought/claimed is kept in the "rpg" item as a running adjustment (data.fiat / data.gold).
@@ -20,10 +21,18 @@ export const BUILDINGS = {
   farm: { name: 'ฟาร์ม', emoji: '🌾', max: 3, desc: 'ผลผลิต FIAT ทุกวัน', cost: [[200, 0], [400, 0], [700, 2]], perk: [20, 40, 70], perkText: (v) => `+${v} FIAT/วัน` },
   market: { name: 'ตลาดนัด', emoji: '🏪', max: 1, desc: 'ค่าเช่าแผงรายวัน + ส่วนลดร้านค้า', cost: [[450, 0], [900, 2], [1500, 4]], perk: [[10, 5], [20, 10], [30, 15]], perkText: (v) => `+${v[0]} FIAT/วัน · ร้านค้าลด ${v[1]}%` },
   bank: { name: 'ธนาคาร', emoji: '🏦', max: 1, desc: 'ดอกเบี้ยรายวันจาก FIAT ที่เก็บไว้ (สู้เงินเฟ้อ)', cost: [[500, 0], [900, 2], [1500, 5]], perk: [[0.1, 30], [0.2, 80], [0.3, 150]], perkText: (v) => `ดอกเบี้ย ${v[0]}%/วัน (สูงสุด ${v[1]})` },
-  mine: { name: 'เหมืองทอง', emoji: '⛏️', max: 1, desc: 'ลุ้นได้ GOLD ทุกวันที่เก็บรายได้', cost: [[400, 2], [900, 4], [1500, 8]], perk: [15, 25, 40], perkText: (v) => `โอกาสได้ GOLD ${v}%/วัน` },
+  mine: { name: 'เหมืองแร่', emoji: '⛏️', max: 1, desc: 'ขุดแร่ขาย ได้ FIAT ทุกวัน', cost: [[400, 1], [900, 3], [1500, 6]], perk: [15, 30, 50], perkText: (v) => `+${v} FIAT/วัน` },
   library: { name: 'ห้องสมุด', emoji: '📚', max: 1, desc: 'ปาร์ตี้ฉลาดขึ้น ได้ XP มากขึ้น', cost: [[350, 0], [700, 2], [1200, 4]], perk: [5, 10, 15], perkText: (v) => `XP +${v}%` },
   tavern: { name: 'โรงเตี๊ยม', emoji: '🍺', max: 1, desc: 'ที่พักของ NPC ที่จ้างมา', cost: [[300, 0], [700, 1], [1200, 3]], perk: [2, 4, 6], perkText: (v) => `จ้าง NPC ได้ ${v} คน` },
   tower: { name: 'หอสังเกตการณ์', emoji: '🗼', max: 1, desc: 'จับตารายจ่ายรายสัปดาห์ ปลดเควสต์ทองพิเศษ', cost: [[400, 0], [800, 2], [1300, 4]], perk: [1, 2, 4], perkText: (v) => `เควสต์ “สัปดาห์ประหยัด” +${v} GOLD` },
+  gym: { name: 'โรงฝึก', emoji: '🏋️', max: 1, desc: 'ปลดล็อกเมื่อออกกำลังกายติดกัน 14 วัน · FIAT จากนิสัยเพิ่ม', cost: [[500, 1], [900, 3], [1500, 5]], perk: [5, 10, 15], perkText: (v) => `FIAT จากนิสัย +${v}%`, req: (h) => h.by.exercise.best >= 14, reqText: 'ออกกำลังกายติดกัน 14 วัน' },
+  temple: { name: 'วัดบนเขา', emoji: '🛕', max: 1, desc: 'ปลดล็อกเมื่อนั่งสมาธิสะสม 5 ชั่วโมง · เมืองสงบสุข', cost: [[600, 2], [1000, 3], [1600, 5]], perk: [8, 14, 20], perkText: (v) => `ความสุข +${v}`, req: (h) => h.medMin >= 300, reqText: 'สมาธิสะสม 5 ชม.' },
+  school: { name: 'โรงเรียนภาษา', emoji: '🏫', max: 1, desc: 'ปลดล็อกเมื่อจำศัพท์ได้ 300 คำ · XP เพิ่ม', cost: [[500, 2], [900, 3], [1400, 5]], perk: [5, 10, 15], perkText: (v) => `XP +${v}%`, req: (h) => h.learnt >= 300, reqText: 'จำศัพท์ได้ 300 คำ' },
+  kitchen: { name: 'ครัวสุขภาพ', emoji: '🥗', max: 1, desc: 'ปลดล็อกเมื่อไม่กินแป้ง/น้ำตาลติดกัน 14 วัน · FIAT รายวัน', cost: [[450, 1], [850, 2], [1300, 4]], perk: [15, 30, 45], perkText: (v) => `+${v} FIAT/วัน`, req: (h) => h.by.nocarb.best >= 14, reqText: 'ไม่กินแป้งติดกัน 14 วัน' },
+}
+// some upgrades also need a habit milestone
+export const LEVEL_REQ = {
+  library: { 2: { req: (h) => h.finished.length >= 3, text: 'อ่านจบ 3 เล่ม' }, 3: { req: (h) => h.finished.length >= 10, text: 'อ่านจบ 10 เล่ม' } },
 }
 export const HALL = { name: 'ศาลากลาง', emoji: '🏛️', cost: [null, [1000, 10], [2500, 25]], plots: [6, 9, 12] }
 
@@ -33,7 +42,7 @@ export const NPCS = [
   { id: 'baker', sprite: 'npc_baker', name: 'คนทำขนมปัง', cost: [400, 0], perk: { fiat: 15 }, perkText: '+15 FIAT/วัน', line: 'ขนมปังอบเองถูกกว่าซื้อกาแฟทุกเช้านะ~' },
   { id: 'bard', sprite: 'npc_bard', name: 'นักกวีพเนจร', cost: [500, 0], perk: { happy: 12 }, perkText: 'ความสุข +12', line: '♪ ออมวันละนิด จิตแจ่มใส ♪' },
   { id: 'smith', sprite: 'npc_smith', name: 'ช่างตีเหล็ก', cost: [0, 6], perk: { discount: 15 }, perkText: 'ค่าก่อสร้าง FIAT −15%', line: 'สร้างของดีครั้งเดียว ใช้ได้ทั้งชีวิต' },
-  { id: 'banker', sprite: 'npc_banker', name: 'นักเวทนายธนาคาร', cost: [0, 10], perk: { goldChance: 15 }, perkText: 'โอกาสได้ GOLD +15%/วัน', line: 'เงินกระดาษพิมพ์เพิ่มได้ แต่ทองคำ… ต้องขุดเอา' },
+  { id: 'banker', sprite: 'npc_banker', name: 'นักเวทนายธนาคาร', cost: [0, 10], perk: { bankBoost: 50 }, perkText: 'เพดานดอกเบี้ยธนาคาร +50%', line: 'เงินกระดาษพิมพ์เพิ่มได้ แต่ทองคำ… ต้องขุดเอา' },
 ]
 export const NPC_BY_ID = Object.fromEntries(NPCS.map((n) => [n.id, n]))
 // villagers who live in town for free
@@ -73,6 +82,7 @@ export function computeTown(data = {}, { realmTier = 1, streak = 0, debtFog = 0 
   const happyParts = [['พื้นฐาน', 40]]
   const dh = decor.reduce((s, id) => s + DECOR_BY_ID[id].happy, 0); if (dh) happyParts.push(['ของตกแต่ง', dh])
   const nh = npcs.reduce((s, id) => s + (NPC_BY_ID[id].perk.happy || 0), 0); if (nh) happyParts.push(['NPC', nh])
+  if (perk('temple')) happyParts.push(['วัดบนเขา', perk('temple')])
   if (streak) happyParts.push(['บันทึกต่อเนื่อง', Math.min(20, streak)])
   const crowd = Math.max(0, built.filter((b) => b.type === 'house').length - built.filter((b) => b.type !== 'house').length - 1) * 3
   if (crowd) happyParts.push(['บ้านแน่นเกินไป', -crowd])
@@ -83,15 +93,16 @@ export function computeTown(data = {}, { realmTier = 1, streak = 0, debtFog = 0 
   const farmFiat = built.filter((b) => b.type === 'farm').reduce((s, b) => s + BUILDINGS.farm.perk[b.lv - 1], 0)
   const mk = perk('market')
   const npcFiat = npcs.reduce((s, id) => s + (NPC_BY_ID[id].perk.fiat || 0), 0)
-  const dailyFiat = Math.round((farmFiat + (mk ? mk[0] : 0) + npcFiat) * happyMult)
+  const dailyFiat = Math.round((farmFiat + (mk ? mk[0] : 0) + npcFiat + (perk('mine') || 0) + (perk('kitchen') || 0)) * happyMult)
   const bank = perk('bank')
-  const goldChance = (perk('mine') || 0) + npcs.reduce((s, id) => s + (NPC_BY_ID[id].perk.goldChance || 0), 0)
+  const bankBoost = 1 + npcs.reduce((s, id) => s + (NPC_BY_ID[id].perk.bankBoost || 0), 0) / 100
+  const goldChance = 0 // GOLD no longer comes from luck
   const buildDiscount = npcs.reduce((s, id) => s + (NPC_BY_ID[id].perk.discount || 0), 0)
   return {
     town, plots, plotCount, built, npcs, decor, pop, happiness, happyParts, happyMult,
     dailyFiat, farmFiat, npcFiat, marketFiat: mk ? mk[0] : 0, shopDiscount: mk ? mk[1] : 0,
-    bankRate: bank ? bank[0] : 0, bankCap: bank ? bank[1] : 0, goldChance: Math.min(90, goldChance), buildDiscount,
-    xpBonus: perk('library') || 0, npcSlots: perk('tavern') || 0, towerGold: perk('tower') || 0, lvOf,
+    bankRate: bank ? bank[0] : 0, bankCap: bank ? Math.round(bank[1] * bankBoost) : 0, goldChance, buildDiscount, habitBoost: perk('gym') || 0,
+    xpBonus: (perk('library') || 0) + (perk('school') || 0), npcSlots: perk('tavern') || 0, towerGold: perk('tower') || 0, lvOf,
     count: (type) => built.filter((b) => b.type === type).length,
   }
 }
@@ -105,17 +116,20 @@ export function priceOf([fiat, gold], data, { discount = 0 } = {}) {
  * Wallet: derived earnings + stored adjustments.
  * days: Map(localDay → number of txns logged that day); txns for slip bonus.
  */
-export function computeWallet({ days, txns, data = {}, achievementsUnlocked = 0, bossesDefeated = 0 }) {
+export function computeWallet({ days, txns, data = {}, achievementsUnlocked = 0, bossesDefeated = 0, habits = null, habitBoost = 0 }) {
   let logFiat = 0
   for (const n of days.values()) logFiat += Math.min(5, n) * 10
   const slipFiat = Math.min(2000, txns.filter((t) => t.fromSlip).length * 5)
+  const habitFiat = habits ? Math.round(habits.fiat * (1 + habitBoost / 100)) : 0
   const achGold = achievementsUnlocked * 3
   const bossGold = bossesDefeated * 10
-  const fiat = Math.max(0, Math.round(logFiat + slipFiat + (data.fiat || 0)))
-  const gold = Math.max(0, Math.round(achGold + bossGold + (data.gold || 0)))
-  return { fiat, gold, parts: { logFiat, slipFiat, achGold, bossGold } }
+  const habitGold = habits ? habits.gold : 0
+  const profitGold = Math.floor((data.profitPeak || 0) / 10000)
+  const fiat = Math.max(0, Math.round(logFiat + slipFiat + habitFiat + (data.fiat || 0)))
+  const gold = Math.max(0, Math.round(achGold + bossGold + habitGold + profitGold + (data.gold || 0)))
+  return { fiat, gold, parts: { logFiat, slipFiat, habitFiat, achGold, bossGold, habitGold, profitGold } }
 }
 
-/** Exchange FIAT → GOLD: rate rises with inflation, max 3 GOLD a week. */
+/** Exchange FIAT → GOLD: rate rises with inflation, max 1 GOLD a week (GOLD should stay scarce). */
 export const exchangeRate = (data) => Math.round(100 * inflationMult(data))
-export const EXCHANGE_WEEKLY = 3
+export const EXCHANGE_WEEKLY = 1

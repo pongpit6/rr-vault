@@ -5,10 +5,12 @@ import { useVault } from './useVault'
 import { postingsOf } from './ledger'
 import { round2, todayISO, monthKey } from './format'
 import { computeParty } from './party'
+import { computeHabits } from './habits'
+import { selectList } from '../store'
 import { useWeather, loadWeather, sceneWeather, thaiEvent, isThaiHoliday, moneyMood } from './world'
 import { usePrices } from './prices'
 import { budgetStatus } from './plan'
-import { computeTown, computeWallet, priceOf, inflationMult, exchangeRate, EXCHANGE_WEEKLY, BUILDINGS, HALL, NPC_BY_ID, DECOR_BY_ID, GEM_TO_FIAT, weekKey } from './town'
+import { computeTown, computeWallet, priceOf, inflationMult, exchangeRate, EXCHANGE_WEEKLY, BUILDINGS, LEVEL_REQ, HALL, NPC_BY_ID, DECOR_BY_ID, GEM_TO_FIAT, weekKey } from './town'
 
 /**
  * Everything RPG is derived from real data, so it syncs with no extra storage.
@@ -47,6 +49,28 @@ const BOSS_KIND = {
 }
 
 export const ACHIEVEMENTS = [
+  { id: 'read_first', name: 'นักอ่านหน้าใหม่', desc: 'อ่านหนังสือวันแรก', icon: 'book', habit: true },
+  { id: 'book1', name: 'จบเล่มแรก', desc: 'อ่านหนังสือจบ 1 เล่ม', icon: 'book', habit: true },
+  { id: 'book10', name: 'ชั้นหนังสือเต็มแถว', desc: 'อ่านจบ 10 เล่ม', icon: 'book', habit: true },
+  { id: 'pages1000', name: 'พันหน้า', desc: 'อ่านรวม 1,000 หน้า', icon: 'book', habit: true },
+  { id: 'read30', name: 'หนอนหนังสือ', desc: 'อ่านทุกวัน 30 วันติด', icon: 'book', habit: true },
+  { id: 'ex_first', name: 'เหงื่อหยดแรก', desc: 'ออกกำลังกายวันแรก', icon: 'gym', habit: true },
+  { id: 'ex7', name: 'ร่างเหล็ก', desc: 'ออกกำลังกายครบ 7 วันติด', icon: 'gym', habit: true },
+  { id: 'push1000', name: 'พันวิดพื้น', desc: 'วิดพื้นสะสม 1,000 ครั้ง', icon: 'gym', habit: true },
+  { id: 'reps10k', name: 'หมื่นครั้ง', desc: 'ทุกท่ารวม 10,000 ครั้ง', icon: 'gym', habit: true },
+  { id: 'med_first', name: 'ลมหายใจแรก', desc: 'นั่งสมาธิครั้งแรก', icon: 'sparkles', habit: true },
+  { id: 'med600', name: 'จิตนิ่ง', desc: 'สมาธิสะสม 10 ชั่วโมง', icon: 'sparkles', habit: true },
+  { id: 'med30', name: 'พระธุดงค์', desc: 'นั่งสมาธิ 30 วันติด', icon: 'sparkles', habit: true },
+  { id: 'sleep_first', name: 'หลับฝันดี', desc: 'บันทึกการนอนครั้งแรก', icon: 'home', habit: true },
+  { id: 'sleep8x7', name: 'นอนเต็มอิ่ม', desc: 'นอน ≥ 8 ชม. 7 คืน', icon: 'home', habit: true },
+  { id: 'ontime14', name: 'นาฬิกาชีวิต', desc: 'เข้านอนตรงเวลา 14 คืนติด', icon: 'home', habit: true },
+  { id: 'carb7', name: 'ลาก่อนแป้ง', desc: 'ไม่กินแป้ง/น้ำตาล 7 วันติด', icon: 'health', habit: true },
+  { id: 'carb30', name: 'สายคลีน', desc: 'ไม่กินแป้ง/น้ำตาล 30 วันติด', icon: 'health', habit: true },
+  { id: 'vocab50', name: 'คำศัพท์ 50', desc: 'จำศัพท์ได้ 50 คำ', icon: 'edu', habit: true },
+  { id: 'vocab300', name: 'นักภาษา', desc: 'จำศัพท์ได้ 300 คำ', icon: 'edu', habit: true },
+  { id: 'allsix', name: 'วันสมบูรณ์แบบ', desc: 'ทำครบทั้ง 6 นิสัยในวันเดียว', icon: 'award', habit: true },
+  { id: 'life_knight', name: 'อัศวินแห่งนิสัย', desc: 'ยศแห่งวินัยถึงขั้นอัศวิน', icon: 'shield', habit: true },
+  { id: 'profit10k', name: 'กำไรหมื่นแรก', desc: 'กำไรจากการลงทุนรวม ฿10,000', icon: 'trending', habit: true },
   { id: 'first_step', name: 'ก้าวแรก', desc: 'บันทึกรายการแรก', icon: 'sparkles' },
   { id: 'streak7', name: 'วินัยเหล็ก', desc: 'บันทึกต่อเนื่อง 7 วัน', icon: 'zap' },
   { id: 'streak30', name: 'ตำนานแห่งวินัย', desc: 'บันทึกต่อเนื่อง 30 วัน', icon: 'award' },
@@ -66,7 +90,7 @@ export const ACHIEVEMENTS = [
   { id: 'nw1m', name: 'ราชาแห่งเกาะ', desc: 'มูลค่าสุทธิถึง 1,000,000', icon: 'gem' },
 ]
 
-function computeRpg({ accounts, txns, settings, balances, summary, unlocked, portfolio, goals = [], budgets = [], catById = {}, data = {}, privacy = false, wx = null, btcPct = null }) {
+function computeRpg({ accounts, txns, settings, balances, summary, unlocked, portfolio, goals = [], budgets = [], catById = {}, data = {}, privacy = false, wx = null, btcPct = null, habits = null }) {
   portfolio ||= { open: [], value: 0, pnlPct: 0, byType: {} }
   const typesHeld = Object.keys(portfolio.byType).filter((k) => portfolio.byType[k] > 0).length
   const accById = Object.fromEntries(accounts.map((a) => [a.id, a]))
@@ -109,6 +133,8 @@ function computeRpg({ accounts, txns, settings, balances, summary, unlocked, por
   // ---------- activity ----------
   const days = new Map()
   for (const t of txns) { const d = loggedDay(t); days.set(d, (days.get(d) || 0) + 1) }
+  // a day with any habit done counts as an active day too
+  for (const d of habits?.activeDays || []) if (!days.has(d)) days.set(d, 1)
   // "วันนี้ไม่ใช้เงิน" days count as logged days (no entry, but a conscious decision)
   const noSpendMarks = data?.noSpend || {}
   for (const d of Object.keys(noSpendMarks)) if (!days.has(d)) days.set(d, 1)
@@ -177,7 +203,30 @@ function computeRpg({ accounts, txns, settings, balances, summary, unlocked, por
 
   // ---------- achievements (persisted once unlocked) ----------
   const goodMonths = Object.values(months).filter((m) => m.inc > 0 && (m.inc - m.exp) / m.inc >= 0.2).length
+  const h = habits
   const cond = {
+    read_first: !!(h && h.by.read.total > 0),
+    book1: !!(h && h.finished.length >= 1),
+    book10: !!(h && h.finished.length >= 10),
+    pages1000: !!(h && h.pagesTotal >= 1000),
+    read30: !!(h && h.by.read.best >= 30),
+    ex_first: !!(h && h.by.exercise.total > 0),
+    ex7: !!(h && h.by.exercise.best >= 7),
+    push1000: !!(h && h.reps.push >= 1000),
+    reps10k: !!(h && h.reps.push + h.reps.squat + h.reps.sit >= 10000),
+    med_first: !!(h && h.by.meditate.total > 0),
+    med600: !!(h && h.medMin >= 600),
+    med30: !!(h && h.by.meditate.best >= 30),
+    sleep_first: !!(h && h.sleeps.length > 0),
+    sleep8x7: !!(h && h.sleeps.filter((x) => x.hours >= 8).length >= 7),
+    ontime14: !!(h && h.by.sleep.best >= 14),
+    carb7: !!(h && h.by.nocarb.best >= 7),
+    carb30: !!(h && h.by.nocarb.best >= 30),
+    vocab50: !!(h && h.learnt >= 50),
+    vocab300: !!(h && h.learnt >= 300),
+    allsix: !!(h && Object.values(h.by).filter((x) => x.id !== 'nospend' && x.today >= 1).length >= 6),
+    life_knight: !!(h && h.life >= 0.6),
+    profit10k: !!((data.profitPeak || 0) >= 10000),
     first_step: txns.length > 0,
     streak7: streak >= 7, streak30: streak >= 30,
     first_strike: payments > 0,
@@ -209,7 +258,12 @@ function computeRpg({ accounts, txns, settings, balances, summary, unlocked, por
   add('เดือนที่มีเงินเหลือ', Object.values(months).filter((m) => m.inc > m.exp && m.inc > 0).length * 100)
   add('เดือนที่ออมได้ 20%+', goodMonths * 100)
   add('ส่งเงินไปลงทุน', investIn / 500)
-  add('ซื้อสินทรัพย์ลงทุน', txns.filter((t) => t.kind === 'trade' && t.side === 'buy').length * 15)
+  add('ซื้อสินทรัพย์ลงทุน', txns.filter((t) => t.kind === 'trade' && t.side === 'buy').reduce((s, t) => s + 15 + Math.min(300, (t.amount || t.total || 0) / 500), 0))
+  if (habits) {
+    add('นิสัยที่ทำ', Object.values(habits.by).reduce((s, h) => s + h.total * 5, 0))
+    add('หนังสือที่อ่านจบ', habits.finished.length * 100)
+    add('คำศัพท์ที่จำได้', habits.learnt)
+  }
   add('Achievement', unlockedCount * 50)
   const realmNow = [...REALMS].reverse().find((r) => summary.net >= r.min)
   const debtFog = Math.min(0.55, summary.debts / Math.max(1, summary.assets + summary.debts))
@@ -260,13 +314,14 @@ function computeRpg({ accounts, txns, settings, balances, summary, unlocked, por
   const quests = [
     { tier: 'รายวัน', key: `d:${today}:1`, name: 'บันทึกรายการวันนี้', progress: Math.min(1, todayCount), goal: 1, fiat: 20 * (evNow?.id === 'newyear' ? 2 : 1) },
     { tier: 'รายวัน', key: `d:${today}:3`, name: 'บันทึกให้ครบ 3 รายการ', progress: Math.min(3, todayCount), goal: 3, fiat: 20 * (evNow?.id === 'newyear' ? 2 : 1) },
-    { tier: 'รายสัปดาห์', key: `w:${startOfWeek}:days`, name: 'บันทึกครบ 5 วันในสัปดาห์นี้', progress: Math.min(5, weekDays), goal: 5, gold: 2 },
-    { tier: 'รายสัปดาห์', key: `w:${startOfWeek}:nospend`, name: 'มีวันที่ไม่ใช้จ่ายเลย 2 วัน', progress: Math.min(2, noSpend), goal: 2, gold: 2, hint: 'นับวันที่ผ่านไปแล้วของสัปดาห์นี้' },
+    { tier: 'รายสัปดาห์', key: `w:${startOfWeek}:habits`, name: 'ทำนิสัยอย่างน้อย 1 อย่าง ครบ 5 วันในสัปดาห์', progress: Math.min(5, habits?.thisWeek || 0), goal: 5, gold: 1, auto: true, hint: 'ได้ GOLD อัตโนมัติเมื่อครบ' },
+    { tier: 'รายสัปดาห์', key: `w:${startOfWeek}:days`, name: 'บันทึกครบ 5 วันในสัปดาห์นี้', progress: Math.min(5, weekDays), goal: 5, fiat: 60 },
+    { tier: 'รายสัปดาห์', key: `w:${startOfWeek}:nospend`, name: 'มีวันที่ไม่ใช้จ่ายเลย 2 วัน', progress: Math.min(2, noSpend), goal: 2, fiat: 60, hint: 'นับวันที่ผ่านไปแล้วของสัปดาห์นี้' },
     aliveBosses.length
-      ? { tier: 'รายสัปดาห์', key: `w:${startOfWeek}:hit`, name: 'โจมตีบอสอย่างน้อย 1 ครั้ง', progress: Math.min(1, weekHits), goal: 1, gold: 2 }
-      : { tier: 'รายสัปดาห์', key: `w:${startOfWeek}:invest`, name: 'ส่งเงินเข้าลงทุนหรือซื้อสินทรัพย์สัปดาห์นี้', progress: Math.min(1, investWeek), goal: 1, gold: 2 },
+      ? { tier: 'รายสัปดาห์', key: `w:${startOfWeek}:hit`, name: 'โจมตีบอสอย่างน้อย 1 ครั้ง', progress: Math.min(1, weekHits), goal: 1, fiat: 60 }
+      : { tier: 'รายสัปดาห์', key: `w:${startOfWeek}:invest`, name: 'ส่งเงินเข้าลงทุนหรือซื้อสินทรัพย์สัปดาห์นี้', progress: Math.min(1, investWeek), goal: 1, fiat: 60 },
     town.towerGold && prevAvg > 0
-      ? { tier: 'รายสัปดาห์', key: `w:${lastWeek}:tower`, name: '🗼 สัปดาห์ที่แล้วใช้จ่ายน้อยกว่าค่าเฉลี่ย', progress: lastWeekSpend < prevAvg ? 1 : 0, goal: 1, gold: town.towerGold, hint: `ใช้ ${Math.round(lastWeekSpend).toLocaleString()} · เฉลี่ย ${Math.round(prevAvg).toLocaleString()}` }
+      ? { tier: 'รายสัปดาห์', key: `w:${lastWeek}:tower`, name: '🗼 สัปดาห์ที่แล้วใช้จ่ายน้อยกว่าค่าเฉลี่ย', progress: lastWeekSpend < prevAvg ? 1 : 0, goal: 1, fiat: town.towerGold * 40, hint: `ใช้ ${Math.round(lastWeekSpend).toLocaleString()} · เฉลี่ย ${Math.round(prevAvg).toLocaleString()}` }
       : null,
     { tier: 'รายเดือน', key: `m:${lastMonth}:save`, name: 'เดือนที่แล้วออมได้ 20% ของรายรับ', progress: Math.max(0, Math.min(20, Math.round(lmRate * 100))), goal: 20, unit: '%', gold: 5 },
     { tier: 'รายเดือน', key: `m:${mk}:cover`, name: 'กันเงินชำระหนี้ให้ครบ 100%', progress: Math.round((summary.target > 0 ? summary.coverage : 1) * 100), goal: 100, unit: '%', gold: 3 },
@@ -276,11 +331,11 @@ function computeRpg({ accounts, txns, settings, balances, summary, unlocked, por
   ].filter(Boolean).map((q) => {
     const done = q.progress >= q.goal && q.need !== false
     const claimedAt = (data.claims || {})[q.key] || null
-    return { ...q, done, claimedAt, claimable: done && !claimedAt }
+    return { ...q, done, claimedAt: q.auto && done ? 'auto' : claimedAt, claimable: done && !claimedAt && !q.auto }
   })
 
   // ---------- wallet ----------
-  const wallet = computeWallet({ days, txns, data, achievementsUnlocked: Object.keys(unlocked).length, bossesDefeated: bosses.filter((b) => b.defeated).length })
+  const wallet = computeWallet({ days, txns, data, achievementsUnlocked: Object.keys(unlocked).length, bossesDefeated: bosses.filter((b) => b.defeated).length, habits, habitBoost: town.habitBoost })
 
   // weather mirrors this month's money: overspending brings storms, otherwise the Thai season
   const mo = new Date().getMonth() + 1
@@ -312,7 +367,7 @@ function computeRpg({ accounts, txns, settings, balances, summary, unlocked, por
     xp, xpParts, ...lv, title: title[1], titleEn: title[2], stats, bosses, quests, achievements, newlyUnlocked,
     streak, bestStreak, realm, nextRealm, weather, loggedToday: todayCount, debtFog, town, wallet, days,
     noSpendStreak, noSpendTotal, noSpendToday: !!noSpendMarks[today], spentToday: spendDays.has(today),
-    rank, goalBosses, world,
+    rank, goalBosses, world, habits,
     ...party,
   }
 }
@@ -337,9 +392,24 @@ export function useRpg() {
     const id = setInterval(() => document.visibilityState === 'visible' && loadWeather(w.lat, w.lon), 20 * 60_000)
     return () => clearInterval(id)
   }, [v.settings?.weather?.lat, v.settings?.weather?.lon])
-  const rpg = useMemo(() => computeRpg({ ...v, unlocked, goals, budgets, data, privacy, wx, btcPct: btcPct == null ? null : Math.round(btcPct) }), [key, goals.length, budgets.length, JSON.stringify(data), wx?.at, wx?.code, btcPct == null ? null : Math.round(btcPct)]) // eslint-disable-line
+  const habitItems = useMemo(() => {
+    const it = items
+    return {
+      days: Object.fromEntries(selectList(it, 'habitday').map((d) => [d.date, d])), books: selectList(it, 'book'),
+      vocab: it.vocab && !it.vocab.deleted ? it.vocab.data : {}, state: it['habit-state'] && !it['habit-state'].deleted ? it['habit-state'].data : {},
+    }
+  }, [items])
+  const habits = useMemo(() => computeHabits({ ...habitItems, noSpend: data.noSpend || {}, today: todayISO() }), [habitItems, JSON.stringify(data.noSpend || {})]) // eslint-disable-line
+  const rpg = useMemo(() => computeRpg({ ...v, unlocked, goals, budgets, data, privacy, wx, btcPct: btcPct == null ? null : Math.round(btcPct), habits }), [key, goals.length, budgets.length, JSON.stringify(data), wx?.at, wx?.code, btcPct == null ? null : Math.round(btcPct), habits]) // eslint-disable-line
   const chestReady = rpg.loggedToday > 0 && data.chestLast !== todayISO()
   const setUi = useStore((s) => s.setUi)
+  // new investment profit (open + realized), kept as a high-water mark so a dip never takes GOLD back
+  const profitNow = Math.round((v.portfolio.pnl || 0) + (v.portfolio.realized || 0))
+  useEffect(() => {
+    if (!v.portfolio.value && !v.portfolio.realized) return
+    const d = fresh()
+    if (profitNow > (d.profitPeak || 0) + 1) put('rpg', { ...d, id: 'rpg', profitPeak: profitNow })
+  }, [Math.floor(profitNow / 1000)]) // eslint-disable-line
   const worldLite = JSON.stringify({ weather: rpg.world.weather, event: rpg.world.event?.id || null, mood: rpg.world.mood.id, btc: rpg.world.btc, aurora: rpg.world.aurora, tree: rpg.world.tree, rank: rpg.rank.id, holiday: rpg.world.holiday })
   useEffect(() => { if (JSON.stringify(useStore.getState().ui._worldCache || null) !== worldLite) setUi({ _worldCache: JSON.parse(worldLite) }) }, [worldLite]) // eslint-disable-line
   const fresh = () => useStore.getState().items.rpg?.data || {}
@@ -357,7 +427,7 @@ export function useRpg() {
   const noSpendReward = (() => {
     const run = rpg.noSpendToday ? rpg.noSpendStreak : rpg.noSpendStreak + 1
     const x2 = rpg.world.event?.id === 'songkran' ? 2 : 1
-    return { run, fiat: (30 + 10 * Math.min(7, run)) * x2, gold: run % 3 === 0 ? 1 : 0 }
+    return { run, fiat: (30 + 10 * Math.min(7, run)) * x2, gold: 0 } // GOLD comes from the 7/30/100-day streak milestones instead
   })()
   const markNoSpend = () => {
     if (rpg.noSpendToday || rpg.spentToday) return null
@@ -398,7 +468,7 @@ export function useRpg() {
   const buildPrice = (type, lv) => priceOf(BUILDINGS[type].cost[lv - 1], data, { discount: T.buildDiscount })
   const build = (i, type) => {
     const B = BUILDINGS[type], p = buildPrice(type, 1)
-    if (!B || T.plots[i] || T.count(type) >= B.max || !afford(p)) return false
+    if (!B || T.plots[i] || T.count(type) >= B.max || !afford(p) || (B.req && !B.req(habits))) return false
     const d = fresh(), town = townOf(d), plots = [...town.plots]
     plots[i] = { type, lv: 1, at: now() }
     sfx('levelup')
@@ -408,7 +478,8 @@ export function useRpg() {
   const upgrade = (i) => {
     const b = T.plots[i]; if (!b || b.lv >= 3) return false
     const B = BUILDINGS[b.type], p = buildPrice(b.type, b.lv + 1)
-    if (!afford(p)) return false
+    const lr = LEVEL_REQ[b.type]?.[b.lv + 1]
+    if (!afford(p) || (lr && !lr.req(habits))) return false
     const d = fresh(), town = townOf(d), plots = [...town.plots]
     plots[i] = { ...b, lv: b.lv + 1 }
     sfx('levelup')

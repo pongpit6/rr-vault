@@ -48,7 +48,7 @@ export function logoCandidates(asset) {
   const sym = (asset.symbol || '').toUpperCase()
   if (asset.type === 'crypto') {
     const base = sym.replace('-USD', '').replace('BKUB:', '').toLowerCase()
-    return [`https://assets.coincap.io/assets/icons/${base}@2x.png`, `https://www.bitkub.com/static/images/coins/${base}.png`]
+    return [`https://assets.coincap.io/assets/icons/${base}@2x.png`]
   }
   if (sym.startsWith('FUND:')) return []
   if (asset.type === 'stock' || (asset.type === 'fund' && sym) || (asset.type === 'derivative' && sym && !sym.includes('='))) {

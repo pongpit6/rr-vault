@@ -1,16 +1,16 @@
 import { useEffect, useRef, useState } from 'react'
-import { LayoutDashboard, List, Plus, Wallet, Settings as Cog, Swords, LineChart, CandlestickChart } from 'lucide-react'
+import { LayoutDashboard, Plus, Wallet, Settings as Cog, Swords, LineChart, Sprout } from 'lucide-react'
 import { applyAccent, DEFAULT_ACCENT } from './lib/accent'
 import Reminders from './components/Reminders'
+import { HabitHost } from './components/HabitKit'
 import { useActiveTheme } from './lib/theme'
 import { useStore, selectList } from './store'
 import Home from './screens/Home'
-import Transactions from './screens/Transactions'
 import Money from './screens/Money'
 import Settings from './screens/Settings'
 import VaultRpg from './screens/VaultRpg'
-import Portfolio from './screens/Portfolio'
-import Market from './screens/Market'
+import Invest from './screens/Invest'
+import Habits from './screens/Habits'
 import Onboarding from './components/Onboarding'
 import ErrorBoundary from './components/ErrorBoundary'
 import { BackdropHost } from './components/PageBackdrop'
@@ -33,14 +33,17 @@ import { useSlipReminder } from './lib/slipSummary'
 
 const NAV = [
   { id: 'home', label: 'หน้าแรก', icon: LayoutDashboard },
-  { id: 'txns', label: 'รายการ', icon: List },
   { id: 'money', label: 'เงิน', icon: Wallet },
+  { id: 'habits', label: 'นิสัย', icon: Sprout },
   { id: 'portfolio', label: 'ลงทุน', icon: LineChart },
-  { id: 'market', label: 'ตลาด', icon: CandlestickChart },
   { id: 'vault', label: 'Vault', icon: Swords },
+  { id: 'settings', label: 'ตั้งค่า', icon: Cog },
 ]
-const ALL_TABS = [...NAV.map((n) => n.id), 'settings']
-const ALIAS = { wallets: ['money', 'wallets'], subs: ['money', 'subs'], plan: ['money', 'plan'] }
+const ALL_TABS = NAV.map((n) => n.id)
+const ALIAS = {
+  wallets: ['money', 'wallets'], subs: ['money', 'subs'], plan: ['money', 'plan'], txns: ['money', 'txns'], tax: ['money', 'tax'],
+  market: ['portfolio', 'market'],
+}
 const LAST = 'vault:lastTab'
 
 function Welcome() {
@@ -126,7 +129,10 @@ export default function App() {
   const lock = useStore((s) => s.ui.lock)
   const [locked, setLocked] = useState(true)
   const hiddenAt = useRef(0)
-  const [tab, setTab] = useState(() => { const h = location.hash.slice(1); return ALL_TABS.includes(h) ? h : ALIAS[h] ? ALIAS[h][0] : (localStorage.getItem(LAST) || 'home') })
+  const [tab, setTab] = useState(() => {
+    const h = location.hash.slice(1), last = localStorage.getItem(LAST) || 'home'
+    return ALL_TABS.includes(h) ? h : ALIAS[h] ? ALIAS[h][0] : ALL_TABS.includes(last) ? last : ALIAS[last]?.[0] || 'home'
+  })
   const [form, setForm] = useState(null) // null | {} | txn
   const [trade, setTrade] = useState(null)
   const [sharedFiles, setSharedFiles] = useState(null)
@@ -198,10 +204,9 @@ export default function App() {
   const onEdit = (t) => (t.kind === 'trade' ? setTrade(t) : setForm(t))
   const screen = {
     home: <Home onAdd={onAdd} onEdit={onEdit} go={go} />,
-    txns: <Transactions onEdit={onEdit} onAdd={onAdd} onTrade={setTrade} go={go} opt={tabOpt} />,
-    money: <Money onEdit={onEdit} onAdd={onAdd} go={go} opt={tabOpt} />,
-    portfolio: <Portfolio onTrade={setTrade} />,
-    market: <Market onTrade={setTrade} />,
+    money: <Money onEdit={onEdit} onAdd={onAdd} onTrade={setTrade} go={go} opt={tabOpt} />,
+    habits: <Habits go={go} opt={tabOpt} />,
+    portfolio: <Invest onTrade={setTrade} opt={tabOpt} />,
     vault: <VaultRpg onAdd={onAdd} go={go} />,
     settings: <Settings opt={tabOpt} />,
   }[tab] || null
@@ -222,12 +227,11 @@ export default function App() {
           <LineChart size={16} /> ซื้อ/ขายสินทรัพย์ <kbd className="ml-1 text-[10px] px-1.5 py-0.5 rounded bg-slate-100">T</kbd>
         </button>
         {NAV.map((n) => (
-          <button key={n.id} onClick={() => go(n.id)}
+          <button key={n.id} onClick={() => go(n.id)} style={n.id === 'settings' ? { marginTop: 'auto' } : undefined}
             className={`ui-side-item flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition ${tab === n.id ? 'ui-on bg-slate-900/[.05] text-slate-900' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-900/[.025]'}`}>
             <n.icon size={18} className={tab === n.id ? 'text-ac' : ''} /> {n.label}
           </button>
         ))}
-        <button onClick={() => setTab('settings')} className={`mt-auto flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition ${tab === 'settings' ? 'bg-slate-900/[.05] text-slate-900' : 'text-slate-500 hover:text-slate-900'}`}><Cog size={18} /> ตั้งค่า</button>
         <div className="text-[11px] text-slate-400 px-2">คีย์ลัด: N บันทึก · T ซื้อขาย · 1-6 สลับหน้า</div>
       </aside>
 
@@ -242,7 +246,7 @@ export default function App() {
           {NAV.slice(0, 3).map((n) => <NavBtn key={n.id} n={n} active={tab === n.id} onClick={() => go(n.id)} />)}
           <div className="relative flex justify-center h-full">
             <span className="ui-fab-notch" aria-hidden="true" />
-            <button onClick={() => (tab === 'portfolio' || tab === 'market' ? setTrade({}) : setForm({}))} aria-label="บันทึกรายการ" className="ui-fab relative z-10 self-center -translate-y-3 w-12 h-12 rounded-full grad-bg text-white grid place-items-center ui-ac-shadow active:scale-95 transition">
+            <button onClick={() => (tab === 'portfolio' ? setTrade({}) : tab === 'habits' ? useStore.getState().setUi({ habitQuick: Date.now() }) : setForm({}))} aria-label="บันทึกรายการ" className="ui-fab relative z-10 self-center -translate-y-3 w-12 h-12 rounded-full grad-bg text-white grid place-items-center ui-ac-shadow active:scale-95 transition">
               <Plus size={24} strokeWidth={2.6} />
             </button>
           </div>
@@ -256,6 +260,7 @@ export default function App() {
       <InsightsRunner />
       <AlertWatcher />
       <Reminders />
+      <HabitHost />
       <TxnForm open={!!form} initial={form} onClose={() => setForm(null)} />
       <TradeForm open={!!trade} initial={trade} onClose={() => setTrade(null)} />
       <Toast />

@@ -15,10 +15,6 @@ export const CATS = [
     C('BTC-USD', 'Bitcoin', 'crypto'), C('ETH-USD', 'Ethereum', 'crypto'), C('SOL-USD', 'Solana', 'crypto'),
     C('BNB-USD', 'BNB', 'crypto'), C('XRP-USD', 'XRP', 'crypto'), C('DOGE-USD', 'Dogecoin', 'crypto'),
   ] },
-  { id: 'bkub', label: 'Bitkub (บาท)', emoji: '🟢', items: [
-    C('BKUB:BTC', 'Bitcoin', 'crypto', { ccy: 'THB', code: 'BTC' }), C('BKUB:KUB', 'Bitkub Coin', 'crypto', { ccy: 'THB', code: 'KUB' }), C('BKUB:ETH', 'Ethereum', 'crypto', { ccy: 'THB', code: 'ETH' }),
-    C('BKUB:XRP', 'XRP', 'crypto', { ccy: 'THB', code: 'XRP' }), C('BKUB:USDT', 'Tether', 'crypto', { ccy: 'THB', code: 'USDT' }), C('BKUB:SOL', 'Solana', 'crypto', { ccy: 'THB', code: 'SOL' }), C('BKUB:DOGE', 'Dogecoin', 'crypto', { ccy: 'THB', code: 'DOGE' }),
-  ] },
   { id: 'th', label: 'หุ้นไทย', emoji: '🇹🇭', items: [
     C('^SET.BK', 'ดัชนี SET', 'index'), C('^SET50.BK', 'SET50', 'index'), C('PTT.BK', 'ปตท.', 'stock'), C('AOT.BK', 'ท่าอากาศยานไทย', 'stock'),
     C('CPALL.BK', 'ซีพี ออลล์', 'stock'), C('KBANK.BK', 'ธนาคารกสิกรไทย', 'stock'), C('DELTA.BK', 'เดลต้า อีเลคโทรนิคส์', 'stock'), C('ADVANC.BK', 'แอดวานซ์ อินโฟร์', 'stock'),
@@ -49,9 +45,9 @@ const KNOWN = Object.fromEntries(CATS.flatMap((c) => c.items.map((i) => [i.symbo
 
 /** Item metadata for any symbol (catalog entry or a guess for searched symbols). */
 export function itemFor(symbol, extra = {}) {
-  if (KNOWN[symbol]) return { ...KNOWN[symbol], ...extra, name: KNOWN[symbol].name, ...(symbol.startsWith('BKUB:') ? { code: symbol.slice(5) } : {}) }
+  if (KNOWN[symbol]) return { ...KNOWN[symbol], ...extra, name: KNOWN[symbol].name }
   if (symbol.startsWith('FUND:')) return { symbol, kind: 'fund', cat: 'fund', ...extra }
-  if (symbol.startsWith('BKUB:')) return { symbol, kind: 'crypto', cat: 'bkub', ccy: 'THB', code: symbol.slice(5), name: extra.name || `${symbol.slice(5)}/THB`, ...extra }
+  if (symbol.startsWith('BKUB:')) return { symbol, kind: 'crypto', cat: 'crypto', ccy: 'THB', code: symbol.slice(5), name: extra.name || `${symbol.slice(5)}/THB`, ...extra }
   const kind = symbol.endsWith('-USD') ? 'crypto' : symbol.startsWith('^') ? 'index' : /=X$/.test(symbol) ? 'fx' : /=F$/.test(symbol) ? 'commodity' : 'stock'
   return { symbol, kind, name: extra.name || symbol, ...extra }
 }
@@ -63,7 +59,7 @@ export function catOf(it) {
   const s = it.symbol || ''
   if (KNOWN[s]) return KNOWN[s].cat
   if (s.startsWith('FUND:') || it.kind === 'fund') return 'fund'
-  if (s.startsWith('BKUB:')) return 'bkub'
+  if (s.startsWith('BKUB:')) return 'crypto'
   if (s.endsWith('-USD') || it.kind === 'crypto') return 'crypto'
   if (/=X$/.test(s)) return 'fx'
   if (/^(GC|SI|PL|PA|HG|MGC|SIL)=F$/.test(s)) return 'gold'
@@ -97,8 +93,19 @@ function deriveThaiGold(q) {
 
 /** Load price + 1-month series for a list of symbols (rows). */
 export async function loadSpark(symbols) {
-  const want = [...new Set(symbols.flatMap((s) => (s === 'TH-GOLD' ? ['GC=F', 'THB=X'] : [s])))]
+  let want = [...new Set(symbols.flatMap((s) => (s === 'TH-GOLD' ? ['GC=F', 'THB=X'] : [s])))]
   if (!want.length) return
+  // Bitkub: every price comes from one ticker call; only the first few rows also get a sparkline
+  const bk = want.filter((s) => s.startsWith('BKUB:'))
+  if (bk.length) {
+    try {
+      const list = await loadBitkubList(true)
+      const q = { ...useMarket.getState().q }
+      for (const s of bk) { const x = list.find((y) => y.code === s.slice(5)); if (x) q[s] = { ...(q[s] || {}), symbol: s, price: x.price, changePct: x.changePct, currency: 'THB', name: `${x.code}/THB`, exchange: 'Bitkub', time: Date.now(), dayHi: x.hi, dayLo: x.lo } }
+      useMarket.setState({ q })
+    } catch { /* fall through to per-symbol */ }
+    want = [...want.filter((s) => !s.startsWith('BKUB:')), ...bk.slice(0, 12)]
+  }
   useMarket.setState({ loading: { ...useMarket.getState().loading, spark: true } })
   try {
     const out = {}
@@ -156,8 +163,8 @@ export async function searchMarket(q) {
 
 /* ---------- Bitkub: every THB pair (for search + the "all coins" list), cached 1 min ---------- */
 let bkList = null, bkListAt = 0
-export async function loadBitkubList() {
-  if (bkList && Date.now() - bkListAt < 60_000) return bkList
+export async function loadBitkubList(fresh = false) {
+  if (bkList && Date.now() - bkListAt < (fresh ? 25_000 : 60_000)) return bkList
   const j = await (await fetch(`${FN}?bitkub=1`, H)).json()
   if (j.items) { bkList = j.items; bkListAt = Date.now() }
   return bkList || []
@@ -243,3 +250,7 @@ export const FNG_ZONES = [
   { max: 100, th: 'โลภสุดขีด', en: 'Extreme Greed', color: '#16a34a' },
 ]
 export const fngZone = (v, name) => (name && FNG_ZONES.find((z) => z.en.toLowerCase() === String(name).toLowerCase())) || FNG_ZONES.find((z) => v <= z.max) || FNG_ZONES[4]
+
+/** Crypto shows one row per coin: price from Binance (USD) or Bitkub (THB), the user's choice. */
+export const coinCode = (s = '') => (s.startsWith('BKUB:') ? s.slice(5) : s.replace(/-USD$/, ''))
+export const isCoin = (s = '') => s.startsWith('BKUB:') || /-USD$/.test(s)

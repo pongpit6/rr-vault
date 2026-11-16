@@ -6,7 +6,7 @@ import { Sheet, Button } from '../components/ui'
 import { AssetLogo } from '../components/Logos'
 import FuelCard from '../components/FuelCard'
 import { useSyncedPref, unionBySymbol } from '../lib/prefs'
-import { CATS, CAT_BY_ID, catOf, WATCH_MAX, bitkubPremium, loadBitkubList, itemFor, itemCcy, useMarket, loadSpark, loadChart, searchMarket, streamMarketCrypto, stopMarketStream, loadOil } from '../lib/market'
+import { CATS, CAT_BY_ID, catOf, WATCH_MAX, bitkubPremium, loadBitkubList, coinCode, isCoin, itemFor, itemCcy, useMarket, loadSpark, loadChart, searchMarket, streamMarketCrypto, stopMarketStream, loadOil } from '../lib/market'
 import { ccyMark, ccyOfSymbol, fetchQuotes, fxSym } from '../lib/prices'
 import { GOLD_PRESETS, COMMODITY_PRESETS } from '../lib/portfolio'
 import { sfx } from '../lib/sfx'
@@ -95,34 +95,52 @@ export default function Market({ onTrade }) {
 
   const heldFunds = useMemo(() => assets.filter((a) => a.symbol?.startsWith('FUND:')).map((a) => itemFor(a.symbol, { name: a.name, code: a.code })), [assets])
   const heldSyms = useMemo(() => new Set(assets.map((a) => (a.source === 'thaigold' ? 'TH-GOLD' : a.symbol)).filter(Boolean)), [assets])
-  const watchItems = watch.map((w) => itemFor(w.symbol, w))
-  const isWatched = (s) => watch.some((w) => w.symbol === s)
+  // crypto: one row per coin, priced in USD (Binance) or THB (Bitkub)
+  const coinCcy = useStore((s) => s.ui.cryptoCcy) || 'USD'
+  const setUi = useStore((s) => s.setUi)
+  const [bkCodes, setBkCodes] = useState(null)
+  useEffect(() => { if (coinCcy === 'THB' && !bkCodes) loadBitkubList().then((l) => setBkCodes(new Set(l.map((x) => x.code)))).catch(() => {}) }, [coinCcy]) // eslint-disable-line
+  const usdCodes = useMemo(() => new Set(CAT_BY_ID.crypto.items.map((i) => coinCode(i.symbol))), [])
+  const asMode = (it) => {
+    if (!isCoin(it.symbol)) return it
+    const c = coinCode(it.symbol)
+    if (coinCcy === 'THB') return it.symbol.startsWith('BKUB:') || !bkCodes?.has(c) ? it : itemFor(`BKUB:${c}`)
+    return it.symbol.endsWith('-USD') || !(usdCodes.has(c) || c.length <= 5 && c !== 'KUB') ? it : itemFor(`${c}-USD`, { name: it.name !== `${c}/THB` ? it.name : c })
+  }
+  const dedupe = (list) => { const seen = new Set(); return list.filter((x) => { const k = isCoin(x.symbol) ? `c:${coinCode(x.symbol)}` : x.symbol; if (seen.has(k)) return false; seen.add(k); return true }) }
+  const watchItems = dedupe(watch.map((w) => asMode(itemFor(w.symbol, w))))
+  const sameAs = (a, b) => a === b || (isCoin(a) && isCoin(b) && coinCode(a) === coinCode(b))
+  const isWatched = (s) => watch.some((w) => sameAs(w.symbol, s))
   const toggleWatch = (it) => {
     sfx('click')
-    setWatch(isWatched(it.symbol) ? watch.filter((w) => w.symbol !== it.symbol) : [...watch, { symbol: it.symbol, name: it.name, code: it.code }])
+    setWatch(isWatched(it.symbol) ? watch.filter((w) => !sameAs(w.symbol, it.symbol)) : [...watch, { symbol: it.symbol, name: it.name, code: it.code }])
   }
   const watchIn = (id) => watchItems.filter((w) => catOf(w) === id)
+  const ccyToggle = (
+    <span className="inline-flex ml-2 align-middle rounded-lg overflow-hidden border border-slate-200 text-[10px] font-semibold" onClick={(e) => e.stopPropagation()} data-testid="coin-ccy">
+      {['USD', 'THB'].map((c) => <button key={c} onClick={() => setUi({ cryptoCcy: c })} className={`px-2 py-0.5 ${coinCcy === c ? 'bg-slate-900 text-white' : 'text-slate-500'}`}>{c === 'USD' ? '$ Binance' : '฿ Bitkub'}</button>)}
+    </span>
+  )
   // full list for a category tab: watched first, then the rest of the catalog
   // every Bitkub pair (by volume) when that tab is open
   const [bkAll, setBkAll] = useState([])
   useEffect(() => {
-    if (cat !== 'bkub' || bkAll.length) return
+    if (cat !== 'crypto' || coinCcy !== 'THB' || bkAll.length) return
     loadBitkubList().then((l) => setBkAll(l.filter((x) => !x.frozen).slice(0, 60).map((x) => itemFor(`BKUB:${x.code}`)))).catch(() => {})
-  }, [cat]) // eslint-disable-line
+  }, [cat, coinCcy]) // eslint-disable-line
   const catItems = (id) => {
     if (id === 'watch') return watchItems
     if (id === 'other') return watchIn('other')
     const w = watchIn(id)
-    const base = id === 'fund' ? heldFunds : id === 'bkub' ? [...CAT_BY_ID.bkub.items, ...bkAll] : CAT_BY_ID[id]?.items || []
-    const seen = new Set(w.map((x) => x.symbol))
-    return [...w, ...base.filter((b) => !seen.has(b.symbol) && seen.add(b.symbol))]
+    const base = id === 'fund' ? heldFunds : id === 'crypto' ? [...CAT_BY_ID.crypto.items, ...(coinCcy === 'THB' ? bkAll : [])].map(asMode) : CAT_BY_ID[id]?.items || []
+    return dedupe([...w, ...base])
   }
   // overview card: your stars in this category (max 6); none starred → catalog defaults (3)
   const overviewItems = (id) => {
     const w = watchIn(id)
     if (w.length) return { list: w.slice(0, WATCH_MAX), extra: Math.max(0, w.length - WATCH_MAX), mine: true }
     if (id === 'fund') return { list: heldFunds.slice(0, WATCH_MAX), extra: Math.max(0, heldFunds.length - WATCH_MAX), mine: false }
-    return { list: (CAT_BY_ID[id]?.items || []).slice(0, 3), extra: 0, mine: false }
+    return { list: (CAT_BY_ID[id]?.items || []).slice(0, 3).map(asMode), extra: 0, mine: false }
   }
   const overviewCats = [...CATS, ...(watchIn('other').length ? [{ id: 'other', label: 'ตลาดอื่น', emoji: '🌐' }] : [])]
 
@@ -131,16 +149,16 @@ export default function Market({ onTrade }) {
     if (cat === 'fuel') return []
     if (cat === 'all') return overviewCats.flatMap((c) => overviewItems(c.id).list).map((i) => i.symbol)
     return catItems(cat).map((i) => i.symbol)
-  }, [cat, watch.map((w) => w.symbol).join(','), heldFunds.length]) // eslint-disable-line
+  }, [cat, watch.map((w) => w.symbol).join(','), heldFunds.length, coinCcy, bkAll.length, !!bkCodes]) // eslint-disable-line
   // Bitkub premium needs the Binance leg + USD/THB
   const pollSyms = useMemo(() => {
-    const bk = visible.filter((s) => s.startsWith('BKUB:')).map((s) => `${s.slice(5)}-USD`)
+    const bk = visible.filter((s) => s.startsWith('BKUB:')).slice(0, 12).map((s) => `${s.slice(5)}-USD`)
     return bk.length ? [...new Set([...visible, ...bk, 'THB=X'])] : visible
   }, [visible.join(',')]) // eslint-disable-line
   useEffect(() => {
     if (!pollSyms.length) return
     loadSpark(pollSyms)
-    const iv = setInterval(() => document.visibilityState === 'visible' && loadSpark(pollSyms), cat === 'bkub' ? 30_000 : 60_000)
+    const iv = setInterval(() => document.visibilityState === 'visible' && loadSpark(pollSyms), cat === 'crypto' && coinCcy === 'THB' ? 30_000 : 60_000)
     return () => clearInterval(iv)
   }, [pollSyms.join(',')]) // eslint-disable-line
   useEffect(() => {
@@ -213,7 +231,7 @@ export default function Market({ onTrade }) {
           <div className="mkt-masonry">
             {overviewCats.map((c) => {
               const { list, extra, mine } = overviewItems(c.id)
-              const head = <>{c.emoji} {c.label}{mine && <span className="ml-1.5 text-[10px] font-medium text-amber-500 align-middle">⭐ {watchIn(c.id).length}</span>}</>
+              const head = <>{c.emoji} {c.label}{mine && <span className="ml-1.5 text-[10px] font-medium text-amber-500 align-middle">⭐ {watchIn(c.id).length}</span>}{c.id === 'crypto' && ccyToggle}</>
               if (c.id === 'fund' && !list.length) return (
                 <Section key={c.id} title={head}>
                   <div className="px-2 py-3 text-xs text-slate-500">ค้นหาชื่อกองทุนด้านบน (เช่น K-USA, SCBSET) แล้วกด ⭐ เพื่อติดตาม · กองทุนที่คุณถือจะขึ้นที่นี่อัตโนมัติ</div>
@@ -238,6 +256,7 @@ export default function Market({ onTrade }) {
             ))}
           </div>
         ) : <section className="card p-2 md:p-3">
+          {cat === 'crypto' && <div className="px-2 pb-2 flex items-center justify-between text-[11px] text-slate-500"><span>{coinCcy === 'THB' ? 'ราคาบาทจาก Bitkub · % เทียบ Binance' : 'ราคา USD สดจาก Binance'}</span>{ccyToggle}</div>}
           {catItems(cat).map((it) => <Row key={it.symbol} {...rowProps(it)} />)}
           {cat === 'fund' && <div className="px-2 py-3 text-xs text-slate-500">ค้นหากองทุนอื่นได้จากช่องค้นหาด้านบน แล้วกด ⭐ เพื่อเพิ่มเข้ามาที่นี่</div>}
           {cat === 'gold' && <div className="px-2 pt-2 pb-1 text-[11px] text-slate-500">ทองไทยคำนวณจาก Gold Spot × USD/THB × 96.5% (ใกล้เคียงราคาสมาคมฯ แต่ไม่ใช่ราคาประกาศ)</div>}

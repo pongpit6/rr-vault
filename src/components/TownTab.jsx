@@ -6,7 +6,7 @@ import { Portrait } from './RpgBits'
 import { Sheet } from './ui'
 import { useStore } from '../store'
 import { weatherTH } from '../lib/world'
-import { BUILDINGS, HALL, NPCS, DECOR, priceOf, EXCHANGE_WEEKLY, RESIDENTS } from '../lib/town'
+import { LEVEL_REQ, BUILDINGS, HALL, NPCS, DECOR, priceOf, EXCHANGE_WEEKLY, RESIDENTS } from '../lib/town'
 
 /* ---------- money chips ---------- */
 export function FiatChip({ v, className = '' }) { return <span className={`px-chip text-emerald-700 ${className}`} title="FIAT — หาง่าย แต่เฟ้อ">💵 <b className="num">{Math.round(v).toLocaleString()}</b></span> }
@@ -189,6 +189,7 @@ function PlotSheet({ rpg, sel, onClose, ok }) {
         <div className="space-y-2">
           {Object.entries(BUILDINGS).map(([type, B]) => {
             const p = rpg.buildPrice(type, 1), full = T.count(type) >= B.max
+            const locked = B.req && !B.req(rpg.habits)
             return (
               <div key={type} className="px-inner p-2.5 flex items-center gap-3" data-testid={`build-${type}`}>
                 <span className="text-2xl w-8 text-center">{B.emoji}</span>
@@ -196,9 +197,10 @@ function PlotSheet({ rpg, sel, onClose, ok }) {
                   <div className="text-sm font-semibold">{B.name} <span className="text-[10px] text-slate-400 font-normal">{T.count(type)}/{B.max}</span></div>
                   <div className="text-[11px] text-slate-500">{B.desc}</div>
                   <div className="text-[11px] text-teal-700">{B.perkText(B.perk[0])}</div>
+                  {locked && <div className="text-[11px] text-amber-700">🔒 ต้อง: {B.reqText}</div>}
                 </div>
                 <div className="flex flex-col items-end gap-1"><Price p={p} rpg={rpg} />
-                  <button className={`${btn} bg-teal-500 text-white`} disabled={full || !rpg.afford(p)} onClick={() => { ok(rpg.build(sel, type), `สร้าง${B.name}แล้ว!`); close() }}>{full ? 'ครบแล้ว' : 'สร้าง'}</button>
+                  <button className={`${btn} bg-teal-500 text-white`} disabled={full || locked || !rpg.afford(p)} onClick={() => { ok(rpg.build(sel, type), `สร้าง${B.name}แล้ว!`); close() }}>{full ? 'ครบแล้ว' : 'สร้าง'}</button>
                 </div>
               </div>
             )
@@ -221,8 +223,8 @@ function PlotSheet({ rpg, sel, onClose, ok }) {
       </div>
       {next ? (
         <div className="mt-3 px-inner p-3 flex items-center justify-between gap-2">
-          <div className="text-sm">อัปเกรดเป็น {'★'.repeat(b.lv + 1)}<div><Price p={next} rpg={rpg} /></div></div>
-          <button className={`${btn} bg-teal-500 text-white`} disabled={!rpg.afford(next)} onClick={() => { ok(rpg.upgrade(sel), `อัปเกรด${B.name}แล้ว!`); close() }} data-testid="upgrade-btn"><ArrowUpCircle size={13} className="inline -mt-0.5" /> อัปเกรด</button>
+          <div className="text-sm">อัปเกรดเป็น {'★'.repeat(b.lv + 1)}<div><Price p={next} rpg={rpg} /></div>{LEVEL_REQ[b.type]?.[b.lv + 1] && !LEVEL_REQ[b.type][b.lv + 1].req(rpg.habits) && <div className="text-[11px] text-amber-700">🔒 ต้อง: {LEVEL_REQ[b.type][b.lv + 1].text}</div>}</div>
+          <button className={`${btn} bg-teal-500 text-white`} disabled={!rpg.afford(next) || (LEVEL_REQ[b.type]?.[b.lv + 1] && !LEVEL_REQ[b.type][b.lv + 1].req(rpg.habits))} onClick={() => { ok(rpg.upgrade(sel), `อัปเกรด${B.name}แล้ว!`); close() }} data-testid="upgrade-btn"><ArrowUpCircle size={13} className="inline -mt-0.5" /> อัปเกรด</button>
         </div>
       ) : <div className="mt-3 text-sm text-teal-700 font-semibold">ระดับสูงสุดแล้ว ✨</div>}
       <button className="mt-4 text-xs text-rose flex items-center gap-1" onClick={() => { if (!confirm) return setConfirm(true); ok(rpg.demolish(sel), `รื้อ${B.name}แล้ว`); close() }}>
@@ -251,5 +253,34 @@ function WorldStrip({ world, rank }) {
       )}
       {parts.length > 0 && <div className="text-[11px] text-slate-500 px-1 flex flex-wrap gap-x-3 gap-y-0.5">{parts.map((p, i) => <span key={i}>{p}</span>)}</div>}
     </div>
+  )
+}
+
+/** Home-page version: the living town, wallet and the daily collect, one card. */
+export function TownHomeCard({ rpg, onOpen }) {
+  const T = rpg.town
+  const theme = useActiveTheme()
+  const showToast = useStore((s) => s.showToast)
+  const party = rpg.party.filter((p) => p.joined && p.id !== 'knight').map((p) => p.id)
+  const world = { weather: rpg.world.weather, event: rpg.world.event?.id || null, mood: rpg.world.mood.id, btc: rpg.world.btc, aurora: rpg.world.aurora, tree: rpg.world.tree, rank: rpg.rank.id, holiday: rpg.world.holiday }
+  const W = { storm: '⛈️', rain: '🌧️', fog: '🌫️', cloud: '☁️', sun: '☀️', leaves: '🍂' }
+  return (
+    <section className="px-card overflow-hidden" data-testid="home-town">
+      <div className="px-3 pt-3 pb-2 flex items-center gap-2">
+        <button onClick={onOpen} className="flex-1 min-w-0 text-left">
+          <div className="font-bold text-sm">เมืองของฉัน <span className="px-font text-[9px] text-teal-600">LV.{rpg.level}</span></div>
+          <div className="text-[11px] text-slate-500 truncate">{rpg.world.event ? `${rpg.world.event.emoji} ${rpg.world.event.name} · ` : ''}{rpg.world.wx ? `${W[rpg.world.weather] || ''} ${weatherTH(rpg.world.weather)}${rpg.world.temp != null ? ` ${Math.round(rpg.world.temp)}°` : ''} · ` : ''}{rpg.rank.emoji} {rpg.rank.name}</div>
+        </button>
+        <Wallet rpg={rpg} />
+      </div>
+      <div onClick={onOpen} className="cursor-pointer">
+        <TownScene town={T} party={party} pet={rpg.pet.sprite} hue={rpg.skin?.hue || 0} dark={theme === 'pixel-night'} height={150} world={world} />
+      </div>
+      <div className="px-3 py-2.5 flex items-center gap-2 border-t-2 border-slate-800 text-xs">
+        <span className="flex-1 min-w-0 truncate text-slate-600">{rpg.collectReady ? `🧺 รายได้เมืองพร้อมเก็บ (+${T.dailyFiat} FIAT)` : rpg.loggedToday ? '🧺 เก็บรายได้เมืองแล้ววันนี้' : '🧺 บันทึกรายการหรือนิสัยวันนี้ก่อน แล้วค่อยเก็บรายได้'}</span>
+        <button className={`${btn} bg-emerald-500 text-white`} disabled={!rpg.collectReady} onClick={() => { const r = rpg.collect(); if (r) showToast(`🧺 +${r.fiat} FIAT`) }} data-testid="home-collect">เก็บ</button>
+        <button className={`${btn} bg-white`} onClick={onOpen}>ไปเมือง</button>
+      </div>
+    </section>
   )
 }

@@ -4,9 +4,10 @@ import { Settings as Cog, Eye, EyeOff, ChevronRight, ChevronDown, Landmark, Clou
 import { Avatar, Money, IconBadge, Empty, Button } from '../components/ui'
 import TxnRow from '../components/TxnRow'
 import { SubLogo, AssetLogo } from '../components/Logos'
-import { RpgHomeCard } from '../components/RpgBits'
 import { useRpg } from '../lib/rpg'
 import { sfx } from '../lib/sfx'
+import { TownHomeCard } from '../components/TownTab'
+import { HabitsToday } from '../components/HabitKit'
 import { useSubs } from './Subscriptions'
 import { upcoming } from '../lib/subs'
 import { budgetStatus } from '../lib/plan'
@@ -144,14 +145,14 @@ export default function Home({ onAdd, onEdit, go }) {
       <div className="grid lg:grid-cols-[1.2fr_1fr] gap-4">
         <div className="space-y-4">
           {/* money now: everything you have, then what's free to spend, then where the rest is parked */}
-          <section className="hero p-5 md:p-6 anim-pop relative overflow-hidden" data-testid="hero">
+          <section className="hero p-4 md:p-5 anim-pop relative overflow-hidden" data-testid="hero">
             <div className="absolute -right-10 -top-10 w-40 h-40 rounded-full border border-white/20" />
             <button onClick={() => go('money')} className="flex items-center gap-1.5 text-xs text-white/80 hover:text-white" data-testid="hero-total">
               <Landmark size={13} /> เงินทั้งหมดในบัญชี <b className="num text-white">{privacy ? '••••' : money(liquid, { decimals: false })}</b> <ChevronRight size={13} />
             </button>
             <div className="mt-1.5">
               <div className="text-sm text-white/75">ใช้ได้เลย</div>
-              <Money value={cash} className="text-4xl md:text-5xl font-bold tracking-tight" decimals={false} />
+              <Money value={cash} className="text-4xl font-bold tracking-tight" decimals={false} />
             </div>
             {liquid > 0 && (
               <div className="mt-3" data-testid="hero-split">
@@ -168,7 +169,7 @@ export default function Home({ onAdd, onEdit, go }) {
                 </div>
               </div>
             )}
-            <div className="mt-4 grid grid-cols-3 gap-2 text-xs">
+            <div className="mt-3 grid grid-cols-3 gap-2 text-xs">
               <div className="rounded-2xl bg-white/15 px-3 py-2"><div className="text-white/70">วันนี้ใช้ไป</div><Money value={stats.today} decimals={false} className="font-semibold text-sm" /></div>
               {budgetTotal ? (
                 <button onClick={() => go('money', 'plan')} className="rounded-2xl bg-white/15 px-3 py-2 text-left"><div className="text-white/70">เดือนนี้เหลือตามงบ</div><span className={`font-semibold text-sm num ${budgetLeft < 0 ? 'text-rose-200' : ''}`}>{privacy ? '••••' : money(budgetLeft, { decimals: false })}</span></button>
@@ -181,22 +182,22 @@ export default function Home({ onAdd, onEdit, go }) {
 
           {/* the main action: import today's K PLUS slips */}
           <button onClick={() => setUi({ slipOpen: true })} data-testid="import-slips"
-            className="w-full card p-4 flex items-center gap-4 text-left border-2 border-emerald-200 hover:border-emerald-300 active:scale-[.99] transition">
-            <div className="w-14 h-14 rounded-2xl grad-bg text-white grid place-items-center shrink-0 ui-ac-shadow"><ScanLine size={28} /></div>
+            className="w-full card px-4 py-3 flex items-center gap-3 text-left active:scale-[.99] transition">
+            <div className="w-10 h-10 rounded-xl grad-bg text-white grid place-items-center shrink-0"><ScanLine size={20} /></div>
             <div className="flex-1 min-w-0">
-              <div className="font-bold text-lg leading-tight">นำเข้าสลิปวันนี้</div>
-              <div className="text-sm text-slate-500 mt-0.5 truncate">
+              <div className="font-semibold text-sm leading-tight">นำเข้าสลิปวันนี้</div>
+              <div className="text-xs text-slate-500 mt-0.5 truncate">
                 {slipToday.length ? <span className="text-emerald-700 inline-flex items-center gap-1"><Check size={14} /> วันนี้นำเข้าแล้ว {slipToday.length} สลิป · เพิ่มได้อีก</span> : 'เลือกรูปจากอัลบั้ม K PLUS แล้วบันทึกรวดเดียว'}
               </div>
             </div>
             <ChevronRight size={20} className="text-slate-300 shrink-0" />
           </button>
 
-          <HomeInsightCard />
+          <TownHomeCard rpg={rpg} onOpen={() => go('vault')} />
+          <HabitsToday compact />
+        </div>
 
-          {/* to-do */}
-          <NoSpendCard rpg={rpg} />
-
+        <div className="space-y-4">
           {todos.length > 0 && (
             <section className="card p-2">
               <div className="px-3 pt-2 pb-1 text-sm font-semibold">วันนี้ต้องทำ</div>
@@ -204,15 +205,12 @@ export default function Home({ onAdd, onEdit, go }) {
             </section>
           )}
 
-          <RpgHomeCard rpg={rpg} onOpen={() => go('vault')} />
-        </div>
-
-        <div className="space-y-4">
+          <HomeInsightCard />
           {/* recent */}
           <section className="card p-2">
             <div className="flex items-center justify-between px-3 pt-2 pb-1">
               <div className="font-semibold">รายการล่าสุด</div>
-              <button onClick={() => go('txns')} className="text-xs text-sky-600 flex items-center">ทั้งหมด <ChevronRight size={14} /></button>
+              <button onClick={() => go('txns')} className="ui-link text-xs flex items-center">ทั้งหมด <ChevronRight size={14} /></button>
             </div>
             {recent.length ? recent.map((t) => <TxnRow key={t.id} t={t} catById={catById} accById={accById} onClick={() => onEdit(t)} />) : (
               <Empty icon="sparkles" title="ยังไม่มีรายการ" text="กด + เพื่อบันทึกรายการแรก" action={<Button onClick={() => onAdd()}><Plus size={18} /> บันทึกรายการ</Button>} />
@@ -275,36 +273,3 @@ export default function Home({ onAdd, onEdit, go }) {
   )
 }
 
-/** "วันนี้ไม่ใช้เงิน": a conscious no-spend day is worth more than a logged one. Hidden once money was spent today. */
-function NoSpendCard({ rpg }) {
-  const showToast = useStore((s) => s.showToast)
-  const [burst, setBurst] = useState(false)
-  if (rpg.spentToday && !rpg.noSpendToday) return null
-  const r = rpg.noSpendReward
-  const claim = () => {
-    const res = rpg.markNoSpend()
-    if (!res) return
-    sfx('coin'); setBurst(true); setTimeout(() => setBurst(false), 1500)
-    showToast(`✨ วันไม่ใช้เงิน ติดกัน ${res.run} วัน · +${res.fiat} FIAT${res.gold ? ` +${res.gold} GOLD` : ''}`)
-  }
-  if (rpg.noSpendToday) return (
-    <section className="card px-4 py-3 flex items-center gap-3" data-testid="nospend-done">
-      <span className="text-2xl">✨</span>
-      <div className="flex-1 min-w-0 text-sm">
-        <div className="font-semibold">วันนี้ไม่ใช้เงิน · ติดกัน {rpg.noSpendStreak} วัน</div>
-        <div className="text-xs text-slate-500">ดาวแห่งวินัยรวม {rpg.noSpendTotal} ดวง{rpg.noSpendStreak >= 7 ? ' · แสงเหนือส่องเมืองคืนนี้' : rpg.noSpendStreak % 3 === 2 ? ' · พรุ่งนี้ได้ GOLD' : ''}</div>
-      </div>
-      <span className="text-amber-500 text-sm font-semibold">⭐ {rpg.noSpendTotal}</span>
-    </section>
-  )
-  return (
-    <section className={`card px-4 py-3 flex items-center gap-3 relative overflow-hidden ${burst ? 'anim-pop' : ''}`} data-testid="nospend-card">
-      <span className="text-2xl">🌙</span>
-      <div className="flex-1 min-w-0 text-sm">
-        <div className="font-semibold">วันนี้ยังไม่ใช้เงินเลย?</div>
-        <div className="text-xs text-slate-500">กดยืนยันเพื่อรับ +{r.fiat} FIAT{r.gold ? ` +${r.gold} GOLD` : ''}{rpg.noSpendStreak ? ` · ติดกัน ${r.run} วัน` : ''} และนับเป็นวันที่บันทึกแล้ว</div>
-      </div>
-      <Button className="!py-2 !px-3 text-sm shrink-0" onClick={claim} data-testid="nospend-btn">ไม่ใช้เงิน ✨</Button>
-    </section>
-  )
-}

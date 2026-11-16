@@ -172,6 +172,45 @@ export function drawTown(g, t, now, o = {}) {
         if (night) { const a = Math.sin(now / 900); g.fillStyle = 'rgba(253,224,71,.18)'; g.beginPath(); g.moveTo(x + 17, y + 6); g.lineTo(x + 17 + a * 30 - 8, y + 30); g.lineTo(x + 17 + a * 30 + 8, y + 30); g.fill() }
         stars(x + 13, y - 15, lv); break
       }
+      case 'gym': {
+        const h = 14 + lv * 4, y = G - h
+        R('#fb923c', x + 1, y, 32, h); R('#9a3412', x, y - 2, 34, 3)
+        R(C.dark, x + 13, G - 9, 8, 9); winB(x + 4, y + 4); winB(x + 26, y + 4)
+        // dumbbell sign, lifting animation
+        const up = Math.floor(now / 500) % 2
+        R('#1e293b', x + 10, y - 7 - up, 14, 2); R('#1e293b', x + 8, y - 9 - up, 3, 6); R('#1e293b', x + 23, y - 9 - up, 3, 6)
+        if (lv >= 2) for (let k = 0; k < 3; k++) R('#fde68a', x + 3 + k * 11, y + 1, 4, 1)
+        if (lv === 3) { R('#f97316', x + 34, G - 12, 1, 12); R('#fff', x + 35, G - 12, 5, 3) }
+        stars(x + 13, y - 16, lv); break
+      }
+      case 'temple': {
+        const h = 12 + lv * 4, y = G - h
+        R('#fef3c7', x + 4, y, 26, h); R('#b45309', x + 2, G - 2, 30, 2)
+        g.fillStyle = '#dc2626'; for (let k = 0; k < 7; k++) g.fillRect(x + 1 + k * 2, y - k, 32 - k * 4, 1)
+        R(C.gold, x + 16, y - 12, 2, 6); R(C.gold, x + 15, y - 13, 4, 1)
+        R(C.dark, x + 14, G - 8, 6, 8); R(C.gold, x + 16, G - 6, 2, 2)
+        if (lv >= 2) { R(C.gold, x + 2, y - 2, 2, 3); R(C.gold, x + 30, y - 2, 2, 3) }
+        if (lv === 3) for (let k = 0; k < 3; k++) { const b = Math.sin(now / 700 + k) > 0 ? 1 : 0; R('#fde047', x + 8 + k * 9, y + 4 + b, 1, 1) }
+        stars(x + 13, y - 20, lv); break
+      }
+      case 'school': {
+        const h = 16 + lv * 4, y = G - h
+        R('#93c5fd', x + 1, y, 32, h); roof(x + 1, y, 32, '#1d4ed8', 6)
+        winB(x + 4, y + 4); winB(x + 12, y + 4); winB(x + 20, y + 4); winB(x + 28, y + 4)
+        R(C.wood, x + 15, G - 8, 5, 8)
+        R('#fff', x + 10, y - 4, 14, 4); R('#1e293b', x + 11, y - 3, 2, 2); R('#1e293b', x + 15, y - 3, 1, 2); R('#1e293b', x + 18, y - 3, 3, 2)
+        if (lv >= 2) { R(C.wood, x + 33, G - 14, 1, 14); R('#ef4444', x + 34, G - 14, 5, 3) }
+        stars(x + 13, y - 14, lv); break
+      }
+      case 'kitchen': {
+        const h = 13 + lv * 4, y = G - h
+        R('#bbf7d0', x + 2, y, 30, h); roof(x + 2, y, 30, '#15803d', 5)
+        R(C.wood, x + 4, G - 8, 5, 8); winB(x + 22, y + 4)
+        for (let k = 0; k < 3 + lv; k++) R(['#ef4444', '#f97316', '#16a34a', '#fde047'][k % 4], x + 12 + (k % 3) * 3, G - 4 - Math.floor(k / 3) * 2, 2, 2)
+        smoke(x + 26, y - 6)
+        if (lv === 3) R('#fff', x + 10, y - 4, 10, 3)
+        stars(x + 13, y - 12, lv); break
+      }
       default: break
     }
   }
