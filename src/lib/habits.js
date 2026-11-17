@@ -72,22 +72,31 @@ export function computeHabits({ days = {}, books = [], vocab = {}, state = {}, n
   const ctx = { noSpend }
   const get = (d) => ({ date: d, ...(days[d] || {}) })
   const out = {}
+  // rest days ("พักวันนี้" for the whole day, or the exercise rest toggle) pause a streak without breaking it
+  const restOf = (id, day) => id !== 'nospend' && !!(day.pause || (id === 'exercise' && day.exercise?.rest))
+  const recorded = Object.keys(days).concat(Object.keys(noSpend)).filter(Boolean).sort()
+  const first = recorded[0] || today
   for (const h of HABITS) {
-    // streak: today counts if done, otherwise it is still "open" and yesterday's run stands
+    // current streak: today counts if done, otherwise it is still "open" and yesterday's run stands
     let cur = 0
     let d = doneOf(h.id, get(today), ctx) > 0 ? today : addDays(today, -1)
-    while (doneOf(h.id, get(d), ctx) > 0) { cur++; d = addDays(d, -1) }
-    // best streak + totals over all recorded days
-    const dates = Object.keys(days).concat(h.id === 'nospend' ? Object.keys(noSpend) : []).sort()
-    let best = 0, run = 0, prev = null, total = 0
-    for (const x of [...new Set(dates)]) {
-      if (doneOf(h.id, get(x), ctx) > 0) { total++; run = prev && addDays(prev, 1) === x ? run + 1 : 1; prev = x; best = Math.max(best, run) } else { run = 0; prev = null }
+    for (let guard = 0; guard < 2000 && d >= first; guard++) {
+      const day = get(d)
+      if (doneOf(h.id, day, ctx) > 0) cur++
+      else if (!restOf(h.id, day)) break
+      d = addDays(d, -1)
+    }
+    // best streak + totals, walking every calendar day since the first record
+    let best = 0, run = 0, total = 0
+    for (let x = first, guard = 0; x <= today && guard < 4000; x = addDays(x, 1), guard++) {
+      const day = get(x)
+      if (doneOf(h.id, day, ctx) > 0) { total++; run++; best = Math.max(best, run) } else if (!restOf(h.id, day) && x !== today) run = 0
     }
     best = Math.max(best, cur)
-    // last 30 days hit-rate
-    let hit = 0
-    for (let i = 0; i < 30; i++) hit += doneOf(h.id, get(addDays(today, -i)), ctx) > 0 ? 1 : 0
-    out[h.id] = { ...h, today: doneOf(h.id, get(today), ctx), streak: cur, best, total, rate30: hit / 30, gold: streakGold(best) }
+    // last 30 days hit-rate (rest days are left out of the count)
+    let hit = 0, counted = 0
+    for (let i = 0; i < 30; i++) { const day = get(addDays(today, -i)); if (restOf(h.id, day)) continue; counted++; hit += doneOf(h.id, day, ctx) > 0 ? 1 : 0 }
+    out[h.id] = { ...h, today: doneOf(h.id, get(today), ctx), rest: restOf(h.id, get(today)), streak: cur, best, total, rate30: counted ? hit / counted : 0, gold: streakGold(best) }
   }
   // FIAT: per day, capped, with a streak multiplier from that day's run (approximated by the current streak for today)
   let fiat = 0
@@ -115,15 +124,18 @@ export function computeHabits({ days = {}, books = [], vocab = {}, state = {}, n
   const cards = vocab.cards || {}
   const learnt = Object.values(cards).filter((c) => (c.box || 0) >= 3).length
 
-  // weekly quest: any habit on ≥5 of the 7 days of each finished week (Mon–Sun) → 1 GOLD
-  const weeks = new Map()
+  // weekly quest: any habit on ≥5 days of a week (Mon–Sun) → 1 GOLD; each rest day lowers the bar by one (never below 3)
+  const weeks = new Map(), pauses = new Map()
   for (const d of Object.keys(days)) {
     const dt = new Date(d + 'T12:00:00'), mon = addDays(d, -((dt.getDay() + 6) % 7))
     if (HABITS.some((h) => h.id !== 'nospend' && doneOf(h.id, get(d), ctx) > 0)) weeks.set(mon, (weeks.get(mon) || 0) + 1)
+    else if (days[d]?.pause) pauses.set(mon, (pauses.get(mon) || 0) + 1)
   }
+  const weekGoal = (mon) => Math.max(3, 5 - (pauses.get(mon) || 0))
   const thisMon = addDays(today, -((new Date(today + 'T12:00:00').getDay() + 6) % 7))
-  const weeklyGold = [...weeks.entries()].filter(([mon, n]) => n >= 5 && mon <= thisMon).length
+  const weeklyGold = [...weeks.entries()].filter(([mon, n]) => n >= weekGoal(mon) && mon <= thisMon).length
   const thisWeek = weeks.get(thisMon) || 0
+  const thisWeekGoal = weekGoal(thisMon)
 
   const gold = HABITS.reduce((s, h) => s + out[h.id].gold, 0) + finished.length * 2 + Math.floor(learnt / 100) + weeklyGold
 
@@ -134,7 +146,7 @@ export function computeHabits({ days = {}, books = [], vocab = {}, state = {}, n
 
   const activeDays = Object.keys(days).filter((d) => HABITS.some((h) => h.id !== 'nospend' && doneOf(h.id, get(d), ctx) > 0))
   return {
-    by: out, activeDays, fiat, todayFiat, mult, gold, weeklyGold, thisWeek, life, lifeRank,
+    by: out, activeDays, fiat, todayFiat, mult, gold, weeklyGold, thisWeek, thisWeekGoal, paused: !!days[today]?.pause, life, lifeRank,
     reading, finished, pagesTotal, reps, medMin, sleeps, avgSleep, learnt, sleeping: state.sleeping || null,
     lastMeal: state.lastMeal || null, fastHours: state.fastHours || 16,
   }
@@ -164,6 +176,7 @@ export function useHabits() {
     allSets: (d) => patchDay({ exercise: { push: SETS, squat: SETS, sit: SETS, rest: false } }, d),
     restDay: (d) => patchDay((c) => ({ exercise: { ...(c.exercise || {}), rest: !(c.exercise || {}).rest } }), d),
     addMeditation: (min, d) => patchDay((c) => ({ meditate: Math.round((c.meditate || 0) + min) }), d),
+    togglePause: (d) => patchDay((c) => ({ pause: !c.pause }), d),
     toggleNoCarb: (d) => patchDay((c) => ({ nocarb: !c.nocarb }), d),
     // sleep: bed now → wake now (sleep is credited to the wake day)
     goToBed: (at = new Date().toISOString()) => patchState({ sleeping: at }),

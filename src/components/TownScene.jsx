@@ -2,6 +2,9 @@ import { useEffect, useRef } from 'react'
 import { drawStill, frame, skyFor, mix, GROUND } from './BattleScene'
 import { NPC_BY_ID, RESIDENTS } from '../lib/town'
 import { worldBack, worldFront } from './WorldFx'
+import { TRACE_HOME, traceOnBuilding, traceProps, traceNoSpend, heroForm, growthAura } from './TownTraces'
+
+const MEMBER_COLOR = { knight: '#f97316', mage: '#6366f1', healer: '#14b8a6', ranger: '#f59e0b' }
 
 /**
  * Side-view pixel town. Background shapes are drawn at half resolution (×2), sprites at full res.
@@ -216,6 +219,20 @@ export function drawTown(g, t, now, o = {}) {
   }
   function i3(x) { return Math.floor(x / PLOT_W) % 3 }
 
+  // ---------- today's traces ----------
+  const tr = o.traces
+  if (tr) {
+    const homes = new Set()
+    t.plots.forEach((b, i) => {
+      if (!b) return
+      const k = Object.keys(TRACE_HOME).find((key) => TRACE_HOME[key] === b.type)
+      if (k && tr[k]) { homes.add(k); const x = plotX(i) + 5; big(x, () => traceOnBuilding(g, b.type, x, G, now, night)) }
+    })
+    const loose = ['exercise', 'read', 'meditate', 'vocab', 'nocarb', 'saved', 'paid'].filter((k) => tr[k] && !homes.has(k))
+    if (loose.length) traceProps(g, loose, HALL_X + 24, G, now)
+    if (tr.nospend) traceNoSpend(g, w, G, now)
+  }
+
   // decor (front row)
   const dec = t.decor
   const spots = (k) => LEFT + 4 + Math.round(((k + 0.5) * (w - LEFT - RIGHT)) / Math.max(1, dec.length))
@@ -243,7 +260,7 @@ export function drawTown(g, t, now, o = {}) {
   // full-res foreground: walking villagers + the party at the hall
   return () => {
     const W2 = w * 2, GY = G * 2 + 4
-    const walkers = [...RESIDENTS.map((r) => r.sprite), ...t.npcs.map((id) => NPC_BY_ID[id]?.sprite).filter(Boolean)]
+    const walkers = [...RESIDENTS.map((r) => r.sprite), ...(o.extra || []), ...t.npcs.map((id) => NPC_BY_ID[id]?.sprite).filter(Boolean)]
     const resting = (o.world && o.world.holiday) || (hour >= 22 || hour < 6)
     walkers.forEach((sp, k) => {
       if (resting && k % 2) return // half the town is asleep / off work
@@ -255,18 +272,22 @@ export function drawTown(g, t, now, o = {}) {
       drawStill(g, sp, x, GY + 16 + (k % 3) * 5 - hop, 34, flip)
     })
     const hx2 = HALL_X * 2
+    const gr = o.growth
+    growthAura(g, hx2 + 8, GY + 18, gr?.members?.knight?.stage, MEMBER_COLOR.knight, now, 50)
+    ;(o.party || []).forEach((id, k) => growthAura(g, hx2 + 171 + k * 26, GY + 18, gr?.members?.[id]?.stage, MEMBER_COLOR[id] || '#14b8a6', now, 38))
     const hero = frame('hero_idle', Math.floor(now / 180) % 5, 'normal', o.hue || 0)
     if (hero) g.drawImage(hero, hx2 - 16, GY - 36, (hero.width / hero.height) * 54, 54)
+    if (o.traces?.form) heroForm(g, o.traces.form, hx2 - 6, GY - 40, now)
     ;(o.party || []).forEach((id, k) => { const im = frame(`${id}_idle`, Math.floor(now / 200 + k) % 5); if (im) g.drawImage(im, hx2 + 150 + k * 26, GY - 24, 42, 42) })
-    if (o.pet) drawStill(g, o.pet, hx2 - 26, GY + 16 - (Math.floor(now / 400) % 2), 18)
+    if (o.pet) { const ps = [18, 22, 27][(gr?.pet?.stage || 1) - 1]; drawStill(g, o.pet, hx2 - 26 - (ps - 18), GY + 16 - (Math.floor(now / 400) % 2), ps) }
   }
 }
 
 /** Canvas wrapper: animates at ~8 fps, horizontally scrollable, tap a plot to select it. */
-export default function TownScene({ town, party = [], pet, hue, dark, selected, onSelect, height = 220, world = null }) {
+export default function TownScene({ town, party = [], pet, hue, dark, selected, onSelect, height = 220, world = null, traces = null, extra = null, growth = null }) {
   const cv = useRef(null), box = useRef(null)
   const O = useRef({})
-  O.current = { town, party, pet, hue, dark, selected, world }
+  O.current = { town, party, pet, hue, dark, selected, world, traces, extra, growth }
   const w = townWidth(town.plotCount)
   useEffect(() => {
     const c = cv.current, g = c.getContext('2d')
@@ -277,7 +298,7 @@ export default function TownScene({ town, party = [], pet, hue, dark, selected, 
       if (document.visibilityState === 'visible') {
         const o = O.current, now = performance.now()
         g.setTransform(2, 0, 0, 2, 0, 0)
-        const fg = drawTown(g, o.town, now, { party: o.party, pet: o.pet, hue: o.hue, dark: o.dark, selected: o.selected, world: o.world })
+        const fg = drawTown(g, o.town, now, { party: o.party, pet: o.pet, hue: o.hue, dark: o.dark, selected: o.selected, world: o.world, traces: o.traces, extra: o.extra, growth: o.growth })
         g.setTransform(1, 0, 0, 1, 0, 0)
         fg()
       }

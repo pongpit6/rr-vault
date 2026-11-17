@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useActiveTheme } from '../lib/theme'
 import { Hammer, Users, Smile, Coins, ArrowUpCircle, Trash2, Sparkles, Repeat, TrendingUp } from 'lucide-react'
 import TownScene from './TownScene'
@@ -6,7 +6,78 @@ import { Portrait } from './RpgBits'
 import { Sheet } from './ui'
 import { useStore } from '../store'
 import { weatherTH } from '../lib/world'
+import { traceList } from './TownTraces'
+import { townLines, storyOf, APPRENTICE } from '../lib/townTalk'
+import { MessageCircle, BookOpen } from 'lucide-react'
 import { LEVEL_REQ, BUILDINGS, HALL, NPCS, DECOR, priceOf, EXCHANGE_WEEKLY, RESIDENTS } from '../lib/town'
+
+/** the living-world props every town scene gets */
+export const sceneWorld = (rpg) => ({ weather: rpg.world.weather, event: rpg.world.event?.id || null, mood: rpg.world.mood.id, btc: rpg.world.btc, aurora: rpg.world.aurora, tree: rpg.world.tree, rank: rpg.rank.id, holiday: rpg.world.holiday })
+
+/** "ร่องรอยวันนี้": one quiet row of what you did today */
+export function TodayTraces({ rpg, className = '', compact = false }) {
+  const list = traceList(rpg.traces)
+  const form = { tired: '😪 นอนน้อย ฮีโร่ง่วงหน่อย', sharp: '✨ ฮีโร่สดชื่นเต็มที่', rest: '☕ วันพัก ฮีโร่จิบชาสบาย ๆ' }[rpg.traces?.form]
+  return (
+    <div className={`flex items-center gap-1.5 overflow-x-auto no-scrollbar text-[11px] ${className}`} data-testid="today-traces">
+      <span className="shrink-0 text-slate-500">วันนี้</span>
+      {list.length ? list.map((t) => compact ? <span key={t.id} title={t.text} className="shrink-0 text-base leading-none">{t.emoji}</span> : <span key={t.id} className="shrink-0 px-inner px-1.5 py-0.5">{t.emoji} {t.text}</span>) : <span className="text-slate-400 shrink-0">ยังไม่มีร่องรอย ทำอะไรสักอย่างแล้วเมืองจะเปลี่ยน</span>}
+      {form && <span className="shrink-0 text-slate-500 ml-1">{form}</span>}
+    </div>
+  )
+}
+
+/** villagers who live in town but aren't hired (the apprentice arrives with the reading story) */
+export const sceneExtra = (rpg) => (storyOf(rpg.habits).arrived ? [APPRENTICE.sprite] : [])
+
+/** one villager talking at a time, built from real data; tap for the next */
+export function TownTalk({ rpg, className = '' }) {
+  const lines = townLines(rpg)
+  const [i, setI] = useState(() => Math.floor(Math.random() * 97))
+  useEffect(() => { const id = setInterval(() => setI((x) => x + 1), 8000); return () => clearInterval(id) }, [])
+  if (!lines.length) return null
+  const l = lines[i % lines.length]
+  return (
+    <button onClick={() => setI((x) => x + 1)} className={`w-full flex items-center gap-2 text-left ${className}`} data-testid="town-talk">
+      <Portrait sprite={l.sprite} size={34} />
+      <div className="flex-1 min-w-0 text-[12px] leading-snug"><b className="text-[11px] text-teal-700">{l.name}</b><div key={i} className="anim-pop">“{l.text}”</div></div>
+      <MessageCircle size={14} className="text-slate-400 shrink-0" />
+    </button>
+  )
+}
+
+/** the apprentice's story, one chapter per reading milestone */
+function TownStory({ rpg }) {
+  const st = storyOf(rpg.habits)
+  const seen = rpg.econData.storySeen || 0
+  const last = st.chapters.at(-1)?.id || 0
+  const [open, setOpen] = useState(false)
+  useEffect(() => { if (open && last > seen) rpg.markStorySeen(last) }, [open, last]) // eslint-disable-line
+  return (
+    <Section icon={BookOpen} title="STORY · เรื่องเล่าในเมือง" right={last > seen ? <span className="px-font text-[8px] bg-rose-500 text-white px-1.5 py-0.5">NEW</span> : null}>
+      <div className="flex items-center gap-3">
+        <Portrait sprite={APPRENTICE.sprite} size={48} dim={!st.arrived} />
+        <div className="flex-1 min-w-0 text-sm">
+          <b>{st.arrived ? APPRENTICE.name : 'ยังไม่มีใครมาเยือน…'}</b>
+          <div className="text-[11px] text-slate-500">{st.arrived ? `${st.chapters.length}/6 บท` : ''}{st.next ? `${st.arrived ? ' · ' : ''}บทถัดไปเปิดเมื่อ: ${st.next.need}` : ' · ครบทุกบทแล้ว'}</div>
+        </div>
+        {st.arrived && <button className={`${btn} bg-white`} onClick={() => setOpen(!open)} data-testid="story-toggle">{open ? 'ปิด' : 'อ่าน'}</button>}
+      </div>
+      {open && (
+        <div className="mt-3 space-y-2.5" data-testid="story-chapters">
+          {st.chapters.map((c) => (
+            <div key={c.id} className="px-inner p-3">
+              <div className="px-font text-[9px] text-amber-600">บทที่ {c.id}</div>
+              <div className="font-semibold text-sm">{c.title}</div>
+              <div className="text-[13px] text-slate-600 mt-1 leading-relaxed">{c.text}</div>
+            </div>
+          ))}
+          {st.next && <div className="px-inner p-3 text-xs text-slate-500">🔒 บทที่ {st.next.id} “{st.next.title}” · {st.next.need}</div>}
+        </div>
+      )}
+    </Section>
+  )
+}
 
 /* ---------- money chips ---------- */
 export function FiatChip({ v, className = '' }) { return <span className={`px-chip text-emerald-700 ${className}`} title="FIAT — หาง่าย แต่เฟ้อ">💵 <b className="num">{Math.round(v).toLocaleString()}</b></span> }
@@ -58,13 +129,15 @@ export default function TownTab({ rpg }) {
           </div>
           <Wallet rpg={rpg} />
         </div>
-        <TownScene town={T} party={party} pet={rpg.pet.sprite} hue={rpg.skin?.hue || 0} dark={theme === 'pixel-night'} selected={typeof sel === 'number' ? sel : null} onSelect={setSel} world={{ weather: rpg.world.weather, event: rpg.world.event?.id || null, mood: rpg.world.mood.id, btc: rpg.world.btc, aurora: rpg.world.aurora, tree: rpg.world.tree, rank: rpg.rank.id, holiday: rpg.world.holiday }} />
+        <TownScene town={T} party={party} pet={rpg.pet.sprite} hue={rpg.skin?.hue || 0} dark={theme === 'pixel-night'} selected={typeof sel === 'number' ? sel : null} onSelect={setSel} world={sceneWorld(rpg)} traces={rpg.traces} extra={sceneExtra(rpg)} growth={rpg.growth} />
+        <TodayTraces rpg={rpg} className="px-3 py-2 border-t-2 border-slate-800" />
+        <TownTalk rpg={rpg} className="px-3 py-2 border-t-2 border-slate-800/10" />
         <div className="grid grid-cols-4 text-center text-[11px] border-t-2 border-slate-800">
           <WorldStrip world={rpg.world} rank={rpg.rank} />
           <Stat icon={<Users size={13} />} label="ประชากร" v={T.pop} />
           <Stat icon={<Smile size={13} />} label="ความสุข" v={`${T.happiness}%`} />
           <Stat icon={<Coins size={13} />} label="FIAT/วัน" v={`+${T.dailyFiat}`} />
-          <Stat icon={<Sparkles size={13} />} label="ลุ้น GOLD" v={`${T.goldChance}%`} />
+          <Stat icon={<Sparkles size={13} />} label="ร่องรอยวันนี้" v={rpg.traces?.count || 0} />
         </div>
       </section>
 
@@ -72,13 +145,14 @@ export default function TownTab({ rpg }) {
       <section className="px-card p-3.5 flex items-center gap-3" data-testid="town-collect">
         <span className="text-3xl">🧺</span>
         <div className="flex-1 min-w-0 text-sm">
-          {res ? <div className="anim-pop font-semibold text-emerald-700">เก็บได้ +{res.fiat} FIAT{res.interest ? ` (ดอกเบี้ย ${res.interest})` : ''}{res.gold ? ' · 🪙 เหมืองเจอทอง +1!' : ''}</div>
-            : rpg.collectReady ? <div><b>รายได้เมืองวันนี้พร้อมเก็บ</b><div className="text-xs text-slate-500">ฟาร์ม ตลาด NPC{T.bankRate ? ' + ดอกเบี้ยธนาคาร' : ''}{T.goldChance ? ` · ลุ้นทอง ${T.goldChance}%` : ''}</div></div>
-            : rpg.loggedToday ? <div className="text-slate-500">{T.dailyFiat || T.bankRate || T.goldChance ? 'เก็บรายได้วันนี้แล้ว พรุ่งนี้มาใหม่' : 'สร้างฟาร์ม ตลาด หรือจ้าง NPC เพื่อมีรายได้รายวัน'}</div>
-            : <div className="text-slate-500">บันทึกรายการวันนี้ก่อน แล้วค่อยมาเก็บรายได้เมือง</div>}
+          {res ? <div className="anim-pop font-semibold text-emerald-700">เก็บได้ +{res.fiat} FIAT ({res.days} วัน){res.interest ? ` · ดอกเบี้ย ${res.interest}` : ''}</div>
+            : rpg.collectReady ? <div><b>รายได้เมืองสะสม {rpg.collectDays} วัน</b> <span className="num text-emerald-700">+{rpg.collectAmount}</span><div className="text-xs text-slate-500">ฟาร์ม ตลาด NPC{T.bankRate ? ' + ดอกเบี้ยธนาคาร' : ''} · เก็บไว้ได้สูงสุด 7 วัน ไม่หายไปไหน</div></div>
+            : <div className="text-slate-500">{T.dailyFiat || T.bankRate ? 'เก็บครบแล้ว รายได้จะสะสมทุกวันที่คุณทำอะไรสักอย่าง' : 'สร้างฟาร์ม ตลาด หรือจ้าง NPC เพื่อมีรายได้รายวัน'}</div>}
         </div>
         <button className={`${btn} bg-emerald-500 text-white`} disabled={!rpg.collectReady} onClick={() => setRes(rpg.collect())}>เก็บ</button>
       </section>
+
+      <TownStory rpg={rpg} />
 
       <Section icon={Hammer} title={`LAND · ที่ดิน ${T.built.length}/${T.plotCount}`}>
         <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
@@ -113,7 +187,7 @@ export default function TownTab({ rpg }) {
                   <Portrait sprite={n.sprite} size={40} dim={!hired && !T.npcSlots} />
                   <div className="min-w-0 flex-1"><div className="text-xs font-semibold">{n.name}</div><div className="text-[10px] text-teal-700">{n.perkText}</div></div>
                 </div>
-                {hired ? <div className="text-[10px] text-slate-500 mt-1.5 italic">“{n.line}”</div> : (
+                {hired ? <div className="text-[10px] text-slate-500 mt-1.5 italic">“{townLines(rpg).find((l) => l.id === n.id)?.text || n.line}”</div> : (
                   <div className="mt-1.5 flex items-center justify-between gap-1"><Price p={p} rpg={rpg} />
                     <button className={`${btn} bg-violet-500 text-white`} disabled={T.npcs.length >= T.npcSlots || !rpg.afford(p)} onClick={() => ok(rpg.hire(n.id), `${n.name}ย้ายเข้าเมืองแล้ว!`)}>จ้าง</button>
                   </div>
@@ -262,7 +336,7 @@ export function TownHomeCard({ rpg, onOpen }) {
   const theme = useActiveTheme()
   const showToast = useStore((s) => s.showToast)
   const party = rpg.party.filter((p) => p.joined && p.id !== 'knight').map((p) => p.id)
-  const world = { weather: rpg.world.weather, event: rpg.world.event?.id || null, mood: rpg.world.mood.id, btc: rpg.world.btc, aurora: rpg.world.aurora, tree: rpg.world.tree, rank: rpg.rank.id, holiday: rpg.world.holiday }
+  const world = sceneWorld(rpg)
   const W = { storm: '⛈️', rain: '🌧️', fog: '🌫️', cloud: '☁️', sun: '☀️', leaves: '🍂' }
   return (
     <section className="px-card overflow-hidden" data-testid="home-town">
@@ -274,10 +348,12 @@ export function TownHomeCard({ rpg, onOpen }) {
         <Wallet rpg={rpg} />
       </div>
       <div onClick={onOpen} className="cursor-pointer">
-        <TownScene town={T} party={party} pet={rpg.pet.sprite} hue={rpg.skin?.hue || 0} dark={theme === 'pixel-night'} height={150} world={world} />
+        <TownScene town={T} party={party} pet={rpg.pet.sprite} hue={rpg.skin?.hue || 0} dark={theme === 'pixel-night'} height={150} world={world} traces={rpg.traces} extra={sceneExtra(rpg)} growth={rpg.growth} />
       </div>
+      <TodayTraces rpg={rpg} compact className="px-3 py-1.5 border-t-2 border-slate-800" />
+      <TownTalk rpg={rpg} className="px-3 py-1.5 border-t-2 border-slate-800/10" />
       <div className="px-3 py-2.5 flex items-center gap-2 border-t-2 border-slate-800 text-xs">
-        <span className="flex-1 min-w-0 truncate text-slate-600">{rpg.collectReady ? `🧺 รายได้เมืองพร้อมเก็บ (+${T.dailyFiat} FIAT)` : rpg.loggedToday ? '🧺 เก็บรายได้เมืองแล้ววันนี้' : '🧺 บันทึกรายการหรือนิสัยวันนี้ก่อน แล้วค่อยเก็บรายได้'}</span>
+        <span className="flex-1 min-w-0 truncate text-slate-600">{rpg.collectReady ? `🧺 รายได้เมืองสะสม ${rpg.collectDays} วัน (+${rpg.collectAmount} FIAT)` : '🧺 รายได้เมืองสะสมทุกวันที่คุณทำอะไรสักอย่าง'}</span>
         <button className={`${btn} bg-emerald-500 text-white`} disabled={!rpg.collectReady} onClick={() => { const r = rpg.collect(); if (r) showToast(`🧺 +${r.fiat} FIAT`) }} data-testid="home-collect">เก็บ</button>
         <button className={`${btn} bg-white`} onClick={onOpen}>ไปเมือง</button>
       </div>

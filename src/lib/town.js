@@ -2,7 +2,8 @@
  * Town builder + in-game money.
  *
  * 💵 FIAT  — easy to earn (logging, slips, daily chest, farms, quests of the day), but it
- *            inflates: FIAT prices rise 2% every month since the town was founded.
+ *            inflates: FIAT prices rise 2% a month since the town was founded, levelling off at +20%
+ *            (so an old town never becomes unaffordable).
  * 🪙 GOLD  — scarce, only from milestones: habit streaks (7/30/100), finished books, words learnt,
  *            the weekly habit quest, monthly/main quests, bosses, achievements and new investment profit.
  *            Daily actions never pay GOLD. Gold prices never inflate.
@@ -12,6 +13,7 @@
  */
 
 export const INFLATION = 0.02 // per month, on FIAT prices
+export const INFLATION_CAP = 1.2 // prices stop rising at +20%
 export const GEM_TO_FIAT = 10
 
 /* ---------------- catalog ---------------- */
@@ -63,12 +65,12 @@ export const DECOR_BY_ID = Object.fromEntries(DECOR.map((d) => [d.id, d]))
 const localDay = (iso) => { const d = new Date(iso); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}` }
 export const weekKey = (date = new Date()) => { const d = new Date(date); const w = (d.getDay() + 6) % 7; d.setDate(d.getDate() - w); return localDay(d.toISOString()) }
 export const monthsSince = (iso) => (iso ? Math.max(0, Math.floor((Date.now() - Date.parse(iso)) / (30.44 * 86400_000))) : 0)
-export const inflationMult = (data) => Math.pow(1 + INFLATION, monthsSince(data.econStart))
+export const inflationMult = (data) => Math.min(INFLATION_CAP, Math.pow(1 + INFLATION, monthsSince(data.econStart)))
 
 export function emptyTown() { return { hall: 1, plots: [], decor: {}, npcs: {} } }
 
 /** Town state → numbers the rest of the game uses. */
-export function computeTown(data = {}, { realmTier = 1, streak = 0, debtFog = 0 } = {}) {
+export function computeTown(data = {}, { realmTier = 1, streak = 0 } = {}) {
   const town = { ...emptyTown(), ...(data.town || {}) }
   const plotCount = HALL.plots[town.hall - 1] + Math.max(0, realmTier - 1) * 2
   const plots = Array.from({ length: plotCount }, (_, i) => town.plots[i] || null)
@@ -86,7 +88,6 @@ export function computeTown(data = {}, { realmTier = 1, streak = 0, debtFog = 0 
   if (streak) happyParts.push(['บันทึกต่อเนื่อง', Math.min(20, streak)])
   const crowd = Math.max(0, built.filter((b) => b.type === 'house').length - built.filter((b) => b.type !== 'house').length - 1) * 3
   if (crowd) happyParts.push(['บ้านแน่นเกินไป', -crowd])
-  if (debtFog > 0.05) happyParts.push(['หมอกหนี้', -Math.round(debtFog * 40)])
   const happiness = Math.max(0, Math.min(100, happyParts.reduce((s, [, v]) => s + v, 0)))
   const happyMult = 0.6 + happiness / 250
 
@@ -133,3 +134,11 @@ export function computeWallet({ days, txns, data = {}, achievementsUnlocked = 0,
 /** Exchange FIAT → GOLD: rate rises with inflation, max 1 GOLD a week (GOLD should stay scarce). */
 export const exchangeRate = (data) => Math.round(100 * inflationMult(data))
 export const EXCHANGE_WEEKLY = 1
+
+/** Town income piles up for each active day since the last collection (up to 7), so a missed visit never loses it. */
+export const COLLECT_DAYS_MAX = 7
+export function pendingDays(days, collectLast, today) {
+  let n = 0
+  for (const d of days.keys()) if (d && d <= today && (!collectLast || d > collectLast)) n++
+  return Math.min(COLLECT_DAYS_MAX, n)
+}

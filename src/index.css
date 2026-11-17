@@ -165,3 +165,6 @@ html[data-theme^="pixel"] .ui-fab-notch { background: var(--px-card); border: 2p
 /* selected chips / pills (were slate-900) */
 :is(button, label).bg-slate-900.text-white, .ui-pick-on { background-color: var(--ac-ink); border-color: var(--ac-ink); }
 .ui-seg-on:not([style*="color"]) { color: var(--ac-ink) !important; }
+@keyframes pxBob { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-3px) } }
+.anim-bob { animation: pxBob 1.4s steps(2) infinite; }
+@media (prefers-reduced-motion: reduce) { .anim-bob { animation: none; } }

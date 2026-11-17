@@ -10,6 +10,8 @@ import { useRpg, REALMS } from '../lib/rpg'
 import { SHOP, GEAR_TIERS, memberById } from '../lib/party'
 import { money, compact, todayISO, shortDate } from '../lib/format'
 import TownTab, { Wallet, Price } from '../components/TownTab'
+import { LifeStatsCard, GrowthLine } from '../components/GrowthKit'
+import { MonthBossCard, MonthRecapCard, MonthEndSheet } from '../components/MonthKit'
 
 function Section({ icon: I, title, right, children }) {
   return (
@@ -117,6 +119,7 @@ export default function VaultRpg({ onAdd, go }) {
             ))}
           </div>
 
+          <MonthEndSheet rpg={rpg} />
           {tab === 'town' && <TownTab rpg={rpg} />}
           {tab === 'log' && <AdventureLog rpg={rpg} />}
           {tab === 'party' && <PartyTab rpg={rpg} />}
@@ -141,6 +144,9 @@ function dayTitle(d) {
   return d === t ? 'วันนี้' : d === ys ? 'เมื่อวาน' : shortDate(d)
 }
 function AdventureLog({ rpg }) {
+  return <div className="space-y-4"><MonthRecapCard rpg={rpg} /><DayLog rpg={rpg} /></div>
+}
+function DayLog({ rpg }) {
   const [n, setN] = useState(5)
   if (!rpg.log.length) return <Section icon={BookOpen} title="ADVENTURE LOG"><div className="text-sm text-slate-500">ยังไม่มีเรื่องราว — นำเข้าสลิปหรือบันทึกรายการแรก แล้วปาร์ตี้จะเริ่มออกผจญภัย</div></Section>
   return (
@@ -202,6 +208,7 @@ function PartyTab({ rpg }) {
                 )}
               </div>
             </div>
+            <GrowthLine rpg={rpg} id={m.id} />
             <div className="flex flex-wrap gap-1.5 mt-2.5">
               {skills.map((k) => (
                 <span key={k.id} className={`text-[11px] px-2 py-1 border ${k.unlocked ? 'border-slate-800 bg-white' : 'border-slate-200 text-slate-400'}`}>{k.icon} {k.name}{!k.unlocked && ` · ${k.lockText}`}</span>
@@ -210,6 +217,14 @@ function PartyTab({ rpg }) {
           </section>
         )
       })}
+      {rpg.growth?.pet && (
+        <section className="px-card p-3.5 flex items-center gap-3" data-testid="growth-pet">
+          <div className="w-14 h-14 grid place-items-center border-2 border-slate-800 bg-amber-50 shrink-0"><Portrait sprite={rpg.pet.sprite} size={[30, 38, 48][rpg.growth.pet.stage - 1]} /></div>
+          <div className="flex-1 min-w-0 text-sm"><b>{rpg.pet.name}</b> <span className="px-font text-[8px] text-amber-600">{'★'.repeat(rpg.growth.pet.stage)}{'☆'.repeat(3 - rpg.growth.pet.stage)}</span>
+            <div className="text-[11px] text-slate-500">โตตามความสม่ำเสมอ: ทำนิสัยมาแล้ว {rpg.growth.pet.days} วัน{rpg.growth.pet.nextAt ? ` · โตขั้นถัดไปที่ ${rpg.growth.pet.nextAt} วัน` : ' · โตเต็มวัยแล้ว'}</div>
+          </div>
+        </section>
+      )}
       <div className="text-[11px] text-slate-400 px-1">สมาชิกที่เข้าร่วมแล้วจะยืนอยู่ในฉากและช่วยกันสู้ แตะตัวละครในฉากเพื่อให้พูดได้</div>
     </div>
   )
@@ -359,6 +374,7 @@ function QuestsTab({ rpg, onAdd }) {
   const groups = ['รายวัน', 'รายสัปดาห์', 'รายเดือน', 'เควสต์หลัก']
   return (
     <div className="space-y-4">
+      <MonthBossCard rpg={rpg} />
       <RankCard rpg={rpg} />
       <Section icon={Swords} title="BOSS · หนี้และเป้าหมาย">
         {rpg.bosses.length === 0 ? (
@@ -421,17 +437,7 @@ function StatusTab({ rpg, go }) {
   const unlocked = rpg.achievements.filter((a) => a.unlockedAt || a.ready).length
   return (
     <div className="space-y-4">
-      <Section icon={Sparkles} title="STATUS · ค่าสถานะ">
-        <div className="space-y-3">
-          {rpg.stats.map((st) => (
-            <div key={st.key}>
-              <div className="flex items-baseline gap-2 text-sm"><span className="px-font text-[10px] w-9 text-teal-700">{st.key}</span><span className="flex-1">{st.name}</span><span className="px-font text-[11px]">{st.value}</span></div>
-              <div className="px-seg mt-1">{Array.from({ length: 20 }, (_, i) => <span key={i} className={i < Math.round(st.value / 5) ? 'on' : ''} />)}</div>
-              <div className="text-[10px] text-slate-400 mt-0.5">{st.hint}</div>
-            </div>
-          ))}
-        </div>
-      </Section>
+      <LifeStatsCard rpg={rpg} />
       <Section icon={Backpack} title="INVENTORY · คลังสมบัติ" right={<span className="px-font text-[9px] text-slate-500">{rpg.inventory.length} ITEMS</span>}>
         <div className="grid grid-cols-4 gap-2">
           <div className="px-inner p-1.5 text-center" title="เงินสดรอลงทุน">

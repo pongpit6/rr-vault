@@ -22,13 +22,18 @@ export default function Habits() {
           <div><div className="text-2xl font-bold leading-tight">{H.lifeRank.name}</div><div className="text-sm text-white/80 num">{Math.round(H.life * 100)}% ของวันทำครบ</div></div>
         </div>
         <div className="mt-4 grid grid-cols-3 gap-2 text-xs">
-          <div className="rounded-2xl bg-white/15 px-3 py-2"><div className="text-white/70">เควสต์สัปดาห์</div><b className="text-sm num">{Math.min(5, H.thisWeek)}/5 วัน</b> <span className="text-white/70">→ 1 🪙</span></div>
+          <div className="rounded-2xl bg-white/15 px-3 py-2"><div className="text-white/70">เควสต์สัปดาห์</div><b className="text-sm num">{Math.min(H.thisWeekGoal, H.thisWeek)}/{H.thisWeekGoal} วัน</b> <span className="text-white/70">→ 1 🪙</span></div>
           <div className="rounded-2xl bg-white/15 px-3 py-2"><div className="text-white/70">FIAT วันนี้</div><b className="text-sm num">+{H.todayFiat}</b>{H.mult > 1.01 && <span className="text-white/70"> ×{H.mult.toFixed(1)}</span>}</div>
           <div className="rounded-2xl bg-white/15 px-3 py-2"><div className="text-white/70">GOLD จากนิสัย</div><b className="text-sm num">{H.gold} 🪙</b></div>
         </div>
       </section>
 
       <HabitsToday />
+
+      <button onClick={() => H.togglePause()} className={`w-full px-inner px-3 py-2.5 flex items-center gap-2 text-left text-xs ${H.paused ? 'bg-sky-50' : ''}`} data-testid="habit-pause">
+        <span className="text-lg">{H.paused ? '🛌' : '☕'}</span>
+        <span className="flex-1 min-w-0">{H.paused ? <><b>วันนี้เป็นวันพัก</b> · ทุก streak หยุดนิ่ง ไม่ขาด · แตะเพื่อยกเลิก</> : <><b>พักวันนี้</b> · ป่วยหรือติดธุระ ตั้งเป็นวันพักได้ streak จะไม่ขาด</>}</span>
+      </button>
 
       <section className="card p-4" data-testid="habit-heatmap">
         <div className="flex items-baseline justify-between mb-3"><div className="font-semibold text-sm">{weeks} สัปดาห์ล่าสุด</div><div className="text-[11px] text-slate-500">แตะชื่อเพื่อดูรายละเอียด</div></div>
