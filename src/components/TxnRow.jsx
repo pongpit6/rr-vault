@@ -14,6 +14,8 @@ const fmtQ = (q) => Number(q).toLocaleString(undefined, { maximumFractionDigits:
 export function txnVisual(t, catById, accById) {
   if (t.kind === 'transfer') return { icon: 'repeat', color: '#38bdf8', title: 'โอนระหว่างกระเป๋า', sub: `${accById[t.account]?.name || '?'} → ${accById[t.to]?.name || '?'}` }
   if (t.kind === 'payment') return { icon: 'shield', color: '#a78bfa', title: `ชำระ ${accById[t.to]?.name || 'หนี้'}`, sub: `จาก ${accById[t.account]?.name || '?'}` }
+  if (t.kind === 'repay') return { icon: 'wallet', color: '#d97706', title: 'ได้รับเงินคืน', sub: `เข้า ${accById[t.account]?.name || '?'}` }
+  if (t.kind === 'lend') return { icon: 'wallet', color: '#d97706', title: 'ให้ยืมเงิน', sub: `จาก ${accById[t.account]?.name || '?'}` }
   if (t.kind === 'adjust') return { icon: 'scale', color: '#94a3b8', title: 'ปรับยอดให้ตรง', sub: accById[t.account]?.name || '' }
   if (t.kind === 'trade') {
     const a = itemData(t.assetId)
@@ -33,10 +35,11 @@ let openRow = null // only one row revealed at a time
 
 export default function TxnRow({ t, catById, accById, onClick }) {
   const v = txnVisual(t, catById, accById)
-  const signed = t.kind === 'income' ? t.amount : t.kind === 'expense' ? -t.amount : t.kind === 'trade' ? (t.side === 'sell' ? t.amount : -t.amount) : t.amount
-  const neutral = t.kind === 'transfer' || t.kind === 'payment' || t.kind === 'trade'
+  const signed = t.kind === 'income' ? t.amount : t.kind === 'expense' ? -(t.amount + (t.reimb?.amount || 0)) : t.kind === 'lend' ? -t.amount : t.kind === 'trade' ? (t.side === 'sell' ? t.amount : -t.amount) : t.amount
+  const neutral = t.kind === 'transfer' || t.kind === 'payment' || t.kind === 'trade' || t.kind === 'repay' || t.kind === 'lend' || (t.kind === 'expense' && !t.amount && t.reimb)
   const title = t.kind === 'trade' ? v.title : t.note || v.title
-  const sub = t.kind === 'trade' ? v.sub : t.note ? `${v.title} · ${v.sub}` : v.sub
+  const sub0 = t.kind === 'trade' ? v.sub : t.note ? `${v.title} · ${v.sub}` : v.sub
+  const sub = t.reimb?.amount ? `${sub0} · 🤝 รอรับคืน ${t.reimb.amount.toLocaleString()}` : sub0
   const [dx, setDx] = useState(0)
   const drag = useRef(null)
   const W = 150

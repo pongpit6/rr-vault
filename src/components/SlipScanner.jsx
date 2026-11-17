@@ -29,7 +29,9 @@ const guessCat = (...names) => { for (const n of names) { const c = n && GUESS.f
 
 /** "นำเข้าสลิป": pick slips from the gallery → read QR + text on the phone → review → save all. */
 export default function SlipScanner({ open, onClose, shared }) {
-  const { txns, categories, accounts, settings } = useVault()
+  const { txns, categories, accounts, settings, receivables, people } = useVault()
+  const owers = receivables.list.filter((p) => p.owed > 0)
+  const nameOf = (id) => people.find((p) => p.id === id)?.name || 'ไม่ระบุ'
   const profile = useStore((s) => s.items.profile?.data)
   const put = useStore((s) => s.put)
   const setUi = useStore((s) => s.setUi)
@@ -79,7 +81,8 @@ export default function SlipScanner({ open, onClose, shared }) {
         if (slip.ref && seen.has(slip.ref)) { dupes++; continue }
         if (slip.ref) seen.add(slip.ref)
         const exch = exchangeOf(slip)
-        const learned = slip.counterparty ? map[learnKey({ counterparty: slip.counterparty })] : null
+        let learned = slip.counterparty ? map[learnKey({ counterparty: slip.counterparty })] : null
+        if (learned?.category?.startsWith('repay:') && !(receivables.by[learned.category.slice(6)]?.owed > 0)) learned = null // nothing owed any more
         const looseDupe = !slip.ref && txns.some((t) => t.date === (slip.date || day) && Math.abs((t.amount || 0) - slip.amount) < 0.01 && t.fromSlip)
         found.push({
           key: slip.ref || `${Date.now()}-${i}`, thumb, include: !looseDupe, dupe: looseDupe,
@@ -114,6 +117,13 @@ export default function SlipScanner({ open, onClose, shared }) {
     for (const r of chosen) {
       const base = { amount: r.amount, date: r.date, account: r.account, slipRef: r.ref || undefined, fromSlip: true, time: r.time || undefined, createdAt: now }
       if (r.exch) { put('txn', { ...base, kind: 'transfer', to: T.invest, note: `เติมเงินเข้า ${r.exch}` }); continue }
+      if (r.direction === 'in' && r.category?.startsWith('repay:')) {
+        const who = r.category.slice(6), p = receivables.by[who]
+        put('txn', { ...base, kind: 'repay', who, account: p?.viaCard > 0 ? T.reserve : r.account, note: `${nameOf(who)} คืนเงิน`, counterparty: r.counterparty || undefined })
+        const k = r.counterparty ? learnKey({ counterparty: r.counterparty }) : null
+        if (k) map[k] = { category: r.category, account: r.account }
+        continue
+      }
       const kind = r.direction === 'in' ? 'income' : 'expense'
       put('txn', { ...base, kind, category: r.category, note: r.counterparty || (kind === 'income' ? 'รับโอน' : 'โอนออก'), counterparty: r.counterparty || undefined, inDir: r.direction })
       const k = r.counterparty && r.category !== 'cat-uncat' ? learnKey({ counterparty: r.counterparty }) : null
@@ -231,6 +241,12 @@ export default function SlipScanner({ open, onClose, shared }) {
               </div>
             ) : (
               <div className="flex gap-1.5 overflow-x-auto no-scrollbar -mx-3 px-3 mt-2.5 pb-0.5">
+                {r.direction === 'in' && owers.map((p) => (
+                  <button key={p.who} onClick={() => upd(r.key, { category: `repay:${p.who}` })} data-testid="slip-repay"
+                    className={`shrink-0 flex items-center gap-1 px-2.5 py-1 rounded-full border text-xs ${r.category === `repay:${p.who}` ? 'border-amber-600 bg-amber-500 text-white' : 'border-amber-300 bg-amber-50 text-amber-800'}`}>
+                    🤝 เงินคืนจาก{nameOf(p.who)} ({p.owed.toLocaleString()})
+                  </button>
+                ))}
                 {cats(r.direction).filter((c) => c.id !== 'cat-uncat').sort((a, b) => (b.id === r.category) - (a.id === r.category)).map((c) => (
                   <button key={c.id} onClick={() => upd(r.key, { category: c.id })}
                     className={`shrink-0 flex items-center gap-1.5 pl-1.5 pr-2.5 py-1 rounded-full border text-xs ${r.category === c.id ? 'border-slate-800 bg-slate-800 text-white' : 'border-slate-200 bg-white'}`}>

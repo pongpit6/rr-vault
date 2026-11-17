@@ -71,6 +71,7 @@ export default function TxnForm({ open, onClose, initial }) {
   const showToast = useStore((s) => s.showToast)
   const { accounts, txns, settings, categories, balances, accById, cycles } = useVault()
   const items = useStore((s) => s.items)
+  const people = useMemo(() => selectList(items, 'person'), [items])
   const editing = !!initial?.id
 
   const firstOf = (type) => accounts.find((a) => a.type === type && !a.archived)?.id
@@ -90,7 +91,11 @@ export default function TxnForm({ open, onClose, initial }) {
     const kind = initial?.kind || 'expense'
     setF({
       kind,
-      amountStr: initial?.amount ? String(initial.amount) : '',
+      amountStr: initial?.amount || initial?.reimb?.amount ? String(round2((initial.amount || 0) + (initial.reimb?.amount || 0))) : '',
+      reimbOn: !!initial?.reimb?.who,
+      reimbWho: initial?.reimb?.who || '',
+      reimbAll: initial?.reimb ? !initial.amount : true,
+      reimbStr: initial?.reimb?.amount ? String(initial.reimb.amount) : '',
       category: initial?.category || (kind === 'income' ? 'cat-salary' : 'cat-food'),
       account: initial?.account || (kind === 'payment' ? settings.allocation.targets.reserve : settings.allocation.targets.cash || firstOf('cash')),
       to: initial?.to || (kind === 'payment' ? firstOf('credit') : firstOf('invest')),
@@ -153,7 +158,13 @@ export default function TxnForm({ open, onClose, initial }) {
     if (!initial?.id && initial?.slipRef) Object.assign(keep, { slipRef: initial.slipRef, fromSlip: true, counterparty: initial.note || undefined })
     const base = { ...keep, id: initial?.id, kind: f.kind, amount, date: f.date, note: f.note.trim(), createdAt: initial?.createdAt || new Date().toISOString() }
     let t
-    if (f.kind === 'expense') t = { ...base, category: f.category, account: f.account, earmark: isDebt(selAcc) && selAcc.type === 'credit' ? f.earmark : undefined }
+    if (f.kind === 'expense') {
+      t = { ...base, category: f.category, account: f.account, earmark: isDebt(selAcc) && selAcc.type === 'credit' ? f.earmark : undefined }
+      if (f.reimbOn && f.reimbWho) {
+        const r = round2(Math.min(amount, f.reimbAll ? amount : Number(evalAmount(f.reimbStr)) || 0))
+        if (r > 0) { t.amount = round2(amount - r); t.reimb = { who: f.reimbWho, amount: r } }
+      }
+    }
     else if (f.kind === 'income') {
       t = { ...base, category: f.category }
       if (f.autoSplit) {
@@ -293,6 +304,7 @@ export default function TxnForm({ open, onClose, initial }) {
               </div>
             </button>
           )}
+          <ReimbToggle f={f} set={set} amount={amount} people={people} onNewPerson={(name) => { const id = `person-${name.trim().toLowerCase().replace(/\s+/g, '-')}-${Date.now().toString(36)}`; put('person', { id, name: name.trim() }); set({ reimbWho: id }) }} />
         </div>
       )}
 
@@ -446,6 +458,43 @@ export function AllocationEditor({ pct, cap, onPct, onCap, split, gap, compact =
           <div className={`w-[18px] h-[18px] rounded-full bg-white transition ${cap ? 'translate-x-[18px]' : ''}`} />
         </div>
       </button>
+    </div>
+  )
+}
+
+/** "มีคนจะจ่ายคืน": part or all of this spending is someone else's; it becomes money they owe you. */
+function ReimbToggle({ f, set, amount, people, onNewPerson }) {
+  const [adding, setAdding] = useState(false)
+  const [name, setName] = useState('')
+  const r = f.reimbAll ? amount : Math.min(amount, Number(evalAmount(f.reimbStr)) || 0)
+  return (
+    <div className={`mt-3 rounded-2xl border transition ${f.reimbOn ? 'bg-amber-400/10 border-amber-400/40' : 'bg-slate-900/[.025] border-slate-200/80'}`} data-testid="reimb">
+      <button onClick={() => set({ reimbOn: !f.reimbOn, reimbWho: f.reimbWho || people[0]?.id || '' })} className="w-full flex items-center gap-3 p-3 text-left" data-testid="reimb-toggle">
+        <span className="text-xl">🤝</span>
+        <div className="flex-1 text-sm">
+          <div className="font-medium">มีคนจะจ่ายคืน</div>
+          <div className="text-xs text-slate-500">{f.reimbOn ? 'ส่วนนี้ไม่นับเป็นรายจ่ายของคุณ และจะขึ้นเป็น "รอรับคืน"' : 'จ่ายแทนคนอื่นไปก่อน เช่น ภรรยาจะโอนคืน'}</div>
+        </div>
+        <div className={`w-11 h-6 rounded-full p-0.5 transition ${f.reimbOn ? 'bg-amber-500' : 'bg-slate-900/10'}`}><div className={`w-5 h-5 rounded-full bg-white transition ${f.reimbOn ? 'translate-x-5' : ''}`} /></div>
+      </button>
+      {f.reimbOn && (
+        <div className="px-3 pb-3 space-y-2">
+          <div className="flex flex-wrap gap-1.5">
+            {people.map((p) => <button key={p.id} onClick={() => set({ reimbWho: p.id })} className={`text-xs px-3 py-1.5 rounded-xl border ${f.reimbWho === p.id ? 'bg-slate-900 text-white border-slate-900' : 'border-slate-200'}`} data-testid="reimb-person">{p.name}</button>)}
+            {adding ? (
+              <span className="flex gap-1"><input autoFocus className="field !py-1 !w-28 text-xs" value={name} onChange={(e) => setName(e.target.value)} placeholder="ชื่อ เช่น ภรรยา" data-testid="reimb-name" />
+                <button className="text-xs px-2 rounded-xl bg-amber-500 text-white" disabled={!name.trim()} onClick={() => { onNewPerson(name); setName(''); setAdding(false) }} data-testid="reimb-add">เพิ่ม</button></span>
+            ) : <button onClick={() => setAdding(true)} className="text-xs px-3 py-1.5 rounded-xl border border-dashed border-slate-300 text-slate-500">+ เพิ่มคน</button>}
+          </div>
+          <div className="flex items-center gap-2 text-xs">
+            <button onClick={() => set({ reimbAll: true })} className={`px-3 py-1.5 rounded-xl border ${f.reimbAll ? 'bg-slate-900 text-white border-slate-900' : 'border-slate-200'}`}>ทั้งหมด</button>
+            <button onClick={() => set({ reimbAll: false })} className={`px-3 py-1.5 rounded-xl border ${!f.reimbAll ? 'bg-slate-900 text-white border-slate-900' : 'border-slate-200'}`}>บางส่วน</button>
+            {!f.reimbAll && <input className="field !py-1 !w-24 num text-xs" inputMode="decimal" value={f.reimbStr} onChange={(e) => set({ reimbStr: e.target.value })} placeholder="จำนวน" />}
+          </div>
+          {amount > 0 && f.reimbWho && <div className="text-[11px] text-slate-600">รอรับคืน <b className="num">{money(r)}</b>{amount - r > 0 ? <> · ส่วนของคุณ <b className="num">{money(amount - r)}</b></> : ' · ไม่นับเป็นรายจ่ายของคุณ'}</div>}
+          {!f.reimbWho && <div className="text-[11px] text-amber-700">เลือกหรือเพิ่มคนที่จะจ่ายคืนก่อน</div>}
+        </div>
+      )}
     </div>
   )
 }

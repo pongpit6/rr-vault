@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import Receivables from '../components/Receivables'
 import { Plus, Pencil, Scale, Archive, Trash2, Check, Info, ListFilter } from 'lucide-react'
 import { Sheet, Button, Money, IconBadge, Label, IconPicker, ColorPicker, Segmented, Progress } from '../components/ui'
 import { AllocationEditor } from '../components/TxnForm'
@@ -97,6 +98,8 @@ export default function Wallets({ onEdit, go }) {
             <div className="text-xs text-slate-500 px-1">เก็บถาวร: {archived.map((a) => <button key={a.id} className="underline mr-2" onClick={() => setDetail(a.id)}>{a.name}</button>)}</div>
           )}
         </div>
+
+        <Receivables />
 
         <section>
           <div className="px-1 mb-2 text-sm text-slate-500">ระบบแบ่งเงินอัตโนมัติ (ค่าเริ่มต้นทุกครั้งที่มีรายรับ)</div>

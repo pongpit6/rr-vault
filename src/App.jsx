@@ -201,7 +201,14 @@ export default function App() {
   if (lock?.enabled && locked) return <LockScreen onUnlock={() => setLocked(false)} />
 
   const onAdd = (init) => setForm(init || {})
-  const onEdit = (t) => (t.kind === 'trade' ? setTrade(t) : setForm(t))
+  const onEdit = (t) => {
+    if (t.kind === 'trade') return setTrade(t)
+    if (t.kind === 'repay' || t.kind === 'lend') { // simple records: tap = offer to undo
+      if (window.confirm(`ลบรายการ "${t.note || (t.kind === 'repay' ? 'ได้รับเงินคืน' : 'ให้ยืมเงิน')}" ${t.amount.toLocaleString()} บาท?`)) useStore.getState().remove(t.id, { label: 'ลบรายการแล้ว' })
+      return
+    }
+    setForm(t)
+  }
   const screen = {
     home: <Home onAdd={onAdd} onEdit={onEdit} go={go} />,
     money: <Money onEdit={onEdit} onAdd={onAdd} onTrade={setTrade} go={go} opt={tabOpt} />,

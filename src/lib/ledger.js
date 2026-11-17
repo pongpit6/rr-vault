@@ -8,22 +8,29 @@ import { isDebt, ACCOUNT_TYPES } from './defaults'
  */
 export function postingsOf(t, accById, settings) {
   const a = round2(t.amount)
-  if (!a && t.kind !== 'adjust') return []
+  const r = t.kind === 'expense' ? round2(t.reimb?.amount || 0) : 0
+  if (!a && !r && t.kind !== 'adjust') return []
   switch (t.kind) {
     case 'expense': {
-      const p = [{ acc: t.account, amt: -a }]
+      // `amount` is your own share; `reimb.amount` is paid back later by someone else. The account pays both.
+      const p = [{ acc: t.account, amt: -round2(a + r) }]
       const acc = accById[t.account]
       // Credit-card spending: move the same amount from spendable cash into the debt reserve,
       // so "available" always shows money that is truly free to spend.
       if (acc?.type === 'credit' && t.earmark !== false) {
         const from = t.earmarkFrom || settings?.earmarkFrom
         const reserve = settings?.allocation?.targets?.reserve
-        if (from && reserve && accById[from] && accById[reserve] && from !== reserve) {
+        // only your own share is set aside from cash; the shared part is funded by the repayment
+        if (a && from && reserve && accById[from] && accById[reserve] && from !== reserve) {
           p.push({ acc: from, amt: -a }, { acc: reserve, amt: a })
         }
       }
       return p
     }
+    case 'repay': // someone pays you back → into the chosen account (the reserve when it was card spending)
+      return [{ acc: t.account, amt: a }]
+    case 'lend': // you lend cash to someone
+      return [{ acc: t.account, amt: -a }]
     case 'income': {
       if (t.split && Object.keys(t.split).length) {
         return Object.entries(t.split).filter(([, v]) => Number(v)).map(([acc, v]) => ({ acc, amt: round2(v) }))
@@ -74,7 +81,35 @@ export function debtTarget(accounts, bal) {
   return round2(target)
 }
 
-export function summarize(accounts, bal) {
+/**
+ * Money other people owe you: shared card/cash spending they'll pay back (expense.reimb) and cash you lent (lend),
+ * minus what came back (repay). Per person, with the open items oldest first.
+ */
+export function computeReceivables(txns, accById = {}) {
+  const by = {}
+  const P = (who) => (by[who] ||= { who, owed: 0, viaCard: 0, items: [], repaid: 0 })
+  const sorted = [...txns].sort((x, y) => (x.date + (x.createdAt || '')).localeCompare(y.date + (y.createdAt || '')))
+  for (const t of sorted) {
+    if (t.kind === 'expense' && t.reimb?.who && t.reimb.amount > 0) {
+      const p = P(t.reimb.who); p.owed = round2(p.owed + t.reimb.amount)
+      const card = accById[t.account]?.type === 'credit'
+      if (card) p.viaCard = round2(p.viaCard + t.reimb.amount)
+      p.items.push({ id: t.id, date: t.date, amount: t.reimb.amount, note: t.note, category: t.category, card, account: t.account })
+    }
+    if (t.kind === 'lend' && t.who) { const p = P(t.who); p.owed = round2(p.owed + t.amount); p.items.push({ id: t.id, date: t.date, amount: t.amount, note: t.note || 'ให้ยืมเงิน', lend: true }) }
+    if (t.kind === 'repay' && t.who) { const p = P(t.who); p.owed = round2(p.owed - t.amount); p.repaid = round2(p.repaid + t.amount); p.viaCard = round2(Math.max(0, p.viaCard - t.amount)) }
+  }
+  // mark which items are still open (repayments settle the oldest first)
+  for (const p of Object.values(by)) {
+    let left = p.repaid
+    for (const it of p.items) { const used = Math.min(left, it.amount); it.open = round2(it.amount - used); left = round2(left - used) }
+    p.owed = round2(Math.max(0, p.owed)); p.open = p.items.filter((i) => i.open > 0)
+  }
+  const list = Object.values(by).filter((p) => p.owed > 0 || p.items.length)
+  return { by, list, total: round2(list.reduce((s, p) => s + p.owed, 0)), viaCard: round2(list.reduce((s, p) => s + p.viaCard, 0)) }
+}
+
+export function summarize(accounts, bal, recv = null) {
   let assets = 0, debts = 0
   const byType = {}
   for (const a of accounts) {
@@ -86,10 +121,13 @@ export function summarize(accounts, bal) {
   }
   const reserve = byType.reserve || 0
   const target = debtTarget(accounts, bal)
+  // card spending someone will pay back counts toward the reserve: that repayment is earmarked for the bill
+  const incoming = recv ? Math.min(recv.viaCard, Math.max(0, target - reserve)) : 0
+  const receivable = recv ? recv.total : 0
   return {
-    assets: round2(assets), debts: round2(debts), net: round2(assets - debts), byType,
-    reserve, target, gap: round2(Math.max(0, target - reserve)),
-    coverage: target > 0 ? Math.min(1, reserve / target) : 1,
+    assets: round2(assets + receivable), debts: round2(debts), net: round2(assets + receivable - debts), byType: { ...byType, receivable },
+    reserve, target, incoming: round2(incoming), receivable, gap: round2(Math.max(0, target - reserve - incoming)),
+    coverage: target > 0 ? Math.min(1, (reserve + incoming) / target) : 1,
   }
 }
 
@@ -135,7 +173,8 @@ export function rebalance(pct, key, value) {
 }
 
 export function txnSign(t, accById) {
-  if (t.kind === 'income') return 1
+  if (t.kind === 'income' || t.kind === 'repay') return 1
+  if (t.kind === 'lend') return -1
   if (t.kind === 'expense') return -1
   if (t.kind === 'adjust') return Math.sign(t.amount)
   return 0

@@ -165,6 +165,7 @@ export default function Home({ onAdd, onEdit, go }) {
                       <span className="w-2 h-2 rounded-sm" style={{ background: x.color }} />{x.label} <b className="num">{privacy ? '••' : money(x.v, { decimals: false })}</b>
                     </button>
                   ))}
+                  {summary.receivable > 0 && <button onClick={() => go('money')} className="flex items-center gap-1 text-white/70 hover:text-white" data-testid="hero-recv"><span className="w-2 h-2 rounded-sm border border-white/70 border-dashed" />รอรับคืน <b className="num">{privacy ? '••' : money(summary.receivable, { decimals: false })}</b></button>}
                   {summary.portfolio > 0 && <button onClick={() => go('portfolio')} className="flex items-center gap-1 text-white/60 hover:text-white"><span className="w-2 h-2 rounded-sm border border-white/60" />ลงทุน (ราคาตลาด) <b className="num">{privacy ? '••' : money(summary.portfolio, { decimals: false })}</b></button>}
                 </div>
               </div>

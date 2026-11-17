@@ -18,7 +18,7 @@ const seen = () => { try { const j = JSON.parse(localStorage.getItem(LS) || '{}'
 const remember = (j) => { try { localStorage.setItem(LS, JSON.stringify(j)) } catch { /* */ } }
 
 export default function Reminders() {
-  const { accounts, balances, cycles, txns, categories } = useVault()
+  const { accounts, balances, cycles, txns, categories, receivables, people } = useVault()
   const subs = useSubs()
   const items = useStore((s) => s.items)
   const showToast = useStore((s) => s.showToast)
@@ -40,7 +40,13 @@ export default function Reminders() {
     }
     for (const u of upcoming(subs, accounts, balances, 2, cycles)) {
       if (u.kind === 'sub') fire(`sub:${u.sub.id}:${u.date}`, `${u.sub.name} จะตัด${u.days <= 0 ? 'วันนี้' : u.days === 1 ? 'พรุ่งนี้' : 'ในอีก 2 วัน'}`, `${money(u.sub.amount, { decimals: false })} · ${u.sub.account ? 'เช็กยอดในบัญชีให้พอ' : ''}`)
-      else if (u.kind === 'debt') fire(`due:${u.account.id}:${u.date}`, `${u.account.name} ครบกำหนด${u.days <= 0 ? 'วันนี้' : u.days === 1 ? 'พรุ่งนี้' : 'ในอีก 2 วัน'}`, `ยอดที่ต้องจ่าย ${money(u.amount, { decimals: false })}`)
+      else if (u.kind === 'debt') {
+        fire(`due:${u.account.id}:${u.date}`, `${u.account.name} ครบกำหนด${u.days <= 0 ? 'วันนี้' : u.days === 1 ? 'พรุ่งนี้' : 'ในอีก 2 วัน'}`, `ยอดที่ต้องจ่าย ${money(u.amount, { decimals: false })}`)
+        for (const p of receivables.list) {
+          const onCard = p.open.filter((it) => it.card && it.account === u.account.id).reduce((s, it) => s + it.open, 0)
+          if (onCard > 0) fire(`recv:${p.who}:${u.date}`, `อย่าลืมเก็บเงินจาก${people.find((x) => x.id === p.who)?.name || 'คนที่ค้าง'}`, `${money(onCard, { decimals: false })} ที่รูด${u.account.name}ไว้ · บัตรครบกำหนดเร็วๆ นี้`)
+        }
+      }
     }
     for (const b of budgetStatus(selectList(items, 'budget'), txns)) {
       if (b.status !== 'warn' && b.status !== 'over') continue
