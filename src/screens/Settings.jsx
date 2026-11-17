@@ -432,7 +432,7 @@ function LifeCard() {
             </select>
           </label>
           <label className="text-[11px] text-slate-500">จำนวน (บาท)
-            <input type="number" inputMode="decimal" value={pd.amount || ''} onChange={(e) => savePd({ amount: +e.target.value || 0 })} placeholder="เช่น 11400" className="field !py-2 mt-0.5 num" data-testid="payday-amount" />
+            <input type="number" inputMode="decimal" value={pd.amount || ''} onChange={(e) => savePd({ amount: +e.target.value || 0 })} placeholder="เช่น 15000" className="field !py-2 mt-0.5 num" data-testid="payday-amount" />
           </label>
         </div>
       </div>
