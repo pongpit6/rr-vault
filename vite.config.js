@@ -12,9 +12,9 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.png', 'apple-touch-icon.png', 'avatar.jpg'],
       manifest: {
-        name: 'รณกฤต เรืองชินศิริ Vault',
-        short_name: 'R.R. Vault',
-        description: 'บันทึกรายรับรายจ่าย กระเป๋าเงิน และการลงทุน',
+        name: "LifeQuest · Ronnakrit's Journey",
+        short_name: 'LifeQuest',
+        description: 'การผจญภัยของรณกฤต: เงิน นิสัย การลงทุน และเมืองพิกเซลที่โตไปพร้อมชีวิต',
         theme_color: '#ffffff',
         background_color: '#f5f7fa',
         display: 'standalone',

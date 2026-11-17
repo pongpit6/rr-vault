@@ -76,7 +76,7 @@ export default function Settings({ opt }) {
           <span className="absolute bottom-0 right-0 w-7 h-7 rounded-full grid place-items-center bg-white text-slate-700 border border-slate-200 shadow"><Camera size={14} /></span>
         </button>
         <div className="flex-1 min-w-0">
-          <div className="text-xs text-white/60">เจ้าของ Vault</div>
+          <div className="text-xs text-white/60">ผู้กล้าแห่ง LifeQuest</div>
           <div className="text-lg font-semibold truncate">{profile.name}</div>
           <div className="text-xs text-white/60 truncate">{session?.user?.email || 'ยังไม่ได้เข้าสู่ระบบ (เก็บในเครื่อง)'}</div>
         </div>
@@ -125,7 +125,7 @@ export default function Settings({ opt }) {
       </section>
       <input ref={fileRef} type="file" accept="application/json" className="hidden" onChange={importJson} />
 
-      <div className="text-center text-xs text-slate-400 pt-2 pb-6">รณกฤต เรืองชินศิริ Vault · v2</div>
+      <div className="text-center text-xs text-slate-400 pt-2 pb-6">LifeQuest · Ronnakrit's Journey · v3</div>
 
       <AvatarEditor open={avatarOpen} onClose={() => setAvatarOpen(false)}
         onSave={(avatar) => put('profile', { ...profile, avatar })} onReset={() => put('profile', { ...profile, avatar: null })} />
@@ -238,7 +238,7 @@ function SlipSettings({ open, onClose }) {
             {time && <button onClick={() => put('settings', { ...settings, slipSummaryTime: '' })} className="text-xs text-slate-500 underline">ปิด</button>}
           </div>
           {perm !== 'granted' && perm !== 'unsupported' && (
-            <Button variant="ghost" className="w-full !py-2" onClick={async () => setPerm(await Notification.requestPermission())}>อนุญาตให้ Vault แจ้งเตือน</Button>
+            <Button variant="ghost" className="w-full !py-2" onClick={async () => setPerm(await Notification.requestPermission())}>อนุญาตให้ LifeQuest แจ้งเตือน</Button>
           )}
           <div className="text-xs text-slate-500">ถ้าวันนั้นนำเข้าสลิปแล้วจะไม่เตือนซ้ำ · แอปบนเว็บเตือนได้เฉพาะตอนที่ยังเปิดค้างไว้เบื้องหลัง ถ้าปัดปิดแอปไปแล้วจะไม่เตือน (ตั้งนาฬิกาปลุกในมือถือเวลาเดียวกันแทนได้)</div>
         </div>
@@ -253,7 +253,7 @@ function SlipSettings({ open, onClose }) {
             <div>• โอนเติมเงินเข้า <b>Bitkub</b> จะลงเป็น “ย้ายเข้ากระเป๋าลงทุน” ไม่นับเป็นรายจ่าย</div>
             <div>• สลิปเดิมนำเข้าซ้ำไม่ได้ (เช็กจากเลขที่รายการ) เลือกรูปเยอะเกินไม่เป็นไร</div>
             <div>• ร้านที่เคยเลือกหมวดแล้ว ครั้งหน้าระบบจะจำให้</div>
-            <div>• อีกทาง: เลือกสลิปในแกลเลอรี → แชร์ → <b>Vault</b> (ต้องติดตั้งแอปลงหน้าจอก่อน)</div>
+            <div>• อีกทาง: เลือกสลิปในแกลเลอรี → แชร์ → <b>LifeQuest</b> (ต้องติดตั้งแอปลงหน้าจอก่อน)</div>
           </div>
         </div>
       </div>

@@ -91,7 +91,7 @@ function Wizard({ settings, accounts, balances }) {
           {step === 0 && (
             <div className="text-center pt-6">
               <Avatar size={96} className="mx-auto" />
-              <h1 className="text-2xl font-bold mt-5">ตั้งค่า Vault ใน 2 นาที</h1>
+              <h1 className="text-2xl font-bold mt-5">ตั้งค่า LifeQuest ใน 2 นาที</h1>
               <p className="text-slate-500 mt-2 text-sm">ตอบแค่ไม่กี่ข้อ แอปจะจัดกระเป๋า บัตร และหนี้ให้ตรงกับความจริง ข้ามได้ทุกข้อ และแก้ทีหลังได้ในหน้า “เงิน”</p>
               <div className="mt-6 text-left"><Label>ชื่อที่แสดง</Label><input className="field" value={f.name} onChange={(e) => set({ name: e.target.value })} /></div>
             </div>

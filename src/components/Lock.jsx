@@ -19,7 +19,7 @@ export async function bioRegister() {
   const cred = await navigator.credentials.create({
     publicKey: {
       challenge: crypto.getRandomValues(new Uint8Array(32)),
-      rp: { name: 'R.R. Vault', id: location.hostname },
+      rp: { name: 'LifeQuest', id: location.hostname },
       user: { id: crypto.getRandomValues(new Uint8Array(16)), name: 'vault-owner', displayName: 'Vault Owner' },
       pubKeyCredParams: [{ type: 'public-key', alg: -7 }, { type: 'public-key', alg: -257 }],
       authenticatorSelection: { authenticatorAttachment: 'platform', userVerification: 'required', residentKey: 'preferred' },

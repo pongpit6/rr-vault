@@ -36,7 +36,7 @@ const NAV = [
   { id: 'money', label: 'เงิน', icon: Wallet },
   { id: 'habits', label: 'นิสัย', icon: Sprout },
   { id: 'portfolio', label: 'ลงทุน', icon: LineChart },
-  { id: 'vault', label: 'Vault', icon: Swords },
+  { id: 'vault', label: 'เมือง', icon: Swords },
   { id: 'settings', label: 'ตั้งค่า', icon: Cog },
 ]
 const ALL_TABS = NAV.map((n) => n.id)
@@ -53,8 +53,8 @@ function Welcome() {
       <div className="w-full max-w-sm anim-pop">
         <div className="flex flex-col items-center text-center mb-8">
           <Avatar size={96} />
-          <h1 className="mt-5 text-2xl font-bold leading-tight">รณกฤต เรืองชินศิริ<br /><span className="grad-text">Vault</span></h1>
-          <p className="mt-2 text-sm text-slate-500">รายรับ-รายจ่าย · กระเป๋าเงิน · การลงทุน</p>
+          <h1 className="mt-5 text-2xl font-bold leading-tight"><span className="grad-text">LifeQuest</span><br /><span className="text-base font-semibold text-slate-600">การผจญภัยของรณกฤต</span></h1>
+          <p className="mt-2 text-sm text-slate-500">เงิน · นิสัย · การลงทุน · เมืองที่โตไปพร้อมคุณ</p>
         </div>
         <div className="card p-5"><AuthPanel /></div>
         <button onClick={() => setUi({ offlineMode: true })} className="mt-4 w-full text-sm text-slate-500 hover:text-slate-900 py-2">ใช้งานแบบออฟไลน์ก่อน (เข้าสู่ระบบทีหลังได้)</button>
@@ -115,7 +115,7 @@ function AlertWatcher() {
         const name = assetLabel(asset)
         const msg = `${name} ${al.op === '>=' ? 'ขึ้นถึง' : 'ลงถึง'} ${al.price.toLocaleString()} แล้ว (ตอนนี้ ${p.toLocaleString(undefined, { maximumFractionDigits: 4 })})`
         st.showToast('🔔 ' + msg)
-        try { if (Notification.permission === 'granted') new Notification('R.R. Vault · แจ้งเตือนราคา', { body: msg, icon: './icon-192.png' }) } catch { /* not supported */ }
+        try { if (Notification.permission === 'granted') new Notification('LifeQuest · แจ้งเตือนราคา', { body: msg, icon: './icon-192.png' }) } catch { /* not supported */ }
       }
     }
   }, [quotes])
@@ -224,8 +224,8 @@ export default function App() {
       {/* desktop sidebar */}
       <aside className="ui-aside hidden md:flex flex-col w-60 lg:w-64 shrink-0 h-dvh sticky top-0 border-r border-slate-200/80 bg-white/60 backdrop-blur p-5 gap-1">
         <div className="flex items-center gap-2.5 px-2 mb-6">
-          <img src="./icon-192.png" className="w-9 h-9 rounded-xl" alt="" />
-          <div className="leading-tight"><div className="text-sm font-semibold">R.R.</div><div className="text-sm font-semibold grad-text">Vault</div></div>
+          <img src="./icon-192.png" className="w-9 h-9 rounded-lg" style={{ imageRendering: 'pixelated' }} alt="" />
+          <div className="leading-tight"><div className="text-sm font-semibold grad-text">LifeQuest</div><div className="text-[11px] text-slate-500">Ronnakrit's Journey</div></div>
         </div>
         <button onClick={() => setForm({})} className="ui-btn ui-btn-primary mb-2 flex items-center justify-center gap-2 py-3 rounded-2xl grad-bg text-white font-semibold ui-ac-shadow hover:brightness-110">
           <Plus size={18} /> บันทึกรายการ <kbd className="ml-1 text-[10px] px-1.5 py-0.5 rounded bg-black/20">N</kbd>
