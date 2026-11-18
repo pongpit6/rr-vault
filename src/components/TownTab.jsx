@@ -204,7 +204,7 @@ export default function TownTab({ rpg }) {
             const own = T.decor.includes(d.id), p = priceOf(d.cost, rpg.econData)
             return (
               <div key={d.id} className={`px-inner p-2 text-center ${own ? 'bg-teal-50' : ''}`}>
-                <div className="text-2xl">{d.emoji}</div><div className="text-[11px] font-semibold">{d.name}</div><div className="text-[10px] text-teal-700">ความสุข +{d.happy}</div>
+                <div className="text-2xl">{d.emoji}</div><div className="text-[11px] font-semibold">{d.name}</div><div className="text-[10px] text-teal-700">ความสุข +{d.happy}</div>{d.scene && <div className="text-[10px] text-slate-500">+ {d.scene}</div>}
                 {own ? <div className="text-[10px] text-slate-500 mt-1">ติดตั้งแล้ว ✓</div> : (
                   <button className={`${btn} mt-1 w-full bg-white`} disabled={!rpg.afford(p)} onClick={() => ok(rpg.buyDecor(d.id), `ติดตั้ง${d.name}แล้ว`)}><Price p={p} rpg={rpg} /></button>
                 )}
@@ -216,7 +216,7 @@ export default function TownTab({ rpg }) {
 
       <Section icon={Repeat} title="EXCHANGE · แลกเงิน">
         <div className="text-sm">แลก <b>FIAT → GOLD</b> เรต <b className="num">{rpg.exchangeRate}</b> : 1 · สัปดาห์นี้แลกแล้ว {rpg.exchangedThisWeek}/{EXCHANGE_WEEKLY}</div>
-        <div className="text-[11px] text-slate-500 mt-1 flex items-center gap-1"><TrendingUp size={12} className="text-rose" /> เงินเฟ้อสะสม +{Math.round((rpg.inflation - 1) * 100)}% · ราคาที่จ่ายด้วย FIAT ขึ้น 2% ทุกเดือน — เก็บ FIAT ไว้เฉย ๆ ค่าจะลดลง ส่วน GOLD ไม่เฟ้อ{T.bankRate ? ` · ธนาคารให้ดอกเบี้ย ${T.bankRate}%/วัน` : ''}</div>
+        <div className="text-[11px] text-slate-500 mt-1 flex items-center gap-1"><TrendingUp size={12} className="text-rose" /> เงินเฟ้อสะสม +{Math.round((rpg.inflation - 1) * 100)}% · ราคาที่จ่ายด้วย FIAT ขึ้น 2% ทุกเดือน (สูงสุด +20%) — เก็บ FIAT ไว้เฉย ๆ ค่าจะลดลง ส่วน GOLD ไม่เฟ้อ{T.bankRate ? ` · ธนาคารให้ดอกเบี้ย ${T.bankRate}%/วัน` : ''}</div>
         <div className="mt-2 flex gap-2">
           {[1, 3].map((n) => <button key={n} className={`${btn} bg-amber-400`} disabled={rpg.exchangedThisWeek + n > EXCHANGE_WEEKLY || rpg.fiat < rpg.exchangeRate * n} onClick={() => ok(rpg.exchange(n), `แลกได้ ${n} GOLD`)}>แลก {n} 🪙 ({(rpg.exchangeRate * n).toLocaleString()} 💵)</button>)}
         </div>

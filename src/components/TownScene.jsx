@@ -243,6 +243,7 @@ export function drawTown(g, t, now, o = {}) {
     if (id === 'bench') { R(C.wood2, x, y - 4, 10, 2); R(C.wood, x, y - 2, 1, 2); R(C.wood, x + 9, y - 2, 1, 2); R(C.wood, x, y - 7, 10, 1) }
     if (id === 'lamp') { R('#334155', x, y - 16, 1, 16); R(night ? '#fde047' : '#fef9c3', x - 1, y - 18, 3, 2); if (night) { g.fillStyle = 'rgba(253,224,71,.2)'; g.fillRect(x - 6, y - 22, 13, 12) } }
     if (id === 'flowers') for (let q = 0; q < 6; q++) { R(C.leaf, x + q * 2, y - 2, 1, 2); R(['#f472b6', '#fde047', '#f87171'][q % 3], x + q * 2, y - 3 - (q % 2), 1, 1) }
+    if (id === 'banner') { R('#334155', x + 2, y - 18, 1, 18); const wv = Math.floor(now / 250) % 2; R('#10b981', x + 3, y - 18 + wv, 8, 3); R('#38bdf8', x + 3, y - 15 + wv, 8, 3) }
     if (id === 'well') { R(C.stone, x, y - 5, 8, 5); R(C.wood, x, y - 11, 1, 6); R(C.wood, x + 7, y - 11, 1, 6); R(C.roof, x - 1, y - 12, 10, 1) }
     if (id === 'fountain') {
       R(C.stone, x - 4, y - 4, 16, 4); R(C.stone2, x + 2, y - 10, 4, 6)

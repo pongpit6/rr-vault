@@ -35,16 +35,17 @@ export function sceneProps(rpg) {
 }
 
 /** A character's face/body from its idle sprite (sheet or still). */
-export function Portrait({ sprite, size = 44, dim = false, hue = 0 }) {
+export function Portrait({ sprite, size = 44, dim = false, hue: skinHue = 0 }) {
   const sheetName = SHEETS[`${sprite}_idle`] ? `${sprite}_idle` : null
   const [tinted, setTinted] = useState(null)
   useEffect(() => {
-    if (!hue || !sheetName) { setTinted(null); return }
-    let n = 0
-    const tryIt = () => { const u = skinUrl(hue, sheetName); if (u) setTinted(u); else if (n++ < 20) setTimeout(tryIt, 150) }
+    if (!skinHue || !sheetName) { setTinted(null); return }
+    let n = 0, alive = true
+    const tryIt = () => { if (!alive) return; const u = skinUrl(skinHue, sheetName); if (u) setTinted(u); else if (n++ < 40) setTimeout(tryIt, 150) }
     tryIt()
-  }, [hue, sheetName])
-  hue = 0
+    return () => { alive = false }
+  }, [skinHue, sheetName])
+  const hue = 0 // the recolour is baked into `tinted`; no CSS hue filter
   const src = tinted || `./sprites/${sheetName || sprite}.png`
   const sp = sheetName ? SHEETS[sheetName] : null
   const k = sp ? size / sp.h : 1

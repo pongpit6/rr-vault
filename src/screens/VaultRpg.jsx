@@ -76,7 +76,7 @@ export default function VaultRpg({ onAdd, go }) {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between pt-2">
-        <h1 className="text-2xl font-bold">Vault <span className="px-font text-sm text-teal-600 align-middle">RPG</span></h1>
+        <h1 className="text-2xl font-bold">เมือง <span className="px-font text-sm text-teal-600 align-middle">LifeQuest</span></h1>
         <div className="flex items-center gap-2">
           <Wallet rpg={rpg} />
           {rpg.streak > 0 && <div className="px-chip text-orange-600"><Flame size={14} /> {rpg.streak} วัน</div>}
@@ -287,7 +287,7 @@ function SkillsTab({ rpg }) {
 /* ---------------- shop ---------------- */
 function ShopTab({ rpg }) {
   const showToast = useStore((s) => s.showToast)
-  const types = [['pet', 'สัตว์เลี้ยง'], ['skin', 'ชุดอัศวิน'], ['deco', 'ตกแต่งหมู่บ้าน']]
+  const types = [['pet', 'สัตว์เลี้ยง'], ['skin', 'ชุดอัศวิน']]
   return (
     <div className="space-y-3">
       <section className="px-card p-3.5 flex items-center gap-3">
@@ -302,7 +302,7 @@ function ShopTab({ rpg }) {
               <ShopCard name="จิ้งจอกมิ้นต์" desc="สัตว์เลี้ยงตัวแรก" art={<Portrait sprite="pet_fox" size={44} />} owned equipped={rpg.pet.id === 'pet_fox'} onEquip={() => rpg.setEquip({ pet: null })} />
             )}
             {type === 'skin' && (
-              <ShopCard name="ชุดอัศวินดั้งเดิม" desc="สีเริ่มต้น" art={<Portrait sprite="hero" size={48} />} owned equipped={!rpg.skin} onEquip={() => rpg.setEquip({ skin: null })} />
+              <ShopCard name="ชุดอัศวินดั้งเดิม" desc="สีเริ่มต้น ไม่มีโบนัส" art={<Portrait sprite="hero" size={48} />} owned equipped={!rpg.skin} onEquip={() => rpg.setEquip({ skin: null })} />
             )}
             {SHOP.filter((i) => i.type === type).map((i) => {
               const owned = !!rpg.owned[i.id]

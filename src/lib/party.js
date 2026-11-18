@@ -53,11 +53,8 @@ export const SKILLS = [
 export const SHOP = [
   { id: 'pet_owl', type: 'pet', name: 'นกฮูกหิมะ', desc: 'สัตว์เลี้ยงเดินตามปาร์ตี้', price: 60, sprite: 'pet_owl' },
   { id: 'pet_drake', type: 'pet', name: 'มังกรน้อยทองคำ', desc: 'สัตว์เลี้ยงหายาก', price: 150, sprite: 'pet_drake' },
-  { id: 'skin_royal', type: 'skin', name: 'ชุดอัศวินม่วงราชา', desc: 'เกราะม่วง ผ้าคลุมแดง', price: 80, hue: 120 },
-  { id: 'skin_flame', type: 'skin', name: 'ชุดอัศวินกุหลาบ', desc: 'เกราะสีกุหลาบ ผ้าคลุมเขียวมะกอก', price: 80, hue: 200 },
-  { id: 'deco_flowers', type: 'deco', name: 'สวนดอกไม้', desc: 'ดอกไม้บานรอบหมู่บ้าน', price: 30 },
-  { id: 'deco_lanterns', type: 'deco', name: 'โคมไฟยามค่ำ', desc: 'โคมไฟริมทาง สว่างตอนกลางคืน', price: 40 },
-  { id: 'deco_banner', type: 'deco', name: 'ธงประจำปาร์ตี้', desc: 'ปักธงหลังปาร์ตี้', price: 25 },
+  { id: 'skin_royal', type: 'skin', name: 'ชุดอัศวินม่วงราชา', desc: 'เกราะม่วง ผ้าคลุมแดง · รายได้เมือง +5%', price: 80, hue: 120 },
+  { id: 'skin_flame', type: 'skin', name: 'ชุดอัศวินกุหลาบ', desc: 'เกราะสีกุหลาบ ผ้าคลุมเขียวมะกอก · FIAT จากนิสัย +5%', price: 80, hue: 200 },
 ]
 export const PET_DEFAULT = { id: 'pet_fox', name: 'จิ้งจอกมิ้นต์', sprite: 'pet_fox' }
 
@@ -132,7 +129,12 @@ export function computeParty({ accounts, txns, summary, portfolio, settings, cat
   const equip = data.equip || {}
   const pet = SHOP.find((i) => i.id === equip.pet && owned[i.id]) || PET_DEFAULT
   const skin = SHOP.find((i) => i.id === equip.skin && owned[i.id]) || null
-  const decos = Object.fromEntries(SHOP.filter((i) => i.type === 'deco' && owned[i.id] && !(data.decoOff || {})[i.id]).map((i) => [i.id, true]))
+  // the battle scene shows the town's flowers, lamps and banner (decorations are bought in the town now)
+  const tdec = { ...((data.town || {}).decor || {}) }
+  if (owned.deco_flowers) tdec.flowers = 1
+  if (owned.deco_lanterns) tdec.lamp = 1
+  if (owned.deco_banner) tdec.banner = 1
+  const decos = { deco_flowers: !!tdec.flowers, deco_lanterns: !!tdec.lamp, deco_banner: !!tdec.banner }
 
   const log = buildLog({ txns, accById, catById, pm, gearBy, has, data, privacy, avgDaily: avgExp / 30, summary })
   return { party, newlyJoined, gear, gearBy, skills, owned, equip, pet, skin, decos, log, totals: { debtPaid, reserveIn, investIn, savingIn, incomes, invTotal, emergencyMonths } }
