@@ -3,8 +3,8 @@ import { SUPABASE_URL } from './supabase'
 import { usePrices, GOLD, ccyOfSymbol } from './prices'
 
 const ANON_JWT = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdxaW9rd2VlZGFxYW91eHFidW1sIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgyMzkxMjQsImV4cCI6MjEwMzgxNTEyNH0.6S3lRXgY1zAPfYkJ20uX_aFTOya1MEqb84U4Gkxa3Sk'
-const FN = `${SUPABASE_URL}/functions/v1/vault-prices`
-const H = { headers: { Authorization: `Bearer ${ANON_JWT}`, apikey: ANON_JWT } }
+export const FN = `${SUPABASE_URL}/functions/v1/vault-prices`
+export const H = { headers: { Authorization: `Bearer ${ANON_JWT}`, apikey: ANON_JWT } }
 const LS = 'vault:market'
 
 /* ---------- catalog ---------- */
@@ -30,13 +30,18 @@ export const CATS = [
   { id: 'gold', label: 'ทอง/โลหะ', emoji: '🥇', items: [
     C('TH-GOLD', 'ทองคำแท่ง 96.5%', 'gold', { unit: 'บาททองคำ', note: 'ประมาณจาก Gold Spot × ค่าเงิน' }), C('GC=F', 'ทองคำ (Gold Spot)', 'gold', { unit: 'ออนซ์' }),
     C('SI=F', 'เงิน (Silver)', 'commodity', { unit: 'ออนซ์', item: 'silver' }), C('PL=F', 'แพลทินัม', 'commodity', { unit: 'ออนซ์', item: 'silver' }), C('HG=F', 'ทองแดง', 'commodity', { unit: 'ปอนด์', item: 'copper' }),
+    C('PA=F', 'แพลเลเดียม', 'commodity', { unit: 'ออนซ์', item: 'silver' }), C('MGC=F', 'ทองคำ Micro', 'gold', { unit: 'ออนซ์' }),
   ] },
   { id: 'oil', label: 'น้ำมันโลก', emoji: '🛢️', items: [
     C('BZ=F', 'น้ำมันดิบ Brent', 'commodity', { unit: 'บาร์เรล', item: 'oil' }), C('CL=F', 'น้ำมันดิบ WTI', 'commodity', { unit: 'บาร์เรล', item: 'oil' }), C('NG=F', 'ก๊าซธรรมชาติ', 'commodity', { unit: 'MMBtu', item: 'oil' }),
+    C('RB=F', 'น้ำมันเบนซิน (RBOB)', 'commodity', { unit: 'แกลลอน', item: 'oil' }), C('HO=F', 'น้ำมันดีเซล/ทำความร้อน', 'commodity', { unit: 'แกลลอน', item: 'oil' }),
   ] },
   { id: 'fx', label: 'ค่าเงิน', emoji: '💱', items: [
     C('THB=X', 'ดอลลาร์สหรัฐ', 'fx', { ccy: 'USD', flag: '🇺🇸' }), C('EURTHB=X', 'ยูโร', 'fx', { ccy: 'EUR', flag: '🇪🇺' }), C('JPYTHB=X', 'เยน (ต่อ 100)', 'fx', { ccy: 'JPY', flag: '🇯🇵', per: 100 }),
     C('CNYTHB=X', 'หยวน', 'fx', { ccy: 'CNY', flag: '🇨🇳' }), C('GBPTHB=X', 'ปอนด์', 'fx', { ccy: 'GBP', flag: '🇬🇧' }), C('SGDTHB=X', 'ดอลลาร์สิงคโปร์', 'fx', { ccy: 'SGD', flag: '🇸🇬' }),
+    C('HKDTHB=X', 'ดอลลาร์ฮ่องกง', 'fx', { ccy: 'HKD', flag: '🇭🇰' }), C('AUDTHB=X', 'ดอลลาร์ออสเตรเลีย', 'fx', { ccy: 'AUD', flag: '🇦🇺' }), C('CHFTHB=X', 'ฟรังก์สวิส', 'fx', { ccy: 'CHF', flag: '🇨🇭' }),
+    C('KRWTHB=X', 'วอน (ต่อ 100)', 'fx', { ccy: 'KRW', flag: '🇰🇷', per: 100 }), C('TWDTHB=X', 'ดอลลาร์ไต้หวัน', 'fx', { ccy: 'TWD', flag: '🇹🇼' }), C('MYRTHB=X', 'ริงกิต', 'fx', { ccy: 'MYR', flag: '🇲🇾' }),
+    C('INRTHB=X', 'รูปี', 'fx', { ccy: 'INR', flag: '🇮🇳' }), C('VNDTHB=X', 'ดอง (ต่อ 1,000)', 'fx', { ccy: 'VND', flag: '🇻🇳', per: 1000 }), C('LAKTHB=X', 'กีบ (ต่อ 1,000)', 'fx', { ccy: 'LAK', flag: '🇱🇦', per: 1000 }),
   ] },
   { id: 'fund', label: 'กองทุนไทย', emoji: '🏦', items: [] },
 ]
@@ -116,7 +121,8 @@ export async function loadSpark(symbols) {
     }
     const q = { ...useMarket.getState().q }
     for (const [k, v] of Object.entries(out)) {
-      const keepLive = q[k]?.live && Date.now() - (q[k].liveAt || 0) < 20000
+      // live stream prices and the Binance ticker (refreshed every 30 s) are fresher than Yahoo's
+      const keepLive = (q[k]?.live && Date.now() - (q[k].liveAt || 0) < 20000) || (q[k]?.src === 'bn' && Date.now() - (q[k].time || 0) < 90000)
       q[k] = { ...(q[k] || {}), ...v, ...(keepLive ? { price: q[k].price, changePct: q[k].changePct } : {}) }
     }
     if (symbols.includes('TH-GOLD')) { const g = deriveThaiGold(q); if (g) q['TH-GOLD'] = { ...(q['TH-GOLD'] || {}), ...g } }

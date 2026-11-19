@@ -6,6 +6,7 @@ import { Sheet, Button } from '../components/ui'
 import { AssetLogo } from '../components/Logos'
 import FuelCard from '../components/FuelCard'
 import { useSyncedPref, unionBySymbol } from '../lib/prefs'
+import { loadCatalog, sortsFor, sortItems, matchLocal, searchInCat, PAGE } from '../lib/catalog'
 import { CATS, CAT_BY_ID, catOf, WATCH_MAX, bitkubPremium, loadBitkubList, coinCode, isCoin, itemFor, itemCcy, useMarket, loadSpark, loadChart, searchMarket, streamMarketCrypto, stopMarketStream, loadOil } from '../lib/market'
 import { ccyMark, ccyOfSymbol, fetchQuotes, fxSym } from '../lib/prices'
 import { GOLD_PRESETS, COMMODITY_PRESETS } from '../lib/portfolio'
@@ -121,20 +122,60 @@ export default function Market({ onTrade }) {
       {['USD', 'THB'].map((c) => <button key={c} onClick={() => setUi({ cryptoCcy: c })} className={`px-2 py-0.5 ${coinCcy === c ? 'bg-slate-900 text-white' : 'text-slate-500'}`}>{c === 'USD' ? '$ Binance' : '฿ Bitkub'}</button>)}
     </span>
   )
-  // full list for a category tab: watched first, then the rest of the catalog
-  // every Bitkub pair (by volume) when that tab is open
-  const [bkAll, setBkAll] = useState([])
+  // ---------- a category tab: the whole market, watched first, paged 30 at a time ----------
+  const inCat = !['all', 'watch', 'fuel'].includes(cat)
+  const [catList, setCatList] = useState(null)
+  const [sort, setSort] = useState(null)
+  const [sector, setSector] = useState('')
+  const [shown, setShown] = useState(PAGE)
+  useEffect(() => { setSort(null); setSector(''); setShown(PAGE) }, [cat, coinCcy])
   useEffect(() => {
-    if (cat !== 'crypto' || coinCcy !== 'THB' || bkAll.length) return
-    loadBitkubList().then((l) => setBkAll(l.filter((x) => !x.frozen).slice(0, 60).map((x) => itemFor(`BKUB:${x.code}`)))).catch(() => {})
+    if (!inCat) return
+    let alive = true
+    setCatList(null)
+    const run = () => loadCatalog(cat, coinCcy).then((l) => alive && setCatList(l)).catch(() => alive && setCatList(CAT_BY_ID[cat]?.items || []))
+    run()
+    const iv = cat === 'crypto' ? setInterval(() => document.visibilityState === 'visible' && loadCatalog(cat, coinCcy), 30_000) : null
+    return () => { alive = false; if (iv) clearInterval(iv) }
   }, [cat, coinCcy]) // eslint-disable-line
-  const catItems = (id) => {
-    if (id === 'watch') return watchItems
-    if (id === 'other') return watchIn('other')
-    const w = watchIn(id)
-    const base = id === 'fund' ? heldFunds : id === 'crypto' ? [...CAT_BY_ID.crypto.items, ...(coinCcy === 'THB' ? bkAll : [])].map(asMode) : CAT_BY_ID[id]?.items || []
-    return dedupe([...w, ...base])
-  }
+  const sorts = sortsFor(cat)
+  const sortNow = sort || sorts?.[0]?.[0] || 'default'
+  const sectors = useMemo(() => {
+    if (!catList) return []
+    const n = {}
+    for (const it of catList) if (it.sector) n[it.sector] = (n[it.sector] || 0) + 1
+    return Object.entries(n).sort((a, b) => b[1] - a[1]).map(([k]) => k)
+  }, [catList])
+  const tabView = useMemo(() => {
+    if (!inCat) return null
+    const base = cat === 'fund' ? heldFunds : (catList || CAT_BY_ID[cat]?.items || []).map(asMode)
+    const pinned = dedupe(watchIn(cat).map(asMode))
+    const pinKeys = new Set(pinned.map((x) => (isCoin(x.symbol) ? coinCode(x.symbol) : x.symbol)))
+    let rest = dedupe(base).filter((x) => !pinKeys.has(isCoin(x.symbol) ? coinCode(x.symbol) : x.symbol))
+    if (sector) rest = rest.filter((x) => x.sector === sector)
+    const qs = query.trim()
+    if (qs) { const all = matchLocal(dedupe([...pinned, ...rest]), qs); return { pinned: [], rows: all.slice(0, shown), total: all.length, searching: true } }
+    rest = sortItems(rest, sortNow, q)
+    return { pinned, rows: rest.slice(0, shown), total: rest.length, searching: false }
+    // q only matters for the price sorts
+  }, [inCat, cat, catList, coinCcy, sector, query, shown, sortNow, watch.map((w) => w.symbol).join(','), heldFunds.length, ['up', 'down', 'vol'].includes(sortNow) ? q : null]) // eslint-disable-line
+  // online search inside the tab, for symbols the built-in list doesn't have
+  const [catRemote, setCatRemote] = useState([])
+  useEffect(() => {
+    setCatRemote([])
+    if (!inCat || query.trim().length < 2 || !['th', 'us', 'cn', 'fund'].includes(cat)) return
+    let alive = true
+    const t = setTimeout(async () => { const r = await searchInCat(cat, query); if (alive) setCatRemote(r) }, 400)
+    return () => { alive = false; clearTimeout(t) }
+  }, [cat, query, inCat])
+  const moreRef = useRef(null)
+  useEffect(() => {
+    const el = moreRef.current
+    if (!el || !tabView || tabView.rows.length >= tabView.total) return
+    const io = new IntersectionObserver((e) => { if (e[0].isIntersecting) setShown((n) => n + PAGE) }, { rootMargin: '300px' })
+    io.observe(el)
+    return () => io.disconnect()
+  }, [tabView?.rows.length, tabView?.total]) // eslint-disable-line
   // overview card: your stars in this category (max 6); none starred → catalog defaults (3)
   const overviewItems = (id) => {
     const w = watchIn(id)
@@ -148,12 +189,15 @@ export default function Market({ onTrade }) {
   const visible = useMemo(() => {
     if (cat === 'fuel') return []
     if (cat === 'all') return overviewCats.flatMap((c) => overviewItems(c.id).list).map((i) => i.symbol)
-    return catItems(cat).map((i) => i.symbol)
-  }, [cat, watch.map((w) => w.symbol).join(','), heldFunds.length, coinCcy, bkAll.length, !!bkCodes]) // eslint-disable-line
+    if (cat === 'watch') return watchItems.map((i) => i.symbol)
+    return tabView ? [...tabView.pinned, ...tabView.rows].map((i) => i.symbol) : []
+  }, [cat, watch.map((w) => w.symbol).join(','), heldFunds.length, coinCcy, !!bkCodes, tabView?.rows.map((r) => r.symbol).join(','), tabView?.pinned.length]) // eslint-disable-line
   // Bitkub premium needs the Binance leg + USD/THB
   const pollSyms = useMemo(() => {
-    const bk = visible.filter((s) => s.startsWith('BKUB:')).slice(0, 12).map((s) => `${s.slice(5)}-USD`)
-    return bk.length ? [...new Set([...visible, ...bk, 'THB=X'])] : visible
+    // the crypto tab already has every price from one ticker call: only the top rows also fetch a sparkline
+    const vis = cat === 'crypto' ? [...visible.filter((s) => !isCoin(s)), ...visible.filter(isCoin).slice(0, 12)] : visible
+    const bk = vis.filter((s) => s.startsWith('BKUB:')).slice(0, 12).map((s) => `${s.slice(5)}-USD`)
+    return bk.length ? [...new Set([...vis, ...bk, 'THB=X'])] : vis
   }, [visible.join(',')]) // eslint-disable-line
   useEffect(() => {
     if (!pollSyms.length) return
@@ -162,19 +206,20 @@ export default function Market({ onTrade }) {
     return () => clearInterval(iv)
   }, [pollSyms.join(',')]) // eslint-disable-line
   useEffect(() => {
-    streamMarketCrypto([...CAT_BY_ID.crypto.items.map((i) => i.symbol), ...watch.map((w) => w.symbol)])
-    return () => stopMarketStream()
-  }, [watch.length])
+    const page = cat === 'crypto' && coinCcy === 'USD' ? visible.filter((s) => s.endsWith('-USD')).slice(0, 40) : []
+    streamMarketCrypto([...CAT_BY_ID.crypto.items.map((i) => i.symbol), ...watch.map((w) => w.symbol), ...page])
+  }, [watch.length, cat === 'crypto' ? visible.join(',') : '']) // eslint-disable-line
+  useEffect(() => () => stopMarketStream(), [])
   useEffect(() => { loadOil() }, [])
 
   // search
   useEffect(() => {
     const s = query.trim()
-    if (s.length < 2) { setResults(null); return }
+    if (s.length < 2 || inCat) { setResults(null); return }
     let alive = true
     const t = setTimeout(async () => { const r = await searchMarket(s); if (alive) setResults(r) }, 350)
     return () => { alive = false; clearTimeout(t) }
-  }, [query])
+  }, [query, inCat])
 
   const open = (it) => { sfx('click'); setDetail(it) }
   const premium = (code) => bitkubPremium(code, q)
@@ -196,7 +241,7 @@ export default function Market({ onTrade }) {
       {/* search */}
       <div className="relative">
         <Search size={17} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-        <input className="field !pl-10 !pr-10" placeholder="ค้นหา หุ้น คริปโต กองทุน ETF… เช่น BABA, SCB, PTTEP" value={query} onChange={(e) => setQuery(e.target.value)} aria-label="ค้นหาสินทรัพย์" />
+        <input className="field !pl-10 !pr-10" placeholder={inCat ? `ค้นหาใน${CAT_BY_ID[cat]?.label || ''}… ${{ crypto: 'เช่น BTC, SOL', th: 'เช่น PTT, ธนาคาร', us: 'เช่น NVDA, Apple', cn: 'เช่น Tencent, 0700', fund: 'เช่น K-USA, SCBSET', gold: 'เช่น เงิน', oil: 'เช่น Brent', fx: 'เช่น เยน, KRW' }[cat] || ''}` : 'ค้นหาทุกตลาด หุ้น คริปโต กองทุน ETF… เช่น BABA, SCB, PTTEP'} value={query} onChange={(e) => setQuery(e.target.value)} aria-label="ค้นหาสินทรัพย์" />
         {query && <button onClick={() => setQuery('')} className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-slate-400" aria-label="ล้าง"><X size={16} /></button>}
       </div>
       {results && (
@@ -257,8 +302,26 @@ export default function Market({ onTrade }) {
           </div>
         ) : <section className="card p-2 md:p-3">
           {cat === 'crypto' && <div className="px-2 pb-2 flex items-center justify-between text-[11px] text-slate-500"><span>{coinCcy === 'THB' ? 'ราคาบาทจาก Bitkub · % เทียบ Binance' : 'ราคา USD สดจาก Binance'}</span>{ccyToggle}</div>}
-          {catItems(cat).map((it) => <Row key={it.symbol} {...rowProps(it)} />)}
-          {cat === 'fund' && <div className="px-2 py-3 text-xs text-slate-500">ค้นหากองทุนอื่นได้จากช่องค้นหาด้านบน แล้วกด ⭐ เพื่อเพิ่มเข้ามาที่นี่</div>}
+          <CatTools cat={cat} sorts={sorts} sortNow={sortNow} setSort={(v) => { setSort(v); setShown(PAGE) }} sectors={sectors} sector={sector} setSector={(v) => { setSector(v); setShown(PAGE) }} total={tabView?.total} loading={!catList && cat !== 'fund'} searching={tabView?.searching} />
+          {tabView?.pinned.length > 0 && <div className="px-2 pt-1 text-[10px] font-semibold text-amber-500">⭐ ที่ติดตาม</div>}
+          {tabView?.pinned.map((it) => <Row key={it.symbol} {...rowProps(it)} />)}
+          {tabView?.pinned.length > 0 && tabView.rows.length > 0 && <div className="px-2 pt-2 text-[10px] font-semibold text-slate-400">ทั้งหมดใน{CAT_BY_ID[cat]?.label}</div>}
+          {tabView?.rows.map((it) => <Row key={it.symbol} {...rowProps(it)} />)}
+          {tabView && tabView.rows.length < tabView.total && (
+            <button ref={moreRef} onClick={() => setShown((n) => n + PAGE)} className="w-full py-2.5 text-xs ui-link" data-testid="mkt-more">แสดงเพิ่ม (เหลืออีก {(tabView.total - tabView.rows.length).toLocaleString()} รายการ)</button>
+          )}
+          {catRemote.filter((r) => !tabView?.rows.some((x) => x.symbol === r.symbol)).length > 0 && (
+            <div data-testid="cat-remote">
+              <div className="px-2 pt-2 text-[10px] font-semibold text-slate-400">เจอเพิ่มจากการค้นหาออนไลน์</div>
+              {catRemote.filter((r) => !tabView?.rows.some((x) => x.symbol === r.symbol)).map((r) => <Row key={r.symbol} {...rowProps(itemFor(r.symbol, { name: r.name, code: r.code, exchange: r.exchange }))} />)}
+            </div>
+          )}
+          {tabView?.searching && !tabView.total && !catRemote.length && (
+            <div className="px-2 py-4 text-sm text-slate-500 text-center" data-testid="cat-empty">ไม่พบ “{query.trim()}” ใน{CAT_BY_ID[cat]?.label}
+              <div><button className="ui-link text-xs mt-2" onClick={() => setCat('all')}>ค้นหาในทุกตลาด</button></div>
+            </div>
+          )}
+          {cat === 'fund' && !query && <div className="px-2 py-3 text-xs text-slate-500">กองทุนไทยมีหลายพันกอง พิมพ์ชื่อหรือรหัสกองทุนในช่องค้นหาด้านบน แล้วกด ⭐ เพื่อติดตาม · กองทุนที่คุณถือจะขึ้นที่นี่อัตโนมัติ</div>}
           {cat === 'gold' && <div className="px-2 pt-2 pb-1 text-[11px] text-slate-500">ทองไทยคำนวณจาก Gold Spot × USD/THB × 96.5% (ใกล้เคียงราคาสมาคมฯ แต่ไม่ใช่ราคาประกาศ)</div>}
           {cat === 'cn' && <div className="px-2 pt-2 pb-1 text-[11px] text-slate-500">หุ้นฮ่องกงเป็น HKD · หุ้นจีนแผ่นดินใหญ่ (.SS/.SZ) เป็น CNY · ราคาอาจดีเลย์ ~15 นาที</div>}
         </section>
@@ -269,6 +332,24 @@ export default function Market({ onTrade }) {
       </div>
 
       <DetailSheet it={detail} onClose={() => setDetail(null)} starred={detail && isWatched(detail.symbol)} onStar={() => detail && toggleWatch(detail)} assets={assets} onTrade={onTrade} />
+    </div>
+  )
+}
+
+function CatTools({ cat, sorts, sortNow, setSort, sectors, sector, setSector, total, loading, searching }) {
+  if (cat === 'fund') return null
+  return (
+    <div className="px-2 pb-2 flex flex-wrap items-center gap-1.5 text-[11px]" data-testid="cat-tools">
+      <span className="text-slate-500 mr-auto">{loading ? 'กำลังโหลดรายชื่อ…' : `${searching ? 'พบ' : 'ทั้งหมด'} ${(total || 0).toLocaleString()} รายการ`}</span>
+      {sectors.length > 1 && !searching && (
+        <select value={sector} onChange={(e) => setSector(e.target.value)} className="border border-slate-200 rounded-lg px-1.5 py-1 bg-white max-w-[120px] sm:max-w-[180px]" aria-label="หมวด" data-testid="cat-sector">
+          <option value="">ทุกหมวด</option>
+          {sectors.map((x) => <option key={x} value={x}>{x}</option>)}
+        </select>
+      )}
+      {sorts && !searching && sorts.map(([k, l]) => (
+        <button key={k} onClick={() => setSort(k)} className={`px-2 py-1 rounded-lg border ${sortNow === k ? 'bg-slate-900 text-white border-slate-900' : 'border-slate-200 text-slate-600'}`} data-testid={`cat-sort-${k}`}>{l}</button>
+      ))}
     </div>
   )
 }
