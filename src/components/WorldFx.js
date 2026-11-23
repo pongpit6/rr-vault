@@ -60,6 +60,11 @@ export function worldFront(g, now, { w, G, TH, night, world, hx, hallTop }) {
     const on = Math.floor(now / 350) % 2 === 0
     if (on) { g.fillStyle = world.btc === 'crash' ? 'rgba(244,63,94,.35)' : 'rgba(74,222,128,.35)'; g.fillRect(hx - 2, hallTop - 6, 54, 4) }
   }
+  // double-date sale day: bunting with price tags across the street
+  if (world.sale) {
+    for (let x = 6; x < w - 6; x += 12) { const sag = Math.sin((x / w) * Math.PI) * 4; R(g, Math.floor(x / 12) % 2 ? '#ef4444' : '#fbbf24', x, 22 + sag, 5, 5) }
+    if (Math.floor(now / 600) % 2) { g.fillStyle = '#ef4444'; g.font = 'bold 6px monospace'; g.fillText(`SALE ${world.sale}`, w / 2 - 18, 34) }
+  }
   // BTC cycle: a travelling merchant with a SALE sign near the bottom of the cycle, a watchtower flag near the top
   if (world.cycle === 'bottom') {
     const x = 4, bob = Math.floor(now / 400) % 2

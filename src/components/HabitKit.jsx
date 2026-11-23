@@ -55,8 +55,8 @@ export function HabitRow({ h, H, rpg, big = false }) {
     }
     case 'vocab': status = H.dayOf().vocab?.rounds ? `วันนี้ ${H.dayOf().vocab.rounds} รอบ · จำได้ ${H.learnt} คำ` : `จำได้แล้ว ${H.learnt} คำ`; break
     case 'nospend': {
-      status = rpg.spentToday ? 'วันนี้มีรายจ่ายแล้ว' : done ? 'วันนี้ไม่ใช้เงิน' : `+${rpg.noSpendReward.fiat} FIAT ถ้าวันนี้ไม่ใช้เงิน`
-      if (!done && !rpg.spentToday) action = <MiniBtn onClick={quick(() => { const r = rpg.markNoSpend(); if (r) showToast(`✨ วันไม่ใช้เงิน · +${r.fiat} FIAT`) })} label="ยืนยัน" color={h.color} testid="q-nospend" />
+      status = rpg.spentToday ? 'วันนี้มีรายจ่ายแล้ว' : done ? 'วันนี้ไม่ใช้เงิน' : `+${rpg.noSpendReward.fiat} FIAT${rpg.noSpendReward.gold ? ` +${rpg.noSpendReward.gold} GOLD (วันเลขเบิ้ล ${rpg.noSpendReward.sale})` : ''} ถ้าวันนี้ไม่ใช้เงิน`
+      if (!done && !rpg.spentToday) action = <MiniBtn onClick={quick(() => { const r = rpg.markNoSpend(); if (r) showToast(`✨ วันไม่ใช้เงิน · +${r.fiat} FIAT${r.gold ? ` +${r.gold} GOLD 🛍️` : ''}`) })} label="ยืนยัน" color={h.color} testid="q-nospend" />
       break
     }
   }

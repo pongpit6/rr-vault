@@ -1,3 +1,4 @@
+import { EVENT_DECOR } from './festivals'
 /**
  * Town builder + in-game money.
  *
@@ -61,6 +62,7 @@ export const DECOR = [
   { id: 'banner', name: 'ธงประจำปาร์ตี้', emoji: '🚩', cost: [240, 0], happy: 8, scene: 'ธงหลังปาร์ตี้ในฉากต่อสู้' },
   { id: 'fountain', name: 'น้ำพุกลางเมือง', emoji: '⛲', cost: [400, 0], happy: 14 },
   { id: 'statue', name: 'รูปปั้นทองคำ', emoji: '🗽', cost: [0, 5], happy: 20 },
+  ...EVENT_DECOR, // festival-only pieces (sold while their festival is on, kept forever)
 ]
 // decorations bought in the old shop count as the matching town decoration
 export const LEGACY_DECO = { deco_flowers: 'flowers', deco_lanterns: 'lamp', deco_banner: 'banner' }

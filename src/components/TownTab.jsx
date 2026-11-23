@@ -7,13 +7,15 @@ import { Sheet } from './ui'
 import { useStore } from '../store'
 import { weatherTH } from '../lib/world'
 import { loadCycle, shareWithTown } from '../lib/btcCycle'
+import { visitorFor, decorOnSale, nextDoubleDay, EVENT_DECOR } from '../lib/festivals'
+import { EVENTS } from '../lib/world'
 import { traceList } from './TownTraces'
 import { townLines, storyOf, APPRENTICE } from '../lib/townTalk'
 import { MessageCircle, BookOpen } from 'lucide-react'
 import { LEVEL_REQ, BUILDINGS, HALL, NPCS, DECOR, priceOf, EXCHANGE_WEEKLY, RESIDENTS } from '../lib/town'
 
 /** the living-world props every town scene gets */
-export const sceneWorld = (rpg) => ({ cycle: useStore.getState().ui.btcCycle?.zone || null, weather: rpg.world.weather, event: rpg.world.event?.id || null, mood: rpg.world.mood.id, btc: rpg.world.btc, aurora: rpg.world.aurora, tree: rpg.world.tree, rank: rpg.rank.id, holiday: rpg.world.holiday })
+export const sceneWorld = (rpg) => ({ sale: rpg.world.sale?.label || null, cycle: useStore.getState().ui.btcCycle?.zone || null, weather: rpg.world.weather, event: rpg.world.event?.id || null, mood: rpg.world.mood.id, btc: rpg.world.btc, aurora: rpg.world.aurora, tree: rpg.world.tree, rank: rpg.rank.id, holiday: rpg.world.holiday })
 
 /** "ร่องรอยวันนี้": one quiet row of what you did today */
 export function TodayTraces({ rpg, className = '', compact = false }) {
@@ -29,7 +31,7 @@ export function TodayTraces({ rpg, className = '', compact = false }) {
 }
 
 /** villagers who live in town but aren't hired (the apprentice arrives with the reading story) */
-export const sceneExtra = (rpg) => (storyOf(rpg.habits).arrived ? [APPRENTICE.sprite] : [])
+export const sceneExtra = (rpg) => [...(storyOf(rpg.habits).arrived ? [APPRENTICE.sprite] : []), ...(visitorFor(rpg.world) ? [visitorFor(rpg.world).sprite] : [])]
 
 /** one villager talking at a time, built from real data; tap for the next */
 export function TownTalk({ rpg, className = '' }) {
@@ -203,10 +205,11 @@ export default function TownTab({ rpg }) {
 
       <Section icon={Sparkles} title="DECOR · ตกแต่งเมือง">
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-          {DECOR.map((d) => {
-            const own = T.decor.includes(d.id), p = priceOf(d.cost, rpg.econData)
+          {DECOR.filter((d) => !d.event || T.decor.includes(d.id) || decorOnSale(d, rpg.world)).map((d) => {
+            const own = T.decor.includes(d.id), p = rpg.decorPrice ? rpg.decorPrice(d) : priceOf(d.cost, rpg.econData)
             return (
               <div key={d.id} className={`px-inner p-2 text-center ${own ? 'bg-teal-50' : ''}`}>
+                {d.event && <div className="text-[9px] font-bold text-rose-600">⏳ เฉพาะ{d.event === 'sale' ? 'วันเลขเบิ้ล' : EVENTS[d.event]?.name || 'เทศกาล'}</div>}
                 <div className="text-2xl">{d.emoji}</div><div className="text-[11px] font-semibold">{d.name}</div><div className="text-[10px] text-teal-700">ความสุข +{d.happy}</div>{d.scene && <div className="text-[10px] text-slate-500">+ {d.scene}</div>}
                 {own ? <div className="text-[10px] text-slate-500 mt-1">ติดตั้งแล้ว ✓</div> : (
                   <button className={`${btn} mt-1 w-full bg-white`} disabled={!rpg.afford(p)} onClick={() => ok(rpg.buyDecor(d.id), `ติดตั้ง${d.name}แล้ว`)}><Price p={p} rpg={rpg} /></button>
@@ -216,6 +219,8 @@ export default function TownTab({ rpg }) {
           })}
         </div>
       </Section>
+
+      <FestivalCalendar T={T} />
 
       <Section icon={Repeat} title="EXCHANGE · แลกเงิน">
         <div className="text-sm">แลก <b>FIAT → GOLD</b> เรต <b className="num">{rpg.exchangeRate}</b> : 1 · สัปดาห์นี้แลกแล้ว {rpg.exchangedThisWeek}/{EXCHANGE_WEEKLY}</div>
@@ -328,7 +333,14 @@ function WorldStrip({ world, rank }) {
           <div className="flex-1 min-w-0"><b>{world.event.name}</b> · {world.event.line}<div className="text-[10px] text-slate-500">{world.event.bonus}</div></div>
         </div>
       )}
+      {world.sale && (
+        <div className="px-inner px-3 py-2 flex items-center gap-2 text-xs" style={{ background: 'linear-gradient(90deg, rgba(239,68,68,.16), rgba(251,191,36,.14))' }} data-testid="sale-banner">
+          <span className="text-lg">🛍️</span>
+          <div className="flex-1 min-w-0"><b>วันเลขเบิ้ล {world.sale.label} · {world.sale.name}</b> · ร้านในเมืองลด {world.sale.pct}%<div className="text-[10px] text-slate-500">ข้างนอกเขาลดราคาล่อใจ ถ้าวันนี้ไม่ใช้เงินเลย กด “วันนี้ไม่ใช้เงิน” รับ +1 GOLD</div></div>
+        </div>
+      )}
       {parts.length > 0 && <div className="text-[11px] text-slate-500 px-1 flex flex-wrap gap-x-3 gap-y-0.5">{parts.map((p, i) => <span key={i}>{p}</span>)}</div>}
+      {!world.sale && (() => { const n = nextDoubleDay(); return <div className="text-[10px] text-slate-400 px-1">วันเลขเบิ้ลถัดไป {n.label} · ร้านลด {n.pct}%</div> })()}
     </div>
   )
 }
@@ -361,5 +373,30 @@ export function TownHomeCard({ rpg, onOpen }) {
         <button className={`${btn} bg-white`} onClick={onOpen}>ไปเมือง</button>
       </div>
     </section>
+  )
+}
+
+/** what each festival brings, and which limited pieces you already own */
+function FestivalCalendar({ T }) {
+  const rows = [['newyear', '29 ธ.ค.–3 ม.ค.'], ['cny', 'ช่วงตรุษจีน'], ['songkran', '12–16 เม.ย.'], ['phansa', '30 วันแรกของพรรษา'], ['loy', 'ช่วงลอยกระทง'], ['xmas', '18–28 ธ.ค.'], ['payday', 'วันเงินเดือนออก']]
+  const piece = (ev) => EVENT_DECOR.find((d) => d.event === ev)
+  return (
+    <Section icon={Sparkles} title="FESTIVALS · ปฏิทินเทศกาล">
+      <div className="space-y-1.5 text-xs" data-testid="festival-calendar">
+        {rows.map(([id, when]) => {
+          const e = EVENTS[id], d = piece(id)
+          return (
+            <div key={id} className="flex items-start gap-2">
+              <span className="text-base leading-none">{e.emoji}</span>
+              <div className="flex-1 min-w-0"><b>{e.name}</b> <span className="text-slate-500">· {when}</span><div className="text-[10px] text-slate-500">{e.bonus}{d ? ` · ของเฉพาะเทศกาล: ${d.emoji} ${d.name}${T.decor.includes(d.id) ? ' ✓ มีแล้ว' : ''}` : ''}</div></div>
+            </div>
+          )
+        })}
+        <div className="flex items-start gap-2">
+          <span className="text-base leading-none">🛍️</span>
+          <div className="flex-1 min-w-0"><b>วันเลขเบิ้ล</b> <span className="text-slate-500">· 1.1 ถึง 12.12</span><div className="text-[10px] text-slate-500">ร้านในเมืองลด 10–30% (11.11 ลดมากสุด) · ไม่ใช้เงินในวันนั้นรับ +1 GOLD · ของเฉพาะ: 🪧 ป้าย “ไม่ช้อปก็รวยได้”</div></div>
+        </div>
+      </div>
+    </Section>
   )
 }

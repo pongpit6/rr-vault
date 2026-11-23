@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { drawStill, frame, skyFor, mix, GROUND } from './BattleScene'
+import { DECOR_BY_ID } from '../lib/town'
 import { NPC_BY_ID, RESIDENTS } from '../lib/town'
 import { worldBack, worldFront } from './WorldFx'
 import { TRACE_HOME, traceOnBuilding, traceProps, traceNoSpend, heroForm, growthAura } from './TownTraces'
@@ -249,6 +250,8 @@ export function drawTown(g, t, now, o = {}) {
       R(C.stone, x - 4, y - 4, 16, 4); R(C.stone2, x + 2, y - 10, 4, 6)
       for (let q = 0; q < 6; q++) { const k2 = (now / 500 + q / 6) % 1; R('#7dd3fc', x + 3 + Math.round(Math.sin(q * 2) * k2 * 6), y - 12 + k2 * 9 - Math.sin(k2 * Math.PI) * 4, 1, 1) }
     }
+    // festival pieces: emoji stand-ins until their PixelLab art is drawn
+    if (id.startsWith('ev_')) { const it = DECOR_BY_ID[id]; if (it) { g.font = '12px sans-serif'; g.textAlign = 'center'; g.fillText(it.emoji, x + 4, y - 2); g.textAlign = 'left' } }
     if (id === 'statue') { R(C.stone2, x, y - 4, 8, 4); R(C.gold, x + 2, y - 14, 4, 10); R(C.gold2, x + 3, y - 16, 2, 2); if (Math.sin(now / 300) > 0.8) R('#fff', x + 5, y - 13, 1, 1) }
     g.restore()
   })

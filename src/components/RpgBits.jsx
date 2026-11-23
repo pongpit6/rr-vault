@@ -121,6 +121,7 @@ export function ChestCard({ rpg, onAdd }) {
           {res ? (
             <div className="mt-1.5 anim-pop">
               <div className="text-sm font-semibold text-amber-600">{res.rare ? 'หีบหายาก! ' : ''}ได้ +{res.gain} FIAT{res.bonus ? ` (ไฟแห่งวินัย +${res.bonus})` : ''}{res.double ? ' ×2 ตำนานแห่งวินัย' : ''}</div>
+              {res.angpao && <div className="text-sm font-bold text-rose-600 mt-0.5">🧧 เจออั่งเปาตรุษจีน! +1 GOLD</div>}
               <div className="text-xs text-violet-600 mt-0.5">เอา FIAT ไปสร้างเมืองหรือซื้อของได้ที่แท็บ “เมือง” และ “ร้านค้า”</div>
               <div className="text-xs text-slate-600 mt-1">💡 {res.tip}</div>
             </div>

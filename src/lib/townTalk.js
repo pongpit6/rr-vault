@@ -1,4 +1,5 @@
 import { useStore } from '../store'
+import { visitorFor } from './festivals'
 /**
  * Villagers who remember: every line is built from your real data (no AI, just templates).
  * Lines are friendly only, never a scolding: on a quiet day villagers talk about the weather or past wins.
@@ -46,6 +47,10 @@ export function townLines(rpg) {
   if (rpg.streak >= 3) say('farmer', `บันทึกติดกัน ${rpg.streak} วันแล้ว เหมือนรดน้ำต้นข้าวทุกเช้า ปีนี้รวงคงงาม`)
   else if (tr.logged) say('farmer', 'เห็นท่านจดบัญชีวันนี้แล้ว ข้าก็ไปรดน้ำแปลงผักต่อละ')
   else say('farmer', 'ฟ้าวันนี้ดี เหมาะจะเริ่มอะไรใหม่ ๆ สักอย่าง')
+
+  // festival guest: walks in for the day and says one line
+  const guest = visitorFor(rpg.world)
+  if (guest) out.push({ id: `visitor_${guest.id}`, sprite: guest.sprite, name: `${guest.name} (แขกเทศกาล)`, text: guest.lines[new Date().getDate() % guest.lines.length] })
 
   // merchant: money today, never scolding (the BTC cycle comes first when the market is at either end)
   const cyc = useStore.getState().ui.btcCycle

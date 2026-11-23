@@ -8,6 +8,7 @@ import { computeParty } from './party'
 import { computeHabits } from './habits'
 import { selectList } from '../store'
 import { useWeather, loadWeather, sceneWeather, thaiEvent, isThaiHoliday, moneyMood } from './world'
+import { doubleDay, decorOnSale } from './festivals'
 import { usePrices } from './prices'
 import { budgetStatus } from './plan'
 import { lifeStats, growthOf } from './growth'
@@ -312,8 +313,14 @@ function computeRpg({ accounts, txns, settings, balances, summary, unlocked, por
   const weekSpend = (from, to) => txns.filter((t) => t.kind === 'expense' && t.date >= from && t.date < to).reduce((s, t) => s + t.amount, 0)
   const wkShift = (k, n) => { const d = new Date(k + 'T12:00:00'); d.setDate(d.getDate() + 7 * n); return localDate(d.toISOString()) }
   const lastWeekSpend = weekSpend(lastWeek, startOfWeek)
+  // เข้าพรรษา: last week within budget (monthly budgets scaled to a week; no budgets → the usual weekly average)
+  const budgetWeekOf = () => budgets.reduce((t, b) => t + (Number(b.limit ?? b.amount) || 0), 0) * 7 / 30.44
   const prevWeeks = [1, 2, 3, 4].map((n) => weekSpend(wkShift(lastWeek, -n), wkShift(lastWeek, -n + 1)))
   const prevAvg = prevWeeks.filter((v) => v > 0).length >= 2 ? prevWeeks.reduce((a, b) => a + b, 0) / prevWeeks.filter((v) => v > 0).length : 0
+  const budgetWeek = budgetWeekOf()
+  const budgetCats = new Set(budgets.map((b) => b.category))
+  const lastWeekBudgeted = txns.filter((t) => t.kind === 'expense' && budgetCats.has(t.category) && t.date >= lastWeek && t.date < startOfWeek).reduce((a, t) => a + t.amount, 0)
+  const phansaOk = budgetWeek > 0 ? lastWeekBudgeted <= budgetWeek : prevAvg > 0 && lastWeekSpend <= prevAvg
   const lastMonth = (() => { const d = new Date(today + 'T12:00:00'); d.setDate(1); d.setMonth(d.getMonth() - 1); return monthKey(localDate(d.toISOString())) })()
   const lm = months[lastMonth] || { inc: 0, exp: 0 }
   const lmRate = lm.inc > 0 ? (lm.inc - lm.exp) / lm.inc : 0
@@ -346,6 +353,9 @@ function computeRpg({ accounts, txns, settings, balances, summary, unlocked, por
       : { tier: 'รายสัปดาห์', key: `w:${startOfWeek}:invest`, name: 'ส่งเงินเข้าลงทุนหรือซื้อสินทรัพย์สัปดาห์นี้', progress: Math.min(1, investWeek), goal: 1, fiat: 60 },
     town.towerGold && prevAvg > 0
       ? { tier: 'รายสัปดาห์', key: `w:${lastWeek}:tower`, name: '🗼 สัปดาห์ที่แล้วใช้จ่ายน้อยกว่าค่าเฉลี่ย', progress: lastWeekSpend < prevAvg ? 1 : 0, goal: 1, fiat: town.towerGold * 40, hint: `ใช้ ${Math.round(lastWeekSpend).toLocaleString()} · เฉลี่ย ${Math.round(prevAvg).toLocaleString()}` }
+      : null,
+    evNow?.id === 'phansa'
+      ? { tier: 'รายสัปดาห์', key: `w:${lastWeek}:phansa`, name: '🪷 เข้าพรรษา: สัปดาห์ที่แล้วใช้จ่ายไม่เกินงบ', progress: phansaOk ? 1 : 0, goal: 1, gold: 1, hint: budgetWeek > 0 ? `หมวดที่ตั้งงบ: งบต่อสัปดาห์ราว ฿${Math.round(budgetWeek).toLocaleString()} · ใช้ไป ฿${Math.round(lastWeekBudgeted).toLocaleString()}` : `ยังไม่ได้ตั้งงบ เทียบกับค่าเฉลี่ยรายสัปดาห์ ฿${Math.round(prevAvg).toLocaleString()}` }
       : null,
     { tier: 'รายเดือน', key: `m:${lastMonth}:save`, name: 'เดือนที่แล้วออมได้ 20% ของรายรับ', progress: Math.max(0, Math.min(20, Math.round(lmRate * 100))), goal: 20, unit: '%', gold: 5 },
     monthBoss.chosen ? { tier: 'รายเดือน', key: `m:${mk}:boss`, name: `${monthBoss.chosen.emoji} ปราบ${monthBoss.chosen.boss}: ${monthBoss.chosen.name(monthBoss.chosen.target)}`, progress: Math.min(monthBoss.chosen.target, monthBoss.progress), goal: monthBoss.chosen.target, unit: monthBoss.chosen.unit === '%' ? '%' : undefined, gold: 2, fiat: 150 } : null,
@@ -394,7 +404,7 @@ function computeRpg({ accounts, txns, settings, balances, summary, unlocked, por
   const budgetStates = budgetStatus(budgets, txns)
   const event = evNow
   const world = {
-    weather, real, wx, event, holiday: isThaiHoliday(today),
+    weather, real, wx, event, holiday: isThaiHoliday(today), sale: doubleDay(today),
     mood: moneyMood({ budgets: budgetStates, rank, overspend }),
     btc: btcPct == null ? 'flat' : btcPct <= -5 ? 'crash' : btcPct >= 5 ? 'pump' : 'flat', btcPct,
     aurora: noSpendStreak >= 7,
@@ -474,13 +484,14 @@ export function useRpg() {
   const noSpendReward = (() => {
     const run = rpg.noSpendToday ? rpg.noSpendStreak : rpg.noSpendStreak + 1
     const x2 = rpg.world.event?.id === 'songkran' ? 2 : 1
-    return { run, fiat: (30 + 10 * Math.min(7, run)) * x2, gold: 0 } // GOLD comes from the 7/30/100-day streak milestones instead
+    // GOLD comes from the 7/30/100-day streak milestones, plus 1 for walking past a double-date sale (1.1 … 12.12)
+    return { run, fiat: (30 + 10 * Math.min(7, run)) * x2, gold: rpg.world.sale ? 1 : 0, sale: rpg.world.sale?.label || null }
   })()
   const markNoSpend = () => {
     if (rpg.noSpendToday || rpg.spentToday) return null
     const d = fresh()
     const r = noSpendReward
-    pay(r.fiat, r.gold, { type: 'nospend', run: r.run, text: `วันนี้ไม่ใช้เงิน ✨ ติดกัน ${r.run} วัน` }, { noSpend: { ...(d.noSpend || {}), [localDate(now())]: true } })
+    pay(r.fiat, r.gold, { type: 'nospend', run: r.run, text: r.sale ? `ผ่านวันเลขเบิ้ล ${r.sale} โดยไม่ช้อป 🛍️✨ ติดกัน ${r.run} วัน` : `วันนี้ไม่ใช้เงิน ✨ ติดกัน ${r.run} วัน` }, { noSpend: { ...(d.noSpend || {}), [localDate(now())]: true } })
     return r
   }
   // backfill a no-spend day of the last 7 days, only if that day really had no spending
@@ -503,10 +514,14 @@ export function useRpg() {
     const tip = CHEST_TIPS[Math.floor(Math.random() * CHEST_TIPS.length)]
     sfx('coin')
     const d = fresh()
-    save({ fiat: (d.fiat || 0) + gain, chestLast: todayISO(), chestCount: (d.chestCount || 0) + 1, chestLog: [...(d.chestLog || []).slice(-40), { at: now(), gain, ccy: 'fiat', rare: roll > 0.9 }] })
-    return { gain, rare: roll > 0.9, tip, bonus, double }
+    // ตรุษจีน: 1 in 4 chests hides a red envelope with 1 GOLD
+    const angpao = rpg.world.event?.id === 'cny' && Math.random() < 0.25
+    save({ fiat: (d.fiat || 0) + gain, ...(angpao ? { gold: (d.gold || 0) + 1, econLog: logE(d, { icon: '🧧', text: 'อั่งเปาในหีบตรุษจีน', gold: 1 }) } : {}), chestLast: todayISO(), chestCount: (d.chestCount || 0) + 1, chestLog: [...(d.chestLog || []).slice(-40), { at: now(), gain, ccy: 'fiat', rare: roll > 0.9, angpao }] })
+    return { gain, rare: roll > 0.9, tip, bonus, double, angpao }
   }
-  const shopPrice = (item) => priceOf([item.price * GEM_TO_FIAT, 0], data, { discount: rpg.town.shopDiscount + (rpg.world.event?.id === 'payday' ? 10 : 0) })
+  const saleOff = (rpg.world.event?.id === 'payday' ? 10 : 0) + (rpg.world.sale?.pct || 0)
+  const shopPrice = (item) => priceOf([item.price * GEM_TO_FIAT, 0], data, { discount: Math.min(50, rpg.town.shopDiscount + saleOff) })
+  const decorPrice = (x) => priceOf(x.cost, data, { discount: Math.min(50, saleOff) })
   const buy = (item) => {
     const d = fresh(), p = shopPrice(item)
     if ((d.owned || {})[item.id] || !afford(p)) return false
@@ -568,8 +583,8 @@ export function useRpg() {
   }
   const dismiss = (id) => { const d = fresh(), town = townOf(d), npcs = { ...town.npcs }; delete npcs[id]; save({ town: { ...town, npcs } }) }
   const buyDecor = (id) => {
-    const x = DECOR_BY_ID[id]; if (!x || T.decor.includes(id)) return false
-    const p = priceOf(x.cost, data); if (!afford(p)) return false
+    const x = DECOR_BY_ID[id]; if (!x || T.decor.includes(id) || !decorOnSale(x, rpg.world)) return false
+    const p = decorPrice(x); if (!afford(p)) return false
     const d = fresh(), town = townOf(d)
     sfx('coin')
     pay(-p.fiat, -p.gold, { icon: x.emoji, text: `ตกแต่งเมืองด้วย${x.name}` }, { town: { ...town, decor: { ...town.decor, [id]: now() } } })
@@ -626,7 +641,7 @@ export function useRpg() {
   }, [rpg.newlyUnlocked.join(), rpg.newlyJoined.join(), rpg.level, rpg.realm.tier]) // eslint-disable-line
 
   return {
-    ...rpg, vault: v, fiat, gold, chestReady, openChest, buy, shopPrice, setEquip, toggleDeco, chestCount: data.chestCount || 0,
+    ...rpg, vault: v, fiat, gold, chestReady, openChest, buy, shopPrice, setEquip, toggleDeco, decorPrice, saleOff, chestCount: data.chestCount || 0,
     inflation: inflationMult(data), afford, buildPrice, build, upgrade, demolish, hallPrice, upgradeHall, hire, dismiss, buyDecor,
     collectReady, collect, collectDays, collectAmount, claim, exchange, exchangeRate: exchangeRate(data), exchangedThisWeek, econData: data,
     markNoSpend, noSpendReward, canNoSpendOn, markNoSpendOn, spentOn, markStorySeen, chooseMonthBoss, markMonthSeen,
