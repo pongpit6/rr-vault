@@ -2,6 +2,7 @@
 // and the 7-day change, for up to 200 Yahoo symbols per call.
 // GET ?symbols=PTT.BK,AOT.BK,...  ->  { rows: { sym: { cap, chg1, chg7 } }, at }   (Yahoo)
 // GET ?coins=1                     ->  { rows: { BTC: { cap, chg1, chg7 } }, at }       (CoinGecko top 500)
+// GET ?cycle=indicators[/id[/history]]&from=YYYY-MM-DD -> BTC cycle data, fetched server-side so the source never sees the user
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
 const CORS = {
@@ -108,9 +109,28 @@ async function coins() {
   return rows;
 }
 
+// ---------- BTC cycle indicators: a narrow proxy (only these paths, only the "from" parameter, nothing about the caller) ----------
+// deno-lint-ignore no-explicit-any
+const cycleCache = new Map<string, { at: number; v: any }>();
+async function cycle(path: string, from: string | null) {
+  if (!/^indicators(\/[a-z0-9-]+(\/history)?)?$/.test(path)) throw new Error("bad path");
+  if (from && !/^\d{4}-\d{2}-\d{2}$/.test(from)) throw new Error("bad from");
+  const url = `https://cointh.com/api/v1/${path}${from ? `?from=${from}` : ""}`;
+  const hit = cycleCache.get(url);
+  if (hit && Date.now() - hit.at < 3600_000) return hit.v;
+  const r = await fetch(url, { headers: { accept: "application/json" } });
+  if (!r.ok) { if (hit) return hit.v; throw new Error("cycle " + r.status); }
+  const v = await r.json();
+  cycleCache.set(url, { at: Date.now(), v });
+  if (cycleCache.size > 200) cycleCache.delete(cycleCache.keys().next().value!);
+  return v;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
   try {
+    const cp = new URL(req.url).searchParams.get("cycle");
+    if (cp) return json(await cycle(cp, new URL(req.url).searchParams.get("from")));
     if (new URL(req.url).searchParams.get("coins")) return json({ rows: await coins(), at: Date.now() });
     const syms = (new URL(req.url).searchParams.get("symbols") || "").split(",").map((s) => s.trim()).filter(Boolean).slice(0, 200);
     if (!syms.length) return json({ error: "symbols required" }, 400);

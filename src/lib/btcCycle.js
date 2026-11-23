@@ -1,11 +1,14 @@
 /**
- * Bitcoin cycle indicators (cointh.com public API, no key, CORS on). Latest values are cached for an hour
+ * Bitcoin cycle indicators (public API, read through our vault-rank function). Latest values are cached for an hour
  * on this device; history per indicator for a day. Futures data (open interest, funding) is left out on purpose.
  */
 import { useEffect, useState } from 'react'
 import { useStore } from '../store'
+import { FN, H } from './market'
 
-const API = 'https://cointh.com/api/v1'
+// fetched through our own Supabase function: the data source only ever sees our server, never this device
+const PROXY = FN.replace('vault-prices', 'vault-rank')
+const apiGet = (path, from) => fetch(`${PROXY}?cycle=${encodeURIComponent(path)}${from ? `&from=${from}` : ''}`, H)
 const HOUR = 3600_000
 const K_NOW = 'vault:btccycle'
 
@@ -18,7 +21,7 @@ export async function loadCycle(force = false) {
   if (hit) return hit
   if (inflight) return inflight
   inflight = (async () => {
-    const r = await fetch(`${API}/indicators`)
+    const r = await apiGet('indicators')
     if (!r.ok) throw new Error('cycle ' + r.status)
     const j = await r.json()
     const ind = j.indicators || j.data || j
@@ -41,7 +44,7 @@ export async function loadCycleHistory(id, field, from) {
   const k = `vault:btccycle:h:${id}:${field}:${from || 'all'}`
   const hit = readCache(k, 12 * HOUR)
   if (hit) return hit
-  const r = await fetch(`${API}/indicators/${id}/history${from ? `?from=${from}` : ''}`)
+  const r = await apiGet(`indicators/${id}/history`, from)
   if (!r.ok) throw new Error('history ' + r.status)
   const j = await r.json()
   const dates = j.dates || j.data?.dates || []
@@ -61,7 +64,7 @@ export async function loadChecklist(id) {
   const k = `vault:btccycle:c:${id}`
   const hit = readCache(k, HOUR)
   if (hit) return hit
-  const r = await fetch(`${API}/indicators/${id}`)
+  const r = await apiGet(`indicators/${id}`)
   if (!r.ok) throw new Error('checklist ' + r.status)
   const d = (await r.json()).data || {}
   writeCache(k, d)
