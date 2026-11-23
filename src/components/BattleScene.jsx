@@ -14,7 +14,7 @@ function sheet(name) {
 }
 Object.keys(SHEETS).forEach(sheet) // preload
 const statics = {}
-function still(name) {
+export function still(name) {
   if (!statics[name]) { const im = new Image(); im.src = `./sprites/${name}.png`; statics[name] = im }
   const im = statics[name]
   return im.complete && im.naturalWidth ? im : null
@@ -106,6 +106,13 @@ export const GROUND = [
   { grass: '#a3e635', blade: '#65a30d', dirt: '#fbbf24', speck: '#d97706', cobble: true }, // golden kingdom
 ]
 
+const dusk = {}
+function duskOf(im, key) {
+  if (dusk[key]) return dusk[key]
+  const c = document.createElement('canvas'); c.width = im.width; c.height = im.height
+  const x = c.getContext('2d'); x.drawImage(im, 0, 0); x.globalCompositeOperation = 'source-atop'; x.fillStyle = 'rgba(15,23,42,.5)'; x.fillRect(0, 0, c.width, c.height)
+  return (dusk[key] = c)
+}
 /** Background structures, drawn in half-resolution space (200 wide). */
 export function drawRealm(g, tier, gy, night, now, decos) {
   const dark = night > 0.2
@@ -136,7 +143,10 @@ export function drawRealm(g, tier, gy, night, now, decos) {
   }
   const lamp = (x) => { R('#334155', x, gy - 20, 1, 10); R(dark ? '#fde047' : '#fef9c3', x - 1, gy - 22, 3, 2); if (dark) { g.fillStyle = 'rgba(253,224,71,.18)'; g.fillRect(x - 5, gy - 26, 11, 10) } }
 
-  if (tier === 0) {
+  // PixelLab skyline for each realm (night gets a dusk tint); the hand-drawn shapes stay as a fallback
+  const art = still(`realm_${tier}`)
+  if (art) g.drawImage(dark ? duskOf(art, `realm_${tier}`) : art, 0, gy - 9 - art.height, 200, art.height)
+  if (!art && tier === 0) {
     // dead trees, graves and a sign of debt
     g.fillStyle = dark ? '#334155' : '#57534e'
     ;[[22, 12], [150, 15], [178, 9]].forEach(([x, h]) => { g.fillRect(x, gy - 10 - h, 1, h); g.fillRect(x - 3, gy - 6 - h, 3, 1); g.fillRect(x + 1, gy - 4 - h, 4, 1); g.fillRect(x - 2, gy - 9 - h, 1, 3) })
@@ -144,18 +154,18 @@ export function drawRealm(g, tier, gy, night, now, decos) {
     R(C.wood, 95, gy - 18, 1, 8); R(dark ? '#7f1d1d' : '#991b1b', 90, gy - 21, 12, 5); R('#fecaca', 92, gy - 19, 8, 1)
     g.fillStyle = 'rgba(88,28,135,.35)'; g.fillRect(64, gy - 10, 18, 2); g.fillRect(160, gy - 10, 14, 2)
   }
-  if (tier === 1) {
+  if (!art && tier === 1) {
     tree(8); tree(186, 11)
     house(140); house(160, C.roof2)
     R(C.wood, 110, gy - 12, 26, 1); for (let x = 110; x < 136; x += 4) R(C.wood, x, gy - 14, 1, 4) // fence
     R(C.stone, 30, gy - 14, 6, 4); R(C.wood, 30, gy - 19, 1, 5); R(C.wood, 35, gy - 19, 1, 5); R(C.roof, 29, gy - 20, 8, 1) // well
   }
-  if (tier === 2) {
+  if (!art && tier === 2) {
     house(12); house(28, C.roof2); house(150); house(170, C.roof2, 11)
     stall(96, '#ef4444', '#fff'); stall(118, '#3b82f6', '#fff')
     lamp(60); lamp(140); tree(186)
   }
-  if (tier === 3) {
+  if (!art && tier === 3) {
     house(10); house(178, C.roof2)
     // castle with a gate
     R(C.stone, 70, gy - 26, 64, 16); g.fillStyle = C.stone2; for (let x = 70; x < 134; x += 4) g.fillRect(x, gy - 28, 2, 2)
@@ -164,7 +174,7 @@ export function drawRealm(g, tier, gy, night, now, decos) {
     R('#dc2626', 80, gy - 24, 3, 6); R('#dc2626', 121, gy - 24, 3, 6) // banners
     lamp(40); lamp(160)
   }
-  if (tier === 4) {
+  if (!art && tier === 4) {
     house(6, C.gold2); house(186, C.gold2, 8)
     // golden palace with domes
     R(C.wall, 58, gy - 26, 84, 16); R(C.gold, 58, gy - 27, 84, 1)
@@ -458,7 +468,7 @@ export default function BattleScene({
       }
       drawRealm(g, tier, bgy + 2, sky.night, now, decos)
       // chimney smoke
-      const chim = tier === 1 ? [143, 163] : tier === 2 ? [15, 31, 153, 173] : tier >= 3 ? [13, 181] : []
+      const chim = still(`realm_${tier}`) ? [] : tier === 1 ? [143, 163] : tier === 2 ? [15, 31, 153, 173] : tier >= 3 ? [13, 181] : []
       if (chim.length && Math.random() < dt / 260) { const cx = chim[Math.floor(Math.random() * chim.length)]; s.smoke.push({ x: cx, y: bgy - 21, life: 2600 }) }
       s.smoke = s.smoke.filter((p) => (p.life -= dt) > 0)
       for (const p of s.smoke) { p.y -= dt * 0.006; p.x += dt * 0.003; g.fillStyle = `rgba(226,232,240,${Math.min(0.8, p.life / 2600)})`; const z = p.life > 1500 ? 1 : 2; g.fillRect(Math.round(p.x), Math.round(p.y), z, z) }

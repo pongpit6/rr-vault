@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { drawStill, frame, skyFor, mix, GROUND } from './BattleScene'
+import { still, drawStill, frame, skyFor, mix, GROUND } from './BattleScene'
 import { DECOR_BY_ID } from '../lib/town'
 import { NPC_BY_ID, RESIDENTS } from '../lib/town'
 import { worldBack, worldFront } from './WorldFx'
@@ -63,7 +63,9 @@ export function drawTown(g, t, now, o = {}) {
   // ---------- town hall ----------
   const big = (ax, fn) => { g.save(); g.translate(ax, G); g.scale(K, K); g.translate(-ax, -G); fn(); g.restore() }
   const hx = HALL_X + 6, hl = t.town.hall
-  big(hx, () => {
+  const hallIm = still(`bld_hall_${hl}`)
+  if (hallIm) big(hx, () => { const sz = [44, 50, 56][hl - 1]; g.drawImage(hallIm, hx + 23 - sz / 2, G - sz + 2, sz, sz) })
+  else big(hx, () => {
   if (hl === 1) {
     R(C.wood2, hx, G - 22, 46, 22); roof(hx, G - 22, 46, C.roof, 8)
     R(C.wood, hx + 20, G - 12, 7, 12); winB(hx + 6, G - 16); winB(hx + 38, G - 16)
@@ -102,6 +104,8 @@ export function drawTown(g, t, now, o = {}) {
 
   function drawBuilding(b, x) {
     const lv = b.lv
+    const art = still(`bld_${b.type}_${lv}`)
+    if (art) { const sz = [32, 36, 40][lv - 1]; g.drawImage(art, x + 18 - sz / 2, G - sz + 2, sz, sz); return }
     switch (b.type) {
       case 'house': {
         const ww = 18 + lv * 4, h = 10 + (lv - 1) * 6, y = G - h
@@ -251,7 +255,7 @@ export function drawTown(g, t, now, o = {}) {
       for (let q = 0; q < 6; q++) { const k2 = (now / 500 + q / 6) % 1; R('#7dd3fc', x + 3 + Math.round(Math.sin(q * 2) * k2 * 6), y - 12 + k2 * 9 - Math.sin(k2 * Math.PI) * 4, 1, 1) }
     }
     // festival pieces: emoji stand-ins until their PixelLab art is drawn
-    if (id.startsWith('ev_')) { const it = DECOR_BY_ID[id]; if (it) { g.font = '12px sans-serif'; g.textAlign = 'center'; g.fillText(it.emoji, x + 4, y - 2); g.textAlign = 'left' } }
+    if (id.startsWith('ev_')) { const im = still(id); if (im) g.drawImage(im, x - 5, y - 17, 18, 18); else { const it = DECOR_BY_ID[id]; if (it) { g.font = '12px sans-serif'; g.textAlign = 'center'; g.fillText(it.emoji, x + 4, y - 2); g.textAlign = 'left' } } }
     if (id === 'statue') { R(C.stone2, x, y - 4, 8, 4); R(C.gold, x + 2, y - 14, 4, 10); R(C.gold2, x + 3, y - 16, 2, 2); if (Math.sin(now / 300) > 0.8) R('#fff', x + 5, y - 13, 1, 1) }
     g.restore()
   })

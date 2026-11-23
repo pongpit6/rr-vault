@@ -14,6 +14,7 @@ import { townLines, storyOf, APPRENTICE } from '../lib/townTalk'
 import { MessageCircle, BookOpen } from './px'
 import { LEVEL_REQ, BUILDINGS, HALL, NPCS, DECOR, priceOf, EXCHANGE_WEEKLY, RESIDENTS } from '../lib/town'
 
+const Art = ({ name, size = 30, fallback }) => { const [ok, setOk] = useState(true); return ok ? <img src={`./sprites/${name}.png`} alt="" width={size} height={size} onError={() => setOk(false)} style={{ imageRendering: 'pixelated' }} className="mx-auto" /> : <span className="text-2xl">{fallback}</span> }
 /** the living-world props every town scene gets */
 export const sceneWorld = (rpg) => ({ sale: rpg.world.sale?.label || null, cycle: useStore.getState().ui.btcCycle?.zone || null, weather: rpg.world.weather, event: rpg.world.event?.id || null, mood: rpg.world.mood.id, btc: rpg.world.btc, aurora: rpg.world.aurora, tree: rpg.world.tree, rank: rpg.rank.id, holiday: rpg.world.holiday })
 
@@ -163,11 +164,11 @@ export default function TownTab({ rpg }) {
       <Section icon={Hammer} title={`LAND · ที่ดิน ${T.built.length}/${T.plotCount}`}>
         <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
           <button onClick={() => setSel('hall')} className="px-inner p-2 text-center hover:bg-teal-50" data-testid="plot-hall">
-            <div className="text-2xl">{HALL.emoji}</div><div className="text-[11px] font-semibold">{HALL.name}</div><div className="px-font text-[8px] text-amber-600">{'★'.repeat(T.town.hall)}</div>
+            <Art name={`bld_hall_${T.town.hall}`} size={34} fallback={HALL.emoji} /><div className="text-[11px] font-semibold">{HALL.name}</div><div className="px-font text-[8px] text-amber-600">{'★'.repeat(T.town.hall)}</div>
           </button>
           {T.plots.map((b, i) => (
             <button key={i} onClick={() => setSel(i)} className={`px-inner p-2 text-center hover:bg-teal-50 ${sel === i ? 'ring-2 ring-amber-400' : ''}`} data-testid={`plot-${i}`}>
-              <div className="text-2xl">{b ? BUILDINGS[b.type].emoji : '➕'}</div>
+              {b ? <Art name={`bld_${b.type}_${b.lv}`} size={34} fallback={BUILDINGS[b.type].emoji} /> : <div className="text-2xl">➕</div>}
               <div className="text-[11px] font-semibold truncate">{b ? BUILDINGS[b.type].name : `แปลง ${i + 1}`}</div>
               <div className="px-font text-[8px] text-amber-600 h-3">{b ? '★'.repeat(b.lv) : <span className="text-slate-400">ว่าง</span>}</div>
             </button>
@@ -211,7 +212,7 @@ export default function TownTab({ rpg }) {
             return (
               <div key={d.id} className={`px-inner p-2 text-center ${own ? 'bg-teal-50' : ''}`}>
                 {d.event && <div className="text-[9px] font-bold text-rose-600">⏳ เฉพาะ{d.event === 'sale' ? 'วันเลขเบิ้ล' : EVENTS[d.event]?.name || 'เทศกาล'}</div>}
-                <div className="text-2xl">{d.emoji}</div><div className="text-[11px] font-semibold">{d.name}</div><div className="text-[10px] text-teal-700">ความสุข +{d.happy}</div>{d.scene && <div className="text-[10px] text-slate-500">+ {d.scene}</div>}
+                {d.id.startsWith('ev_') ? <Art name={d.id} size={32} fallback={d.emoji} /> : <div className="text-2xl">{d.emoji}</div>}<div className="text-[11px] font-semibold">{d.name}</div><div className="text-[10px] text-teal-700">ความสุข +{d.happy}</div>{d.scene && <div className="text-[10px] text-slate-500">+ {d.scene}</div>}
                 {own ? <div className="text-[10px] text-slate-500 mt-1">ติดตั้งแล้ว ✓</div> : (
                   <button className={`${btn} mt-1 w-full bg-white`} disabled={!rpg.afford(p)} onClick={() => ok(rpg.buyDecor(d.id), `ติดตั้ง${d.name}แล้ว`)}><Price p={p} rpg={rpg} /></button>
                 )}
@@ -275,7 +276,7 @@ function PlotSheet({ rpg, sel, onClose, ok }) {
             const locked = B.req && !B.req(rpg.habits)
             return (
               <div key={type} className="px-inner p-2.5 flex items-center gap-3" data-testid={`build-${type}`}>
-                <span className="text-2xl w-8 text-center">{B.emoji}</span>
+                <span className="w-8 text-center"><Art name={`bld_${type}_1`} size={32} fallback={B.emoji} /></span>
                 <div className="flex-1 min-w-0">
                   <div className="text-sm font-semibold">{B.name} <span className="text-[10px] text-slate-400 font-normal">{T.count(type)}/{B.max}</span></div>
                   <div className="text-[11px] text-slate-500">{B.desc}</div>
