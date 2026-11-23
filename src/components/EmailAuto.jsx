@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Copy, Check, Mail, KeyRound, ExternalLink } from 'lucide-react'
+import { Copy, Check, Mail, KeyRound, ExternalLink } from './px'
 import { Sheet, Button, Money } from './ui'
 import { useStore } from '../store'
 import { useVault } from '../lib/useVault'

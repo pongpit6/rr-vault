@@ -1,6 +1,6 @@
 import { HomeInsightCard } from '../components/Insights'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Settings as Cog, Eye, EyeOff, ChevronRight, ChevronDown, Landmark, Cloud, CloudOff, RefreshCw, Plus, ScanLine, Check } from 'lucide-react'
+import { Settings as Cog, Eye, EyeOff, ChevronRight, ChevronDown, Landmark, Cloud, CloudOff, RefreshCw, Plus, ScanLine, Check } from '../components/px'
 import { Avatar, Money, IconBadge, Empty, Button } from '../components/ui'
 import TxnRow from '../components/TxnRow'
 import { SubLogo, AssetLogo } from '../components/Logos'

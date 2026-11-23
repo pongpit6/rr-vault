@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Mail, Lock, LogIn } from 'lucide-react'
+import { Mail, Lock, LogIn } from './px'
 import { Button, Segmented } from './ui'
 import { supabase } from '../lib/supabase'
 

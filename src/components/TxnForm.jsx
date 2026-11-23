@@ -1,6 +1,6 @@
 import { sfx } from '../lib/sfx'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Trash2, Check, ShieldCheck, Sparkles, CalendarDays, ArrowDown } from 'lucide-react'
+import { Trash2, Check, ShieldCheck, Sparkles, CalendarDays, ArrowDown } from './px'
 import { Sheet, Button, Segmented, Icon, IconBadge, Label, Money } from './ui'
 import { deductionOf } from '../lib/tax'
 import { useStore, selectList } from '../store'

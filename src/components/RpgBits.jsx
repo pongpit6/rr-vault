@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Flame, ChevronRight } from 'lucide-react'
+import { Flame, ChevronRight } from './px'
 import BattleScene, { skinUrl } from './BattleScene'
 import { SHEETS } from '../lib/spriteSheets'
 import { useStore } from '../store'

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { ImagePlus, Loader2, Check, X, AlertTriangle, ArrowRightLeft } from 'lucide-react'
+import { ImagePlus, Loader2, Check, X, AlertTriangle, ArrowRightLeft } from './px'
 import { Sheet, Button, IconBadge, Money } from './ui'
 import { useStore } from '../store'
 import { useVault } from '../lib/useVault'

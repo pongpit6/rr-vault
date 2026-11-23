@@ -1,6 +1,6 @@
 import PowerLawCard from '../components/PowerLawCard'
 import { useEffect, useState } from 'react'
-import { Plus, RefreshCw, Radio, Pencil, Check, TrendingUp, TrendingDown, Trash2 } from 'lucide-react'
+import { Plus, RefreshCw, Radio, Pencil, Check, TrendingUp, TrendingDown, Trash2 } from '../components/px'
 import { Sheet, Button, Money, Empty, Label } from '../components/ui'
 import { AssetLogo, ItemSprite } from '../components/Logos'
 import { useStore } from '../store'

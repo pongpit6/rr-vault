@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Plus, Check, Trash2, Target, PiggyBank, Bell, BellRing, LineChart, BarChart3, Shield, Pencil, ArrowRightLeft } from 'lucide-react'
+import { Plus, Check, Trash2, Target, PiggyBank, Bell, BellRing, LineChart, BarChart3, Shield, Pencil, ArrowRightLeft } from '../components/px'
 import { Sheet, Button, Segmented, Label, Money, IconBadge, IconPicker, ColorPicker, Empty } from '../components/ui'
 import { AreaChart, MonthBars } from '../components/Charts'
 import { AssetLogo } from '../components/Logos'

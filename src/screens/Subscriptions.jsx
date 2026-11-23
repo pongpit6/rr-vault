@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Plus, Check, Trash2, Search, Pause, Play, CalendarClock, Repeat } from 'lucide-react'
+import { Plus, Check, Trash2, Search, Pause, Play, CalendarClock, Repeat } from '../components/px'
 import { Sheet, Button, Segmented, Label, Money, Empty } from '../components/ui'
 import { SubLogo } from '../components/Logos'
 import { AccountChips } from '../components/TxnForm'

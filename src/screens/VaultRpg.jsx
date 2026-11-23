@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Flame, Swords, Check, Lock, Trophy, ScrollText, Sparkles, MapPin, Backpack, Users, Shield, Store, Map as MapIcon, BookOpen, Eye, Castle } from 'lucide-react'
+import { Flame, Swords, Check, Lock, Trophy, ScrollText, Sparkles, MapPin, Backpack, Users, Shield, Store, Map as MapIcon, BookOpen, Eye, Castle } from '../components/px'
 import { ItemSprite, AssetLogo } from '../components/Logos'
 import { itemOf, assetLabel } from '../lib/portfolio'
 import BattleScene from '../components/BattleScene'

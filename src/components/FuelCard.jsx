@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useSyncedPref } from '../lib/prefs'
-import { Fuel, Star, RefreshCw, ArrowLeftRight, Settings2 } from 'lucide-react'
+import { Fuel, Star, RefreshCw, ArrowLeftRight, Settings2 } from './px'
 import { useStore } from '../store'
 import { useVault } from '../lib/useVault'
 import { useOil, loadOil, FUEL_TYPES } from '../lib/market'

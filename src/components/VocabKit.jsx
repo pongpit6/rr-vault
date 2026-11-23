@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Volume2, X, Plus } from 'lucide-react'
+import { Volume2, X, Plus } from './px'
 import { Button, Segmented } from './ui'
 import CourseView from './CourseKit'
 import { useStore } from '../store'

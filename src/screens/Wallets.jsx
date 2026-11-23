@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import Receivables from '../components/Receivables'
-import { Plus, Pencil, Scale, Archive, Trash2, Check, Info, ListFilter } from 'lucide-react'
+import { Plus, Pencil, Scale, Archive, Trash2, Check, Info, ListFilter } from '../components/px'
 import { Sheet, Button, Money, IconBadge, Label, IconPicker, ColorPicker, Segmented, Progress } from '../components/ui'
 import { AllocationEditor } from '../components/TxnForm'
 import { StyleCard } from '../components/Insights'

@@ -1,4 +1,4 @@
-import { Sparkles } from 'lucide-react'
+import { Sparkles } from './px'
 
 /** five-axis radar, pure SVG, pixel-ish (square points) */
 function Radar({ areas, size = 200 }) {

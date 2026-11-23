@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { ChevronRight } from 'lucide-react'
+import { ChevronRight } from './px'
 import { useCycle, cycleZone, gauges, levels, verdictTh, loadCycleHistory, loadChecklist, ZONE_COLOR, ZONE_TH } from '../lib/btcCycle'
 
 /** tile inside "BITCOIN วันนี้" */

@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { ChevronRight, ChevronLeft, Check, Plus, Trash2, Sparkles } from 'lucide-react'
+import { ChevronRight, ChevronLeft, Check, Plus, Trash2, Sparkles } from './px'
 import { Button, Label, Segmented, IconBadge, Avatar } from './ui'
 import { AllocationEditor } from './TxnForm'
 import { useStore, useProfile } from '../store'

@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { Trash2, Copy } from 'lucide-react'
+import { Trash2, Copy } from './px'
 import { IconBadge, Money } from './ui'
 import { todayISO } from '../lib/format'
 import { AssetLogo, SubLogo } from './Logos'

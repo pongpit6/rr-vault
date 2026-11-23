@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Info, ChevronDown, ChevronUp, Lightbulb } from 'lucide-react'
+import { Info, ChevronDown, ChevronUp, Lightbulb } from '../components/px'
 import { useStore } from '../store'
 import { useVault } from '../lib/useVault'
 import { computeTax, DEDUCTIONS, BRACKETS, TAX_YEAR_NOTE } from '../lib/tax'

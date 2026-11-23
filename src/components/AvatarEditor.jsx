@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Camera, Check, RotateCcw } from 'lucide-react'
+import { Camera, Check, RotateCcw } from './px'
 import { Sheet, Button, Label } from './ui'
 
 /** Pick an image, drag to position, slider to zoom → 320×320 JPEG data URL. */

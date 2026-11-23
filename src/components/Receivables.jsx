@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { HandCoins, Plus } from 'lucide-react'
+import { HandCoins, Plus } from './px'
 import { Sheet, Button } from './ui'
 import { useStore } from '../store'
 import { useVault } from '../lib/useVault'

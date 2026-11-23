@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Shirt, Ghost, Images, Cake, Flag } from 'lucide-react'
+import { Shirt, Ghost, Images, Cake, Flag, PxIcon, SLOT_ICON } from './px'
 import { Portrait } from './RpgBits'
 import { Money, Sheet } from './ui'
 import { useStore, selectList } from '../store'
@@ -26,7 +26,6 @@ const Bar = ({ pct, color = '#14b8a6' }) => <div className="px-xp !h-2"><div sty
 const thDate = (iso) => new Date(iso + 'T12:00:00').toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' })
 const MONTHS_TH = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.']
 const mkLabel = (mk) => `${MONTHS_TH[+mk.slice(5, 7) - 1]} ${(+mk.slice(0, 4) + 543) % 100}`
-const SLOT_EMOJI = { weapon: '🗡️', armor: '🧥', boots: '🥾', satchel: '🎒', ring: '💍' }
 
 /* ---------------- the hero (you): outfit, parts, condition ---------------- */
 export function HeroCard({ rpg }) {
@@ -47,7 +46,7 @@ export function HeroCard({ rpg }) {
       <div className="grid grid-cols-5 gap-1.5 mt-3">
         {rpg.gear.map((g) => (
           <div key={g.slot} className="px-inner p-1.5 text-center" title={`${g.name} · ${g.how}: ${g.valueText}`}>
-            <div className="text-lg leading-none">{SLOT_EMOJI[g.slot]}</div>
+            <PxIcon name={SLOT_ICON[g.slot]} size={28} />
             <div className="text-[10px] text-slate-500 mt-1">{g.label}</div>
             <div className="text-[10px] font-bold" style={{ color: g.color }}>{g.tierName}</div>
           </div>

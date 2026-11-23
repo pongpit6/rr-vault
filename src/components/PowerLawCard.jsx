@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { ChevronRight } from 'lucide-react'
+import { ChevronRight } from './px'
 import { Sheet } from './ui'
 import FearGreedCard, { Gauge, useFngLive } from './FearGreedCard'
 import { CycleTile, CycleDetail } from './CycleKit'

@@ -4,7 +4,7 @@ import {
   Coins, Plane, Coffee, Smartphone, Zap, Droplet, Wifi, Shirt, Dumbbell, Baby, PawPrint, Gamepad2, Music, Book,
   Fuel, Bus, Banknote, HandCoins, Gem, Bitcoin, Vault, Building2, Target, Tag, Wrench, Scale, Repeat, Stethoscope,
   Pill, Plug, Tv, Sofa, Bike, Beer, Popcorn, CircleDollarSign, Sparkles, ScanLine,
-} from 'lucide-react'
+} from '../components/px'
 
 export const ICONS = {
   scan: ScanLine,

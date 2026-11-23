@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Delete, Fingerprint, Lock as LockIcon, Check } from 'lucide-react'
+import { Delete, Fingerprint, Lock as LockIcon, Check } from './px'
 import { Avatar, Sheet, Button } from './ui'
 import { useStore, useProfile } from '../store'
 

@@ -1,6 +1,6 @@
 import { normPct } from '../lib/ledger'
 import { useEffect, useMemo, useState } from 'react'
-import { Sparkles, ChevronRight, TrendingUp, TrendingDown } from 'lucide-react'
+import { Sparkles, ChevronRight, TrendingUp, TrendingDown } from './px'
 import { Sheet, Button, Money } from './ui'
 import { useStore, selectList } from '../store'
 import { useVault } from '../lib/useVault'

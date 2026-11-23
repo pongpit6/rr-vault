@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { RefreshCw, TrendingUp, TrendingDown, Minus } from 'lucide-react'
+import { RefreshCw, TrendingUp, TrendingDown, Minus } from './px'
 import { useFng, loadFng, FNG_ZONES, fngZone } from '../lib/market'
 import { useStore } from '../store'
 

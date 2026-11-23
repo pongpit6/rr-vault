@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Search, ChevronLeft, ChevronRight, X, ScanLine } from 'lucide-react'
+import { Search, ChevronLeft, ChevronRight, X, ScanLine } from '../components/px'
 import { useStore } from '../store'
 import { Segmented, Money, Empty } from '../components/ui'
 import TxnRow, { txnVisual } from '../components/TxnRow'

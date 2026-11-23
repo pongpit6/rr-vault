@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Check, Tag } from 'lucide-react'
+import { Check, Tag } from '../components/px'
 import { IconBadge, Money, Empty, Button } from '../components/ui'
 import { useStore } from '../store'
 import { useVault } from '../lib/useVault'

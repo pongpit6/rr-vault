@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { LayoutDashboard, Plus, Wallet, Settings as Cog, Swords, LineChart, Sprout } from 'lucide-react'
+import { LayoutDashboard, Plus, Wallet, Settings as Cog, Swords, LineChart, Sprout } from './components/px'
 import { applyAccent, DEFAULT_ACCENT } from './lib/accent'
 import Reminders from './components/Reminders'
 import { HabitHost } from './components/HabitKit'

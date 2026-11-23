@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Lock, Check, Volume2 } from 'lucide-react'
+import { Lock, Check, Volume2 } from './px'
 import { Button } from './ui'
 import { useStore } from '../store'
 import { sfx } from '../lib/sfx'

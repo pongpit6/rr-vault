@@ -1,6 +1,6 @@
 import { sfx } from '../lib/sfx'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Search, Check, Trash2, ChevronLeft, Loader2, Info, History } from 'lucide-react'
+import { Search, Check, Trash2, ChevronLeft, Loader2, Info, History } from './px'
 import { Sheet, Button, Segmented, Label, Money } from './ui'
 import { AssetLogo, ItemSprite } from './Logos'
 import { AccountChips } from './TxnForm'

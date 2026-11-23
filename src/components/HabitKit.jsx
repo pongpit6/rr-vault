@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Check, Plus, Minus, Moon, Sun, Play, Pause, RotateCcw, BookOpen, Trash2, Utensils, X } from 'lucide-react'
+import { Check, Plus, Minus, Moon, Sun, Play, Pause, RotateCcw, BookOpen, Trash2, Utensils, X } from './px'
 import { Sheet, Button, Segmented } from './ui'
 import { useStore } from '../store'
 import { useRpg } from '../lib/rpg'

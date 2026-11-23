@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { createPortal } from 'react-dom'
-import { X, Undo2 } from 'lucide-react'
+import { X, Undo2 } from './px'
 import { ICONS } from '../lib/icons'
 import { money } from '../lib/format'
 import { useStore, useProfile } from '../store'
@@ -16,7 +16,7 @@ export function IconBadge({ name, color = '#10b981', size = 40, icon = 18, class
       className={`grid place-items-center shrink-0 rounded-2xl ${className}`}
       style={{ width: size, height: size, background: `${color}1f`, color, boxShadow: `inset 0 0 0 1px ${color}33` }}
     >
-      <Icon name={name} size={icon} />
+      <Icon name={name} size={Math.max(icon, Math.round(size * 0.6))} />
     </div>
   )
 }

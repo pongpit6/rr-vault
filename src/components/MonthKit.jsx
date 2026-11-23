@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Swords, ScrollText } from 'lucide-react'
+import { Swords, ScrollText } from './px'
 import { Sheet } from './ui'
 import { monthLabel } from '../lib/format'
 

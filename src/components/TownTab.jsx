@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useActiveTheme } from '../lib/theme'
-import { Hammer, Users, Smile, Coins, ArrowUpCircle, Trash2, Sparkles, Repeat, TrendingUp } from 'lucide-react'
+import { Hammer, Users, Smile, Coins, ArrowUpCircle, Trash2, Sparkles, Repeat, TrendingUp } from './px'
 import TownScene from './TownScene'
 import { Portrait } from './RpgBits'
 import { Sheet } from './ui'
@@ -11,7 +11,7 @@ import { visitorFor, decorOnSale, nextDoubleDay, EVENT_DECOR } from '../lib/fest
 import { EVENTS } from '../lib/world'
 import { traceList } from './TownTraces'
 import { townLines, storyOf, APPRENTICE } from '../lib/townTalk'
-import { MessageCircle, BookOpen } from 'lucide-react'
+import { MessageCircle, BookOpen } from './px'
 import { LEVEL_REQ, BUILDINGS, HALL, NPCS, DECOR, priceOf, EXCHANGE_WEEKLY, RESIDENTS } from '../lib/town'
 
 /** the living-world props every town scene gets */

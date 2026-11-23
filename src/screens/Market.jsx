@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Search, Star, RefreshCw, ChevronRight, X, Radio, Plus } from 'lucide-react'
+import { Search, Star, RefreshCw, ChevronRight, X, Radio, Plus } from '../components/px'
 import { useStore } from '../store'
 import { useVault } from '../lib/useVault'
 import { Sheet, Button } from '../components/ui'
