@@ -20,6 +20,7 @@ const Art = ({ name, size = 30, fallback }) => { const [ok, setOk] = useState(tr
 /** the living-world props every town scene gets */
 export const sceneWorld = (rpg) => ({ sale: rpg.world.sale?.label || null, cycle: useStore.getState().ui.btcCycle?.zone || null, weather: rpg.world.weather, event: rpg.world.event?.id || null, mood: rpg.world.mood.id, btc: rpg.world.btc, aurora: rpg.world.aurora, tree: rpg.world.tree, rank: rpg.rank.id, holiday: rpg.world.holiday })
 
+const DECOR_ART = { tree: 'dc_tree', bench: 'dc_bench', lamp: 'dc_lamp', flowers: 'dc_flowers', banner: 'dc_banner', well: 'dc_well', fountain: 'dc_fountain', statue: 'dc_statue' }
 const TRACE_PX = { read: 'hb_read', exercise: 'hb_exercise', meditate: 'hb_meditate', vocab: 'hb_vocab', nocarb: 'hb_nocarb', nospend: 'hb_nospend', sleep: 'hb_sleep', saved: 'PiggyBank', paid: 'sk_slash', logged: 'ScrollText', rest: 'hb_rest' }
 /** "ร่องรอยวันนี้": one quiet row of what you did today */
 export function TodayTraces({ rpg, className = '', compact = false }) {
@@ -220,7 +221,7 @@ export default function TownTab({ rpg }) {
             return (
               <div key={d.id} className={`px-inner p-2 text-center ${own ? 'bg-teal-50' : ''}`}>
                 {d.event && <div className="text-[9px] font-bold text-rose-600">⏳ เฉพาะ{d.event === 'sale' ? 'วันเลขเบิ้ล' : EVENTS[d.event]?.name || 'เทศกาล'}</div>}
-                {d.id.startsWith('ev_') ? <Art name={d.id} size={32} fallback={d.emoji} /> : <div className="text-2xl">{d.emoji}</div>}<div className="text-[11px] font-semibold">{d.name}</div><div className="text-[10px] text-teal-700">ความสุข +{d.happy}</div>{d.scene && <div className="text-[10px] text-slate-500">+ {d.scene}</div>}
+                <Art name={DECOR_ART[d.id] || d.id} size={32} fallback={d.emoji} /><div className="text-[11px] font-semibold">{d.name}</div><div className="text-[10px] text-teal-700">ความสุข +{d.happy}</div>{d.scene && <div className="text-[10px] text-slate-500">+ {d.scene}</div>}
                 {own ? <div className="text-[10px] text-slate-500 mt-1">ติดตั้งแล้ว ✓</div> : (
                   <button className={`${btn} mt-1 w-full bg-white`} disabled={!rpg.afford(p)} onClick={() => ok(rpg.buyDecor(d.id), `ติดตั้ง${d.name}แล้ว`)}><Price p={p} rpg={rpg} /></button>
                 )}

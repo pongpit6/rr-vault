@@ -1,10 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
-import { Swords, Backpack, Hammer, BookOpen, Zap, Lock, Gift, Sparkles, Play, Pause } from './px'
+import { Swords, Backpack, Hammer, BookOpen, Zap, Lock, Gift, Sparkles, Play, Pause, ScrollText } from './px'
 import { Emo, PxIcon, hasPx } from './px'
 import { Portrait } from './RpgBits'
+import FarmScene from './FarmScene'
 import { useStore } from '../store'
 import { MAPS, MAP_BY_ID, MON_BY_ID, MATS, TREE, rankCost, RECIPES, mapUnlocked, itemName, itemPrice, itemIcon, ENERGY_PTS } from '../lib/farm'
-import { monPower, BOSS_AFTER } from '../lib/farmData'
+import { monPower, BOSS_AFTER, trophyPrice } from '../lib/farmData'
+import { MAP_LORE, MON_LORE, STORY, STORY_STEPS } from '../lib/farmLore'
+import { Sheet } from './ui'
 
 const Bar = ({ pct, color = '#14b8a6' }) => <div className="px-xp !h-2"><div style={{ width: `${Math.max(0, Math.min(1, pct)) * 100}%`, background: color }} /></div>
 function Card({ icon: I, title, right, children, testid }) {
@@ -21,14 +24,15 @@ const ItemIcon = ({ k, size = 28 }) => {
   if (k.startsWith('t:')) return <Portrait sprite={`mon_${k.slice(2)}`} size={size} />
   return <span style={{ fontSize: size * 0.7 }}>📦</span>
 }
+const SEQ = { n: 0 }
 const MON_SIZE = { normal: 72, elite: 88, boss: 104 }
 
 export default function FarmTab({ rpg }) {
   const [sub, setSub] = useState('hunt')
   return (
     <div className="space-y-3" data-testid="farm-tab">
-      <div className="flex gap-1.5">
-        {[['hunt', 'ล่า', Swords], ['bag', 'กระเป๋า', Backpack], ['craft', 'โรงช่าง', Hammer], ['dex', 'สมุดมอนสเตอร์', BookOpen]].map(([id, label, I]) => (
+      <div className="flex gap-1.5 flex-wrap">
+        {[['hunt', 'ล่า', Swords], ['bag', 'กระเป๋า', Backpack], ['craft', 'โรงช่าง', Hammer], ['dex', 'สมุดมอนสเตอร์', BookOpen], ['story', 'เรื่องราว', ScrollText]].map(([id, label, I]) => (
           <button key={id} onClick={() => setSub(id)} className={`px-tab ${sub === id ? 'on' : ''}`} data-testid={`farm-sub-${id}`}><I size={14} /> {label}{id === 'craft' && rpg.chests.length > 0 && <span className="dot" />}</button>
         ))}
       </div>
@@ -36,6 +40,7 @@ export default function FarmTab({ rpg }) {
       {sub === 'bag' && <Bag rpg={rpg} />}
       {sub === 'craft' && <Craft rpg={rpg} />}
       {sub === 'dex' && <Dex rpg={rpg} />}
+      {sub === 'story' && <Story rpg={rpg} />}
     </div>
   )
 }
@@ -61,12 +66,12 @@ function Hunt({ rpg }) {
   const f = rpg.farm, map = MAP_BY_ID[f.map] || MAPS[0]
   const showToast = useStore((s) => s.showToast)
   const [log, setLog] = useState([])
-  const [shake, setShake] = useState(0)
+  const [events, setEvents] = useState([])
   const R = useRef(rpg); R.current = rpg
   const hit = (n) => {
     const out = R.current.farmFight(n)
     if (!out.length) { showToast(R.current.staminaLeft ? 'แผนที่นี้ยังไม่ปลดล็อก' : 'พลังกายหมดแล้ว ทำวินัยเพิ่มเพื่อได้พลังกายอีก'); R.current.setFarm({ auto: false }); return }
-    setLog((l) => [...out.reverse(), ...l].slice(0, 12)); setShake((x) => x + 1)
+    setEvents((e) => [...e, ...out.map((l) => ({ ...l, seq: ++SEQ.n }))].slice(-40)); setLog((l) => [...[...out].reverse(), ...l].slice(0, 12))
   }
   // auto: one fight every 6 s while this screen is open; on return, catch up the time away (max 8 h, still limited by stamina)
   useEffect(() => {
@@ -94,11 +99,8 @@ function Hunt({ rpg }) {
         </div>
       </Card>
       <section className="px-card overflow-hidden" data-testid="farm-battle">
-        <div className="relative h-44" style={{ backgroundImage: `url(./sprites/map_${map.id}.png)`, backgroundSize: 'cover', backgroundPosition: 'center bottom', imageRendering: 'pixelated', backgroundColor: '#bae6fd' }}>
-          <div className="absolute left-2 bottom-3 flex items-end gap-0.5">
-            {rpg.party.filter((p) => p.joined).map((p) => <Portrait key={p.id} sprite={p.sprite} size={p.id === 'knight' ? 64 : 52} />)}
-          </div>
-          <div key={shake} className="absolute right-3 bottom-3 anim-bob"><Portrait sprite={`mon_${last.id}`} size={MON_SIZE[last.kind]} /></div>
+        <div className="relative">
+          <FarmScene mapId={map.id} party={rpg.party} events={events} hue={rpg.skin?.hue || 0} idleMon={map.mons[0].id} />
           <div className="absolute left-2 top-2 px-font text-[10px] bg-white/85 px-1.5 py-0.5">พลังทีม {rpg.power}</div>
           <div className="absolute right-2 top-2 text-[11px] bg-white/85 px-1.5 py-0.5"><b>{last.name}</b> · พลัง {monPower(last)}{last.kind !== 'normal' && <span className="text-rose-600"> · {last.kind === 'boss' ? 'บอส' : 'หัวหน้า'}</span>}</div>
         </div>
@@ -190,16 +192,82 @@ function Craft({ rpg }) {
 
 function Dex({ rpg }) {
   const dex = rpg.farm.dex || {}
+  const [open, setOpen] = useState(null)
   return (
     <div className="space-y-3">
+      <MonSheet mon={open} seen={open ? dex[open.id] || 0 : 0} onClose={() => setOpen(null)} />
       {MAPS.map((m) => {
         const seen = m.mons.filter((x) => dex[x.id]).length
         return (
           <Card key={m.id} icon={BookOpen} title={`${m.name}`} right={<span className="text-[11px] text-slate-500">{seen}/10{seen === 10 ? ' 🏅' : ''}</span>}>
             <div className="grid grid-cols-5 gap-1.5">
-              {m.mons.map((x) => <div key={x.id} className="px-inner p-1 text-center" title={x.name}><Portrait sprite={`mon_${x.id}`} size={44} dim={!dex[x.id]} /><div className="text-[9px] truncate">{dex[x.id] ? x.name : '???'}</div></div>)}
+              {m.mons.map((x) => <button key={x.id} onClick={() => setOpen(x)} className="px-inner p-1 text-center" title={x.name} data-testid={`dex-${x.id}`}><Portrait sprite={`mon_${x.id}`} size={44} dim={!dex[x.id]} /><div className="text-[9px] truncate">{dex[x.id] ? x.name : '???'}</div></button>)}
             </div>
           </Card>
+        )
+      })}
+    </div>
+  )
+}
+
+const KIND_TH = { normal: 'มอนสเตอร์ทั่วไป', elite: 'หัวหน้า', boss: 'บอสประจำแผนที่' }
+/** one monster: lore of its land and of itself, power, drops (shown even before you meet it, its name stays hidden) */
+function MonSheet({ mon, seen, onClose }) {
+  if (!mon) return null
+  const map = MAP_BY_ID[mon.map], known = seen > 0
+  return (
+    <Sheet open onClose={onClose} title={known ? mon.name : '??? (ยังไม่เคยเจอ)'}>
+      <div className="space-y-3" data-testid="mon-sheet">
+        <div className="flex gap-3 items-center">
+          <div className="w-28 h-28 grid place-items-center border-2 border-slate-800 shrink-0" style={{ backgroundImage: `url(./sprites/map_${map.id}.png)`, backgroundSize: 'cover', backgroundPosition: 'center bottom', imageRendering: 'pixelated' }}><Portrait sprite={`mon_${mon.id}`} size={92} dim={!known} /></div>
+          <div className="text-sm space-y-0.5">
+            <div><b>{KIND_TH[mon.kind]}</b> · {map.emoji} {map.name}</div>
+            <div>พลัง ~{monPower(mon)}</div>
+            <div>ล่าได้แล้ว <b>{seen}</b> ตัว</div>
+          </div>
+        </div>
+        <div className="px-inner p-3 text-sm"><div className="text-[11px] text-slate-500 mb-0.5">ตำนานของมอนสเตอร์</div>{known ? MON_LORE[mon.id] : 'ล่ามันให้ได้สักครั้งเพื่ออ่านตำนาน'}</div>
+        <div className="px-inner p-3 text-sm"><div className="text-[11px] text-slate-500 mb-0.5">ดินแดน: {map.name}</div>{MAP_LORE[map.id]}</div>
+        <div>
+          <div className="text-[11px] text-slate-500 mb-1">ของที่ดรอป</div>
+          <div className="space-y-1.5">
+            <div className="px-inner p-2 flex items-center gap-2 text-xs"><ItemIcon k={`t:${mon.id}`} /><div className="flex-1"><b>{mon.trophy}</b> · ของประจำตัว (ขายร้านได้อย่างเดียว)<div className="text-slate-500">{mon.kind === 'normal' ? 'โอกาส 55%' : 'ดรอปทุกครั้ง'} · {trophyPrice(mon)} FIAT</div></div></div>
+            {map.mats.map((k) => <div key={k} className="px-inner p-2 flex items-center gap-2 text-xs"><ItemIcon k={k} /><div className="flex-1"><b>{MATS[k].name}</b> · วัสดุ{mon.kind === 'boss' ? ' ×4' : mon.kind === 'elite' ? ' ×2' : ''}<div className="text-slate-500">{MATS[k].use}</div></div></div>)}
+            {mon.kind === 'boss' && <div className="px-inner p-2 flex items-center gap-2 text-xs"><ItemIcon k="page" /><div className="flex-1"><b>{MATS.page.name}</b> · โอกาส 30%<div className="text-slate-500">{MATS.page.use}</div></div></div>}
+          </div>
+        </div>
+      </div>
+    </Sheet>
+  )
+}
+
+/** the story of each map, told in three chapters that open as you hunt there */
+function Story({ rpg }) {
+  const f = rpg.farm
+  return (
+    <div className="space-y-3" data-testid="farm-story">
+      {MAPS.map((m) => {
+        const u = mapUnlocked(m, { level: rpg.level, realmTier: rpg.realm.tier }).ok
+        const kills = f.kills?.[m.id] || 0, boss = f.bossKills?.[m.id] || 0
+        const open = [u, u && kills >= 15, u && boss > 0]
+        const cast = (i) => (i === 0 ? m.mons.slice(0, 4) : i === 1 ? m.mons.slice(4, 9) : [m.mons[9]])
+        return (
+          <section key={m.id} className="px-card overflow-hidden">
+            <div className="h-20 relative" style={{ backgroundImage: `url(./sprites/map_${m.id}.png)`, backgroundSize: 'cover', backgroundPosition: 'center 70%', imageRendering: 'pixelated', filter: u ? 'none' : 'grayscale(1) brightness(.6)' }}>
+              <div className="absolute left-2 bottom-2 bg-slate-900/80 text-white px-2 py-1 text-sm font-bold">{m.emoji} {m.name}</div>
+              <div className="absolute right-2 bottom-2 bg-white/85 px-1.5 py-0.5 text-[10px]">บท {open.filter(Boolean).length}/3</div>
+            </div>
+            <div className="p-3 space-y-2.5">
+              <div className="text-[12px] text-slate-600 italic">{MAP_LORE[m.id]}</div>
+              {STORY[m.id].map((text, i) => (
+                <div key={i} className={`px-inner p-2.5 ${open[i] ? '' : 'opacity-60'}`}>
+                  <div className="text-[11px] font-bold mb-1">บทที่ {i + 1} {open[i] ? '' : `· 🔒 ${i === 0 ? 'ปลดล็อกแผนที่ก่อน' : STORY_STEPS[i]}`}</div>
+                  {open[i] ? <div className="text-sm">{text}</div> : <div className="text-sm text-slate-400">…</div>}
+                  <div className="flex gap-1 mt-1.5">{cast(i).map((x) => <div key={x.id} title={x.name}><Portrait sprite={`mon_${x.id}`} size={i === 2 ? 48 : 30} dim={!open[i] || !f.dex?.[x.id]} /></div>)}</div>
+                </div>
+              ))}
+            </div>
+          </section>
         )
       })}
     </div>
