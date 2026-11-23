@@ -59,24 +59,24 @@ export const MAP_BY_ID = Object.fromEntries(MAPS.map((m) => [m.id, m]))
 
 /** shared materials: every one has a use at the workshop, and can be sold */
 export const MATS = {
-  herb: { name: 'สมุนไพร', price: 2, use: 'ปรุงยาฟื้นพลัง · อาหารสัตว์' },
-  fruit: { name: 'ผลไม้ป่า', price: 2, use: 'อาหารสัตว์' },
-  wood: { name: 'ไม้', price: 3, use: 'ชุดวัสดุก่อสร้าง · ของตกแต่ง' },
-  fiber: { name: 'ใยพืช', price: 2, use: 'ด้าย (ย้อมชุด)' },
-  stone: { name: 'หิน', price: 3, use: 'ชุดวัสดุก่อสร้าง · ของตกแต่ง' },
-  iron: { name: 'แร่เหล็ก', price: 5, use: 'ชุดวัสดุก่อสร้าง' },
-  crystal: { name: 'คริสตัล', price: 9, use: 'ของตกแต่งพิเศษ · ยาชั้นสูง' },
-  hide: { name: 'หนังสัตว์', price: 4, use: 'ของตกแต่ง' },
-  feather: { name: 'ขนนก', price: 4, use: 'ของตกแต่ง' },
-  cloth: { name: 'ผ้า', price: 4, use: 'ของตกแต่ง · ย้อมชุด' },
-  dye: { name: 'สีย้อม', price: 5, use: 'ย้อมสีชุด' },
-  ink: { name: 'หมึกเวท', price: 7, use: 'อัปสกิลขั้นสูง' },
-  page: { name: 'หน้าคัมภีร์', price: 15, use: 'อัปสกิลขั้นสูง (ได้จากหีบวินัยและบอส)', rare: true },
-  star: { name: 'ดาวแห่งวินัย', price: 40, use: 'สกิลขั้นสูงสุด · ของตกแต่งตำนาน (ได้จากหีบวินัยเท่านั้น)', rare: true },
+  herb: { name: 'สมุนไพร', price: 1, use: 'ปรุงยาฟื้นพลัง · อาหารสัตว์' },
+  fruit: { name: 'ผลไม้ป่า', price: 1, use: 'อาหารสัตว์' },
+  wood: { name: 'ไม้', price: 2, use: 'ชุดวัสดุก่อสร้าง · ของตกแต่ง' },
+  fiber: { name: 'ใยพืช', price: 1, use: 'ด้าย (ย้อมชุด)' },
+  stone: { name: 'หิน', price: 2, use: 'ชุดวัสดุก่อสร้าง · ของตกแต่ง' },
+  iron: { name: 'แร่เหล็ก', price: 3, use: 'ชุดวัสดุก่อสร้าง' },
+  crystal: { name: 'คริสตัล', price: 6, use: 'ของตกแต่งพิเศษ · ยาชั้นสูง' },
+  hide: { name: 'หนังสัตว์', price: 2, use: 'ของตกแต่ง' },
+  feather: { name: 'ขนนก', price: 2, use: 'ของตกแต่ง' },
+  cloth: { name: 'ผ้า', price: 3, use: 'ของตกแต่ง · ย้อมชุด' },
+  dye: { name: 'สีย้อม', price: 3, use: 'ย้อมสีชุด' },
+  ink: { name: 'หมึกเวท', price: 5, use: 'อัปสกิลขั้นสูง' },
+  page: { name: 'หน้าคัมภีร์', price: 10, use: 'อัปสกิลขั้นสูง (ได้จากหีบวินัยและบอส)', rare: true },
+  star: { name: 'ดาวแห่งวินัย', price: 30, use: 'สกิลขั้นสูงสุด · ของตกแต่งตำนาน (ได้จากหีบวินัยเท่านั้น)', rare: true },
 }
 
-/** trophy sell price (FIAT): grows with the map; elites ×2.5, bosses ×6 */
-export const trophyPrice = (mon) => { const t = MAP_BY_ID[mon.map].tier; const base = 3 + t; return Math.round(base * (mon.kind === 'boss' ? 6 : mon.kind === 'elite' ? 2.5 : 1)) }
+/** trophy sell price (FIAT): grows with the map; elites ×2, bosses ×5 */
+export const trophyPrice = (mon) => { const t = MAP_BY_ID[mon.map].tier; const base = 2 + t * 0.8; return Math.round(base * (mon.kind === 'boss' ? 5 : mon.kind === 'elite' ? 2 : 1)) }
 /** monster power (party needs about this much to win reliably) */
 export const monPower = (mon) => { const t = MAP_BY_ID[mon.map].tier; return Math.round((12 + t * t * 9) * (mon.kind === 'boss' ? 2.2 : mon.kind === 'elite' ? 1.5 : 1)) }
 export const BOSS_AFTER = 30 // kills in a map before its boss shows up

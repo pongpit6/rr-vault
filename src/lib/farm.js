@@ -24,20 +24,52 @@ export function energyOf({ traces = {}, habitDays = {}, condition, today }) {
   }
 }
 
-/* ---------------- skill tree ---------------- */
+/* ---------------- skill tree: every skill works by itself ----------------
+ * steady skills always apply; chance skills roll each fight and spend mana (from today's discipline) when they fire */
 export const TREE = [
-  { id: 'blade', member: 'knight', name: 'คมดาบวินัย', icon: 'sk_slash', type: 'passive', per: 6, text: (r) => `พลังทีม +${r * 6}%` },
-  { id: 'storm', member: 'knight', name: 'ฟันพายุ', icon: 'sk_storm', type: 'active', mana: 3, text: (r) => `${3 + r} รอบถัดไปได้ของดรอป ×2` },
-  { id: 'bless', member: 'healer', name: 'พรคุ้มครอง', icon: 'sk_shield', type: 'passive', per: 8, text: (r) => `แพ้แล้วมีโอกาสลุกขึ้นสู้ใหม่ ${r * 8}%` },
-  { id: 'revive', member: 'healer', name: 'แสงฟื้นฟู', icon: 'sk_heal', type: 'active', mana: 2, text: (r) => `${3 + r} รอบถัดไปไม่แพ้` },
-  { id: 'arcane', member: 'mage', name: 'พลังเวท', icon: 'sk_fireball', type: 'passive', per: 5, text: (r) => `พลังทีม +${r * 5}%` },
-  { id: 'meteor', member: 'mage', name: 'อุกกาบาต', icon: 'sk_meteor', type: 'active', mana: 3, text: (r) => `${r} ครั้งถัดไปที่เจอหัวหน้า/บอส ชนะแน่นอน + ของประจำตัวเพิ่ม 1` },
-  { id: 'eye', member: 'ranger', name: 'สายตาพราน', icon: 'sk_eagle', type: 'passive', per: 4, text: (r) => `โอกาสดรอปวัสดุ +${r * 4}%` },
-  { id: 'hawk', member: 'ranger', name: 'ตาเหยี่ยว', icon: 'sk_arrow', type: 'active', mana: 2, text: (r) => `${2 + r} รอบถัดไปดรอปวัสดุแน่นอน` },
+  { id: 'blade', member: 'knight', name: 'คมดาบวินัย', icon: 'sk_slash', kind: 'steady', text: (r) => `พลังทีม +${r * 5}%` },
+  { id: 'storm', member: 'knight', name: 'ฟันพายุ', icon: 'sk_storm', kind: 'chance', mana: 1, chance: (r) => r * 0.04, text: (r) => `โอกาส ${r * 4}% ที่ของดรอปรอบนั้น ×2` },
+  { id: 'bless', member: 'healer', name: 'พรคุ้มครอง', icon: 'sk_shield', kind: 'steady', text: (r) => `แพ้แล้วมีโอกาสลุกขึ้นสู้ใหม่ ${r * 6}%` },
+  { id: 'revive', member: 'healer', name: 'แสงฟื้นฟู', icon: 'sk_heal', kind: 'chance', mana: 1, chance: (r) => r * 0.1, text: (r) => `ตอนกำลังจะแพ้ โอกาส ${r * 10}% พลิกเป็นชนะ` },
+  { id: 'arcane', member: 'mage', name: 'พลังเวท', icon: 'sk_fireball', kind: 'steady', text: (r) => `พลังทีม +${r * 4}%` },
+  { id: 'meteor', member: 'mage', name: 'อุกกาบาต', icon: 'sk_meteor', kind: 'chance', mana: 2, chance: (r) => r * 0.15, text: (r) => `เจอหัวหน้า/บอส โอกาส ${r * 15}% ชนะแน่นอน + ของประจำตัวเพิ่ม 1` },
+  { id: 'eye', member: 'ranger', name: 'สายตาพราน', icon: 'sk_eagle', kind: 'steady', text: (r) => `โอกาสดรอปวัสดุ +${r * 4}%` },
+  { id: 'hawk', member: 'ranger', name: 'ตาเหยี่ยว', icon: 'sk_arrow', kind: 'chance', mana: 1, chance: (r) => r * 0.06, text: (r) => `โอกาส ${r * 6}% ได้วัสดุเพิ่มอีก 1 ชิ้น` },
 ]
 export const TREE_BY_ID = Object.fromEntries(TREE.map((t) => [t.id, t]))
+export const SKILLS_V = 2 // bump to refund every skill point after a rebalance
 /** cost to go from rank r-1 to r */
 export const rankCost = (r) => (r <= 3 ? { pts: 1 } : r === 4 ? { pts: 1, page: 3, ink: 3 } : { pts: 2, page: 5, ink: 5, star: 1 })
+
+/* ---------------- relics: villagers make them from materials; they work on their own while hunting ---------------- */
+export const RELICS = [
+  { id: 'rl_sword', npc: 'npc_smith', name: 'ดาบล่าสัตว์', eff: [8, 14, 20], text: (v) => `พลังทีม +${v}%`, need: [{ iron: 4, wood: 4 }, { iron: 8, crystal: 2 }, { iron: 12, crystal: 5, ink: 2 }] },
+  { id: 'rl_shield', npc: 'npc_smith', name: 'โล่ไม้โอ๊ก', eff: [5, 10, 15], text: (v) => `โอกาสไม่แพ้ +${v}%`, need: [{ wood: 6, stone: 4 }, { wood: 10, iron: 4 }, { wood: 14, iron: 8, crystal: 2 }] },
+  { id: 'rl_flask', npc: 'npc_alchemist', name: 'ขวดยาวิเศษ', eff: [15, 11, 8], text: (v) => `ได้ยาฟื้นพลังเองทุก ${v} รอบ`, need: [{ herb: 6, crystal: 1 }, { herb: 10, crystal: 3 }, { herb: 15, crystal: 5, ink: 2 }] },
+  { id: 'rl_dust', npc: 'npc_alchemist', name: 'ผงเรืองแสง', eff: [1, 2, 3], text: (v) => `มานาต่อวัน +${v}`, need: [{ crystal: 2, fiber: 4 }, { crystal: 4, ink: 2 }, { crystal: 6, ink: 4, page: 1 }] },
+  { id: 'rl_badge', npc: 'npc_guild', name: 'ตรานักล่า', eff: [26, 23, 20], text: (v) => `บอสแผนที่ออกเมื่อล่าครบ ${v} ตัว`, need: [{ hide: 4, stone: 4 }, { hide: 8, iron: 4 }, { hide: 12, iron: 6, crystal: 3 }] },
+  { id: 'rl_map', npc: 'npc_guild', name: 'แผนที่ขุมทรัพย์', eff: [3, 6, 10], text: (v) => `โอกาสของหายาก +${v}%`, need: [{ cloth: 3, ink: 1 }, { cloth: 6, ink: 3 }, { cloth: 9, ink: 5, page: 2 }] },
+  { id: 'rl_bag', npc: 'npc_shopgirl', name: 'กระเป๋าใบใหญ่', eff: [10, 20, 30], text: (v) => `โอกาสได้วัสดุชิ้นที่สอง +${v}%`, need: [{ hide: 4, fiber: 4 }, { hide: 8, cloth: 3 }, { hide: 12, cloth: 6, dye: 3 }] },
+  { id: 'rl_cloak', npc: 'npc_shopgirl', name: 'เสื้อคลุมพราง', eff: [5, 8, 10], text: (v) => `เจอหัวหน้าบ่อยขึ้น +${v}% (ดรอปดีกว่า)`, need: [{ cloth: 3, dye: 1 }, { cloth: 6, dye: 3 }, { cloth: 9, dye: 5, feather: 4 }] },
+  { id: 'rl_snack', npc: 'npc_farmer', name: 'ขนมสัตว์ชั้นดี', eff: [5, 10, 15], text: (v) => `สัตว์เลี้ยงคาบของมาเพิ่ม 1 ชิ้น โอกาส ${v}%`, need: [{ fruit: 4, herb: 4 }, { fruit: 8, herb: 6 }, { fruit: 12, herb: 10, feather: 3 }] },
+  { id: 'rl_glasses', npc: 'npc_teacher', name: 'แว่นนักปราชญ์', eff: [1, 1, 2], text: (v) => `แต้มสกิลจากหีบวินัย +${v}`, need: [{ ink: 2, crystal: 1 }, { ink: 4, page: 2 }, { ink: 6, page: 4, star: 1 }] },
+]
+export const RELIC_BY_ID = Object.fromEntries(RELICS.map((r) => [r.id, r]))
+export const NPC_INFO = {
+  npc_smith: { name: 'ช่างตีเหล็ก', line: 'เอาแร่กับไม้มา เดี๋ยวตีของดี ๆ ให้' },
+  npc_alchemist: { name: 'นักเล่นแร่แปรธาตุ', line: 'สมุนไพรกับคริสตัล… ข้าจะปรุงเวทให้เจ้า' },
+  npc_guild: { name: 'หัวหน้ากิลด์นักล่า', line: 'นักล่าตัวจริงต้องมีตราของกิลด์' },
+  npc_shopgirl: { name: 'ช่างตัดเสื้อ', line: 'ผ้ากับหนังสวย ๆ มาเลย จะเย็บให้เข้ากับท่าน' },
+  npc_farmer: { name: 'ชาวนา', line: 'ผลไม้ป่ากับสมุนไพรเนี่ย สัตว์เลี้ยงชอบนัก' },
+  npc_teacher: { name: 'ครูบรรณารักษ์', line: 'หมึกกับหน้าคัมภีร์ คือขุมทรัพย์ของผู้รู้' },
+}
+export const relicSlots = (level) => 3 + (level >= 20 ? 1 : 0) + (level >= 40 ? 1 : 0)
+/** effect values of the relics you are wearing */
+export function relicFx(f) {
+  const fx = {}
+  for (const id of f.worn || []) { const r = RELIC_BY_ID[id], t = (f.relics || {})[id]; if (r && t) fx[id] = r.eff[t - 1] }
+  return fx
+}
 
 /* ---------------- discipline chests: the hard things in real life ---------------- */
 export function chestsDue({ habits, rpg, today }) {
@@ -71,14 +103,14 @@ export function chestLoot(chest) {
 
 /* ---------------- workshop ---------------- */
 export const RECIPES = [
-  { id: 'potion', name: 'ยาฟื้นพลัง', icon: 'Pill', need: { herb: 3 }, gives: 'กันแพ้ 1 ครั้ง (ใช้อัตโนมัติ)' },
-  { id: 'treat', name: 'ขนมสัตว์เลี้ยง', icon: 'Gift', need: { fruit: 2, herb: 1 }, gives: 'ความผูกพันสัตว์เลี้ยง +1 (ทุก 5 แต้มเพิ่มโอกาสดรอป 1%, สูงสุด 5%)' },
-  { id: 'kit', name: 'ชุดวัสดุก่อสร้าง', icon: 'Hammer', need: { wood: 6, stone: 6, iron: 2 }, gives: 'สร้าง/อัปเกรดอาคารครั้งถัดไป ลด FIAT 40%' },
-  { id: 'cr_garden', name: 'สวนสมุนไพร', icon: 'Sprout', need: { herb: 6, fruit: 4, wood: 4 }, decor: true, gives: 'ของตกแต่งเมือง · ความสุข +6' },
-  { id: 'cr_totem', name: 'เสาโทเท็มนักล่า', icon: 'Trophy', need: { wood: 8, feather: 4, hide: 4 }, decor: true, gives: 'ของตกแต่งเมือง · ความสุข +8' },
-  { id: 'cr_tapestry', name: 'ผ้าแขวนลายมอนสเตอร์', icon: 'Flag', need: { fiber: 6, cloth: 3, dye: 3 }, decor: true, gives: 'ของตกแต่งเมือง · ความสุข +8' },
-  { id: 'cr_lamp', name: 'โคมคริสตัล', icon: 'Lightbulb', need: { crystal: 4, iron: 4 }, decor: true, gives: 'ของตกแต่งเมือง · ความสุข +10' },
-  { id: 'cr_hero', name: 'รูปปั้นวีรบุรุษ', icon: 'Award', need: { stone: 15, crystal: 3, star: 1 }, decor: true, gives: 'ของตกแต่งตำนาน · ความสุข +20' },
+  { id: 'potion', npc: 'npc_alchemist', name: 'ยาฟื้นพลัง', icon: 'Pill', need: { herb: 3 }, gives: 'กันแพ้ 1 ครั้ง (ใช้อัตโนมัติ)' },
+  { id: 'treat', npc: 'npc_farmer', name: 'ขนมสัตว์เลี้ยง', icon: 'Gift', need: { fruit: 2, herb: 1 }, gives: 'ความผูกพันสัตว์เลี้ยง +1 (ทุก 5 แต้มเพิ่มโอกาสดรอป 1%, สูงสุด 5%)' },
+  { id: 'kit', npc: 'npc_smith', name: 'ชุดวัสดุก่อสร้าง', icon: 'Hammer', need: { wood: 6, stone: 6, iron: 2 }, gives: 'สร้าง/อัปเกรดอาคารครั้งถัดไป ลด FIAT 40%' },
+  { id: 'cr_garden', npc: 'npc_smith', name: 'สวนสมุนไพร', icon: 'Sprout', need: { herb: 6, fruit: 4, wood: 4 }, decor: true, gives: 'ของตกแต่งเมือง · ความสุข +6' },
+  { id: 'cr_totem', npc: 'npc_smith', name: 'เสาโทเท็มนักล่า', icon: 'Trophy', need: { wood: 8, feather: 4, hide: 4 }, decor: true, gives: 'ของตกแต่งเมือง · ความสุข +8' },
+  { id: 'cr_tapestry', npc: 'npc_smith', name: 'ผ้าแขวนลายมอนสเตอร์', icon: 'Flag', need: { fiber: 6, cloth: 3, dye: 3 }, decor: true, gives: 'ของตกแต่งเมือง · ความสุข +8' },
+  { id: 'cr_lamp', npc: 'npc_smith', name: 'โคมคริสตัล', icon: 'Lightbulb', need: { crystal: 4, iron: 4 }, decor: true, gives: 'ของตกแต่งเมือง · ความสุข +10' },
+  { id: 'cr_hero', npc: 'npc_smith', name: 'รูปปั้นวีรบุรุษ', icon: 'Award', need: { stone: 15, crystal: 3, star: 1 }, decor: true, gives: 'ของตกแต่งตำนาน · ความสุข +20' },
 ]
 export const CRAFT_DECOR = { cr_garden: 6, cr_totem: 8, cr_tapestry: 8, cr_lamp: 10, cr_hero: 20 }
 
@@ -88,45 +120,55 @@ export function mapUnlocked(map, { level, realmTier }) {
   if (map.unlock.realm && realmTier < map.unlock.realm) return { ok: false, why: `ดินแดน ${['', 'หมู่บ้านเริ่มต้น', 'เมืองการค้า', 'ปราสาทมั่งคั่ง', 'อาณาจักรทองคำ'][map.unlock.realm]} (มูลค่าสุทธิจริง)` }
   return { ok: true }
 }
-export function partyPower({ level, gear = [], party = [], skills = {}, traces = {} }) {
+export function partyPower({ level, gear = [], party = [], skills = {}, traces = {}, fx = {} }) {
   const tiers = gear.reduce((s, g) => s + g.tier, 0)
   const joined = party.filter((p) => p.joined && p.id !== 'knight').length
   let p = 10 + level * 4 + tiers * 10 + joined * 6
-  const pct = (skills.blade || 0) * 6 + (party.find((x) => x.id === 'mage')?.joined ? (skills.arcane || 0) * 5 : 0) + (traces.paid ? 10 : 0)
+  const pct = (skills.blade || 0) * 5 + (party.find((x) => x.id === 'mage')?.joined ? (skills.arcane || 0) * 4 : 0) + (traces.paid ? 10 : 0) + (fx.rl_sword || 0)
   return Math.round(p * (1 + pct / 100))
 }
 const rnd = () => Math.random()
-/** one fight. f = data.farm (mutated copy). returns a log entry */
-export function fight(f, ctx) {
-  const map = MAP_BY_ID[f.map]
+/** one fight. f = data.farm (mutated copy), day = today's usage (mana is spent here). returns a log entry */
+export function fight(f, day, ctx) {
+  const map = MAP_BY_ID[f.map], sk = ctx.skills, fx = ctx.fx, procs = []
+  const has = (m) => m === 'knight' || ctx.joined.includes(m)
+  const rank = (id) => (has(TREE_BY_ID[id].member) ? sk[id] || 0 : 0)
+  const proc = (id) => { const t = TREE_BY_ID[id], r = rank(id); if (!r || day.mana + t.mana > ctx.mana || rnd() >= t.chance(r)) return false; day.mana += t.mana; procs.push(t.name); return true }
   const kills = f.kills[map.id] || 0, bossKills = f.bossKills?.[map.id] || 0
-  const mon = kills >= BOSS_AFTER * (bossKills + 1) ? map.mons[9] : rnd() < 0.1 ? map.mons[8] : map.mons[Math.floor(rnd() * 8)]
-  const mp = monPower(mon), pw = ctx.power
-  let win = rnd() < Math.max(0.05, Math.min(0.97, 0.5 + (pw - mp) / (2 * mp)))
-  const b = f.buffs
-  let note = ''
-  if (!win && mon.kind !== 'normal' && b.meteor > 0) { win = true; b.meteor--; note = 'อุกกาบาต!' }
-  if (!win && b.revive > 0) { win = true; b.revive--; note = 'แสงฟื้นฟู' }
-  if (!win && ctx.skills.bless && ctx.healer && rnd() < ctx.skills.bless * 0.08) { win = true; note = 'พรคุ้มครอง' }
-  if (!win && (f.potions || 0) > 0) { win = true; f.potions--; note = 'ใช้ยาฟื้นพลัง' }
+  const bossAfter = fx.rl_badge || BOSS_AFTER
+  const mon = kills >= bossAfter * (bossKills + 1) ? map.mons[9] : rnd() < 0.1 + (fx.rl_cloak || 0) / 100 ? map.mons[8] : map.mons[Math.floor(rnd() * 8)]
+  const mp = monPower(mon)
+  let win = rnd() < Math.max(0.05, Math.min(0.97, 0.5 + (ctx.power - mp) / (2 * mp) + (fx.rl_shield || 0) / 100))
+  let meteor = false
+  if (mon.kind !== 'normal' && proc('meteor')) { win = true; meteor = true }
+  if (!win && proc('revive')) win = true
+  if (!win && rank('bless') && rnd() < rank('bless') * 0.06) { win = true; procs.push('พรคุ้มครอง') }
+  if (!win && (f.potions || 0) > 0) { win = true; f.potions--; procs.push('ยาฟื้นพลัง') }
+  f.runs = (f.runs || 0) + 1
+  if (fx.rl_flask && f.runs % fx.rl_flask === 0) { f.potions = (f.potions || 0) + 1; procs.push('ได้ยาใหม่') }
   const drops = {}
+  const add = (k, n) => { drops[k] = (drops[k] || 0) + n }
   if (win) {
     f.kills[map.id] = kills + 1
     if (mon.kind === 'boss') f.bossKills = { ...(f.bossKills || {}), [map.id]: bossKills + 1 }
     f.dex[mon.id] = (f.dex[mon.id] || 0) + 1
-    const mult = b.storm > 0 ? 2 : 1; if (b.storm > 0) b.storm--
-    const tro = mon.kind === 'normal' ? (rnd() < 0.55 ? 1 : 0) : 1
-    if (tro) drops[`t:${mon.id}`] = tro * mult + (note === 'อุกกาบาต!' ? 1 : 0)
-    const matChance = 0.4 + (ctx.skills.eye || 0) * 0.04 + ctx.hard * 0.05 + Math.min(5, Math.floor((f.bond || 0) / 5)) * 0.01 + (ctx.traces.saved ? 0.1 : 0)
-    if (b.hawk > 0 || rnd() < matChance) {
-      if (b.hawk > 0) b.hawk--
-      const m = map.mats[Math.floor(rnd() * map.mats.length)]
-      drops[m] = (drops[m] || 0) + mult * (mon.kind === 'boss' ? 4 : mon.kind === 'elite' ? 2 : 1)
-    }
-    if (mon.kind === 'boss' && rnd() < 0.3) drops.page = (drops.page || 0) + 1
+    const big = mon.kind === 'boss' ? 4 : mon.kind === 'elite' ? 2 : 1
+    // slot 1: its own trophy
+    if (mon.kind !== 'normal' || rnd() < 0.55) add(`t:${mon.id}`, 1 + (meteor ? 1 : 0))
+    // slot 2: materials (a second piece needs luck)
+    const matChance = 0.45 + rank('eye') * 0.04 + ctx.hard * 0.05 + Math.min(5, Math.floor((f.bond || 0) / 5)) * 0.01 + (ctx.traces.saved ? 0.1 : 0)
+    const mat = () => map.mats[Math.floor(rnd() * map.mats.length)]
+    if (rnd() < matChance) { add(mat(), big); if (rnd() < 0.15 + (fx.rl_bag || 0) / 100) add(mat(), 1) }
+    if (proc('hawk')) add(mat(), 1)
+    // slot 3: something rare
+    const rare = (mon.kind === 'boss' ? 0.3 : mon.kind === 'elite' ? 0.08 : 0.02) + (fx.rl_map || 0) / 100
+    if (rnd() < rare) add(map.id === 'meadow' || map.id === 'forest' ? (rnd() < 0.5 ? 'crystal' : 'ink') : rnd() < 0.5 ? 'page' : 'ink', 1)
+    // the pet brings something back
+    if (fx.rl_snack && rnd() < fx.rl_snack / 100) { add(mat(), 1); procs.push('สัตว์เลี้ยงคาบของมา') }
+    if (proc('storm')) for (const k of Object.keys(drops)) drops[k] *= 2
     for (const [k, v] of Object.entries(drops)) f.bag[k] = (f.bag[k] || 0) + v
   }
-  return { mon: mon.id, win, drops, note }
+  return { mon: mon.id, win, drops, note: procs.join(' · ') }
 }
 
 /* ---------------- selling ---------------- */
@@ -134,5 +176,5 @@ export const itemName = (k) => (k.startsWith('t:') ? MON_BY_ID[k.slice(2)]?.trop
 export const itemPrice = (k) => (k.startsWith('t:') ? trophyPrice(MON_BY_ID[k.slice(2)]) : MATS[k]?.price || 0)
 export const itemIcon = (k) => (k.startsWith('t:') ? `tro_${k.slice(2)}` : `mat_${k}`)
 
-export function emptyFarm() { return { map: 'meadow', kills: {}, bossKills: {}, bag: {}, dex: {}, buffs: {}, skills: {}, day: null, auto: false, last: null, potions: 0, bond: 0, kit: 0, chests: {}, bonusPts: 0 } }
+export function emptyFarm() { return { map: 'meadow', kills: {}, bossKills: {}, bag: {}, dex: {}, skills: {}, relics: {}, worn: [], runs: 0, day: null, auto: false, last: null, potions: 0, bond: 0, kit: 0, chests: {}, bonusPts: 0 } }
 export { MAPS, MAP_BY_ID, MON_BY_ID, MATS }

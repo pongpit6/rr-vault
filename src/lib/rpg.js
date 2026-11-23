@@ -10,7 +10,7 @@ import { selectList } from '../store'
 import { useWeather, loadWeather, sceneWeather, thaiEvent, isThaiHoliday, moneyMood } from './world'
 import { doubleDay, decorOnSale } from './festivals'
 import { setHeroStage, setHeroSkin, setPetStage } from './heroStage'
-import { energyOf, partyPower, fight, emptyFarm, chestsDue, chestLoot, TREE_BY_ID, rankCost, RECIPES, CRAFT_DECOR, itemPrice, mapUnlocked, MAP_BY_ID } from './farm'
+import { energyOf, partyPower, fight, emptyFarm, chestsDue, chestLoot, TREE_BY_ID, rankCost, RECIPES, CRAFT_DECOR, itemPrice, mapUnlocked, MAP_BY_ID, SKILLS_V, RELIC_BY_ID, relicFx, relicSlots } from './farm'
 import { outfitOf, condition7, shadowRace, birthdayInfo, bdaySkin, storyAct, albumSnap, FREEDOM_STEPS } from './hero'
 import { usePrices } from './prices'
 import { loadXau } from './market'
@@ -434,15 +434,18 @@ function computeRpg({ accounts, txns, settings, balances, summary, unlocked, por
   const condition = condition7(habitDays, today)
   world.birthday = birthday
 
-  const energy = energyOf({ traces, habitDays, condition, today })
   const farm = { ...emptyFarm(), ...(data.farm || {}) }
+  if (farm.skillsV !== SKILLS_V) farm.skills = {} // skills were rebalanced: every point comes back
+  const fxR = relicFx(farm)
+  const energy0 = energyOf({ traces, habitDays, condition, today })
+  const energy = { ...energy0, mana: energy0.mana + (fxR.rl_dust || 0) }
   const skillPts = lv.level + (farm.bonusPts || 0) - Object.values(farm.skills || {}).reduce((s, r) => s + [0, 1, 2, 3, 4, 6][r], 0)
-  const power = partyPower({ level: lv.level, gear: party.gear, party: party.party, skills: farm.skills, traces })
+  const power = partyPower({ level: lv.level, gear: party.gear, party: party.party, skills: farm.skills, traces, fx: fxR })
   const used = farm.day?.date === today ? farm.day : { date: today, runs: 0, mana: 0 }
   const chests = chestsDue({ habits: h, rpg: { noSpendStreak, monthBoss, quests, bosses }, today }).filter((c) => !(farm.chests || {})[c.key])
 
   return {
-    outfit, condition, shadow, act, birthday, energy, farm, skillPts, power, chests,
+    outfit, condition, shadow, act, birthday, energy, farm, skillPts, power, chests, relicFx: fxR, relicSlots: relicSlots(lv.level),
     staminaLeft: Math.max(0, energy.stamina - used.runs), manaLeft: Math.max(0, energy.mana - used.mana),
     inventory: portfolio.open, portfolioValue: portfolio.value,
     xp, xpParts, ...lv, title: title[1], titleEn: title[2], stats, bosses, quests, achievements, newlyUnlocked,
@@ -667,35 +670,42 @@ export function useRpg() {
     return bdaySkin(bdayId)
   }
   // ---------- monster farm ----------
-  const F = () => ({ ...emptyFarm(), ...(fresh().farm || {}) })
+  const F = () => { const f = { ...emptyFarm(), ...(fresh().farm || {}) }; if (f.skillsV !== SKILLS_V) { f.skills = {}; f.skillsV = SKILLS_V } return f }
   const dayOf = (f) => (f.day?.date === todayISO() ? { ...f.day } : { date: todayISO(), runs: 0, mana: 0 })
   const saveFarm = (f) => save({ farm: f })
   const farmFight = (n = 1) => {
-    const f = F(); f.bag = { ...f.bag }; f.kills = { ...f.kills }; f.dex = { ...f.dex }; f.buffs = { ...f.buffs }
+    const f = F(); f.bag = { ...f.bag }; f.kills = { ...f.kills }; f.dex = { ...f.dex }
     const day = dayOf(f), logs = []
     const map = MAP_BY_ID[f.map]
     if (!mapUnlocked(map, { level: rpg.level, realmTier: rpg.realm.tier }).ok) return []
-    const ctx = { power: rpg.power, skills: f.skills || {}, healer: rpg.party.find((p) => p.id === 'healer')?.joined, hard: rpg.energy.hard, traces: rpg.traces }
-    for (let i = 0; i < n && day.runs < rpg.energy.stamina; i++) { day.runs++; logs.push(fight(f, ctx)) }
+    const ctx = { power: rpg.power, skills: f.skills || {}, joined: rpg.party.filter((p) => p.joined).map((p) => p.id), hard: rpg.energy.hard, traces: rpg.traces, mana: rpg.energy.mana, fx: relicFx(f) }
+    for (let i = 0; i < n && day.runs < rpg.energy.stamina; i++) { day.runs++; logs.push(fight(f, day, ctx)) }
     f.day = day; f.last = new Date().toISOString()
     if (logs.length) { saveFarm(f); sfx(logs.some((l) => l.win) ? 'coin' : 'hit') }
     return logs
   }
   const setFarm = (patch) => saveFarm({ ...F(), ...patch })
-  const castSkill = (id) => {
-    const t = TREE_BY_ID[id], f = F(), r = (f.skills || {})[id] || 0, day = dayOf(f)
-    if (!t || t.type !== 'active' || !r || day.mana + t.mana > rpg.energy.mana) return false
-    if (t.member !== 'knight' && !rpg.party.find((p) => p.id === t.member)?.joined) return false
-    const add = { storm: 3 + r, revive: 3 + r, meteor: r, hawk: 2 + r }[id]
-    day.mana += t.mana
-    saveFarm({ ...f, day, buffs: { ...f.buffs, [id]: (f.buffs?.[id] || 0) + add } }); sfx('levelup'); return true
+  // relics: villagers make or upgrade them from materials; wear up to rpg.relicSlots
+  const makeRelic = (id) => {
+    const r = RELIC_BY_ID[id], f = F(), t = (f.relics || {})[id] || 0, need = r?.need[t], bag = { ...f.bag }
+    if (!need || Object.entries(need).some(([k, v]) => (bag[k] || 0) < v)) return false
+    for (const [k, v] of Object.entries(need)) bag[k] -= v
+    const worn = f.worn || []
+    const autoWear = !t && worn.length < rpg.relicSlots
+    saveFarm({ ...f, bag, relics: { ...(f.relics || {}), [id]: t + 1 }, worn: autoWear ? [...worn, id] : worn }); sfx('levelup'); return true
+  }
+  const wearRelic = (id) => {
+    const f = F(), worn = f.worn || []
+    if (worn.includes(id)) return saveFarm({ ...f, worn: worn.filter((x) => x !== id) }) || true
+    if (!(f.relics || {})[id] || worn.length >= rpg.relicSlots) return false
+    saveFarm({ ...f, worn: [...worn, id] }); return true
   }
   const rankUp = (id) => {
     const f = F(), r = ((f.skills || {})[id] || 0) + 1, c = rankCost(r), bag = { ...f.bag }
     if (r > 5 || rpg.skillPts < c.pts) return false
     for (const k of ['page', 'ink', 'star']) if ((bag[k] || 0) < (c[k] || 0)) return false
     for (const k of ['page', 'ink', 'star']) if (c[k]) bag[k] -= c[k]
-    saveFarm({ ...f, bag, skills: { ...(f.skills || {}), [id]: r } }); sfx('levelup'); return true
+    saveFarm({ ...f, bag, skills: { ...(f.skills || {}), [id]: r }, skillsV: SKILLS_V }); sfx('levelup'); return true
   }
   const sellItems = (keys) => {
     const f = F(), bag = { ...f.bag }; let got = 0
@@ -719,6 +729,7 @@ export function useRpg() {
     const L = chestLoot(c), bag = { ...f.bag }
     for (const [k, v] of Object.entries(L.mats)) bag[k] = (bag[k] || 0) + v
     bag.page = (bag.page || 0) + L.page; if (L.star) bag.star = (bag.star || 0) + L.star
+    const gl = relicFx(f).rl_glasses || 0; L.points += gl
     pay(L.fiat, 0, { icon: '🎁', text: `เปิดหีบวินัย: ${c.name}` }, { farm: { ...f, bag, bonusPts: (f.bonusPts || 0) + L.points, chests: { ...(f.chests || {}), [c.key]: now() } } }); sfx('levelup')
     return L
   }
@@ -755,7 +766,7 @@ export function useRpg() {
     ...rpg, vault: v, fiat, gold, chestReady, openChest, buy, shopPrice, setEquip, toggleDeco, decorPrice, saleOff, chestCount: data.chestCount || 0,
     inflation: inflationMult(data), afford, buildPrice, build, upgrade, demolish, hallPrice, upgradeHall, hire, dismiss, buyDecor,
     collectReady, collect, collectDays, collectAmount, claim, exchange, exchangeRate: exchangeRate(data), exchangedThisWeek, econData: data,
-    bdayReady, claimBirthday, album: data.album || {}, farmFight, setFarm, castSkill, rankUp, sellItems, craft, openDiscipline,
+    bdayReady, claimBirthday, album: data.album || {}, farmFight, setFarm, makeRelic, wearRelic, rankUp, sellItems, craft, openDiscipline,
     markNoSpend, noSpendReward, canNoSpendOn, markNoSpendOn, spentOn, markStorySeen, chooseMonthBoss, markMonthSeen,
   }
 }

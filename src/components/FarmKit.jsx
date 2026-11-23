@@ -4,7 +4,7 @@ import { Emo, PxIcon, hasPx } from './px'
 import { Portrait } from './RpgBits'
 import FarmScene from './FarmScene'
 import { useStore } from '../store'
-import { MAPS, MAP_BY_ID, MON_BY_ID, MATS, TREE, rankCost, RECIPES, mapUnlocked, itemName, itemPrice, itemIcon, ENERGY_PTS } from '../lib/farm'
+import { MAPS, MAP_BY_ID, MON_BY_ID, MATS, TREE, rankCost, RECIPES, mapUnlocked, itemName, itemPrice, itemIcon, RELICS, RELIC_BY_ID, NPC_INFO } from '../lib/farm'
 import { monPower, BOSS_AFTER, trophyPrice } from '../lib/farmData'
 import { MAP_LORE, MON_LORE, STORY, STORY_STEPS } from '../lib/farmLore'
 import { Sheet } from './ui'
@@ -32,7 +32,7 @@ export default function FarmTab({ rpg }) {
   return (
     <div className="space-y-3" data-testid="farm-tab">
       <div className="flex gap-1.5 flex-wrap">
-        {[['hunt', 'ล่า', Swords], ['bag', 'กระเป๋า', Backpack], ['craft', 'โรงช่าง', Hammer], ['dex', 'สมุดมอนสเตอร์', BookOpen], ['story', 'เรื่องราว', ScrollText]].map(([id, label, I]) => (
+        {[['hunt', 'ล่า', Swords], ['bag', 'กระเป๋า', Backpack], ['craft', 'ชาวเมือง', Hammer], ['dex', 'สมุดมอนสเตอร์', BookOpen], ['story', 'เรื่องราว', ScrollText]].map(([id, label, I]) => (
           <button key={id} onClick={() => setSub(id)} className={`px-tab ${sub === id ? 'on' : ''}`} data-testid={`farm-sub-${id}`}><I size={14} /> {label}{id === 'craft' && rpg.chests.length > 0 && <span className="dot" />}</button>
         ))}
       </div>
@@ -112,14 +112,11 @@ function Hunt({ rpg }) {
             <button className="px-btn" onClick={() => hit(5)} disabled={!rpg.staminaLeft}>สู้ 5 รอบ</button>
             <button className={`px-btn ${f.auto ? '!bg-amber-400' : ''}`} onClick={() => rpg.setFarm({ auto: !f.auto, last: new Date().toISOString() })} disabled={!rpg.staminaLeft && !f.auto} data-testid="farm-auto">{f.auto ? <><Pause size={15} /> หยุดออโต้</> : <><Play size={15} /> ออโต้</>}</button>
           </div>
-          <div className="flex gap-1.5 flex-wrap">
-            {TREE.filter((t) => t.type === 'active' && (f.skills?.[t.id] || 0) > 0).map((t) => (
-              <button key={t.id} className="px-inner px-2 py-1 text-xs flex items-center gap-1" disabled={rpg.manaLeft < t.mana} onClick={() => showToast(rpg.castSkill(t.id) ? `ใช้ “${t.name}” แล้ว` : 'มานาไม่พอ หรือสมาชิกยังไม่เข้าทีม')}>
-                <Emo k={t.icon} size={18} /> {t.name} <span className="text-indigo-600">{t.mana}✦</span>{f.buffs?.[t.id] ? <span className="text-emerald-600"> ×{f.buffs[t.id]}</span> : null}
-              </button>
-            ))}
-            {!TREE.some((t) => t.type === 'active' && (f.skills?.[t.id] || 0) > 0) && <span className="text-[11px] text-slate-400">ยังไม่มีสกิลกดใช้ ไปเพิ่มแต้มที่แท็บ “สกิล”</span>}
-            {(f.potions || 0) > 0 && <span className="text-[11px] px-2 py-1 bg-emerald-50">🧪 ยาฟื้นพลัง ×{f.potions}</span>}
+          <div className="flex gap-1 flex-wrap text-[10px]" data-testid="farm-passives">
+            {TREE.filter((t) => (f.skills?.[t.id] || 0) > 0).map((t) => <span key={t.id} className="px-inner px-1.5 py-0.5 flex items-center gap-1"><Emo k={t.icon} size={14} />{t.name} {t.kind === 'chance' ? `${Math.round(t.chance(f.skills[t.id]) * 100)}%` : `ขั้น ${f.skills[t.id]}`}</span>)}
+            {(f.worn || []).map((id) => <span key={id} className="px-inner px-1.5 py-0.5 flex items-center gap-1 bg-amber-50"><Emo k={id} size={14} />{RELIC_BY_ID[id]?.name}</span>)}
+            {(f.potions || 0) > 0 && <span className="px-1.5 py-0.5 bg-emerald-50">🧪 ยา ×{f.potions}</span>}
+            {!Object.values(f.skills || {}).some(Boolean) && !(f.worn || []).length && <span className="text-slate-400">สกิลและของติดตัวทำงานเองระหว่างสู้ · ลงแต้มที่แท็บ “สกิล” · รับของติดตัวจาก “ชาวเมือง”</span>}
           </div>
           <div className="space-y-0.5 text-[11px]" data-testid="farm-log">
             {log.map((l, i) => {
@@ -169,23 +166,50 @@ function Craft({ rpg }) {
             <button className="px-btn !py-1 text-xs" onClick={() => { const L = rpg.openDiscipline(c); if (L) showToast(`ได้ ${L.fiat} FIAT · แต้มสกิล +${L.points} · หน้าคัมภีร์ ${L.page}${L.star ? ' · ดาวแห่งวินัย 1' : ''}`) }}>เปิด</button></div>
         )) : <div className="text-sm text-slate-400">ยังไม่มีหีบรอเปิด</div>}
       </Card>
-      <Card icon={Hammer} title="WORKSHOP · โรงช่าง" testid="workshop" right={<Portrait sprite="npc_smith" size={32} />}>
-        <div className="space-y-1.5">
-          {RECIPES.map((r) => {
-            const ok = Object.entries(r.need).every(([k, v]) => (bag[k] || 0) >= v)
-            const done = r.decor && rpg.town.decor.includes(r.id)
-            return (
-              <div key={r.id} className="px-inner p-2 flex items-center gap-2" data-testid={`recipe-${r.id}`}>
-                <Emo k={hasPx(r.id) ? r.id : r.icon} size={28} />
-                <div className="flex-1 min-w-0 text-xs"><div className="font-semibold text-sm">{r.name}</div><div className="text-slate-500">{r.gives}</div>
-                  <div>{Object.entries(r.need).map(([k, v]) => <span key={k} className={`mr-2 ${(bag[k] || 0) >= v ? 'text-emerald-700' : 'text-rose-500'}`}>{MATS[k].name} {bag[k] || 0}/{v}</span>)}</div></div>
-                <button className="px-btn !py-1 text-xs shrink-0" disabled={!ok || done} onClick={() => showToast(rpg.craft(r.id) ? `ทำ “${r.name}” แล้ว` : 'วัสดุไม่พอ')}>{done ? 'มีแล้ว' : 'ทำ'}</button>
-              </div>
-            )
-          })}
-        </div>
-        <div className="text-[11px] text-slate-500 mt-2">ตอนนี้มี: ยาฟื้นพลัง {rpg.farm.potions || 0} · ชุดวัสดุก่อสร้าง {rpg.farm.kit || 0} · ความผูกพันสัตว์เลี้ยง {rpg.farm.bond || 0} (ดรอป +{Math.min(5, Math.floor((rpg.farm.bond || 0) / 5))}%)</div>
+      <Card icon={Sparkles} title="RELICS · ของติดตัว" testid="relic-slots" right={<span className="text-[11px]">สวม {(rpg.farm.worn || []).length}/{rpg.relicSlots}</span>}>
+        <div className="text-[11px] text-slate-500 mb-2">ทำงานเองตลอดตอนล่า · ช่องเพิ่มที่เลเวล 20 และ 40 · แตะชิ้นที่ทำแล้วเพื่อสวม/ถอด</div>
+        <div className="flex gap-1.5">{Array.from({ length: 5 }, (_, i) => {
+          const id = (rpg.farm.worn || [])[i], open = i < rpg.relicSlots
+          return <div key={i} className={`w-12 h-12 grid place-items-center border-2 ${open ? 'border-slate-700 bg-white' : 'border-dashed border-slate-300 bg-slate-50'}`} title={id ? RELIC_BY_ID[id].name : open ? 'ว่าง' : i === 3 ? 'เลเวล 20' : 'เลเวล 40'}>{id ? <Emo k={id} size={34} /> : open ? '' : <Lock size={14} />}</div>
+        })}</div>
       </Card>
+      {Object.entries(NPC_INFO).map(([npc, info]) => {
+        const rel = RELICS.filter((r) => r.npc === npc), rec = RECIPES.filter((r) => r.npc === npc)
+        return (
+          <section key={npc} className="px-card p-4" data-testid={`npc-${npc}`}>
+            <div className="flex items-center gap-3 mb-2"><Portrait sprite={npc} size={44} /><div><div className="font-bold text-sm">{info.name}</div><div className="text-[11px] text-slate-500">“{info.line}”</div></div></div>
+            <div className="space-y-1.5">
+              {rel.map((r) => {
+                const t = (rpg.farm.relics || {})[r.id] || 0, need = r.need[t], worn = (rpg.farm.worn || []).includes(r.id)
+                const ok = need && Object.entries(need).every(([k, v]) => (bag[k] || 0) >= v)
+                return (
+                  <div key={r.id} className={`px-inner p-2 flex items-center gap-2 ${worn ? 'ring-2 ring-amber-400' : ''}`} data-testid={`relic-${r.id}`}>
+                    <button disabled={!t} onClick={() => { if (!rpg.wearRelic(r.id)) showToast('ช่องเต็มแล้ว ถอดชิ้นอื่นก่อน') }} className={t ? '' : 'opacity-40'}><Emo k={r.id} size={32} /></button>
+                    <div className="flex-1 min-w-0 text-xs">
+                      <div className="font-semibold text-sm">{r.name} {t ? <span className="text-amber-600">{'★'.repeat(t)}</span> : null}{worn && <span className="text-[10px] text-amber-700"> · สวมอยู่</span>}</div>
+                      <div className="text-slate-600">{t ? r.text(r.eff[t - 1]) : `ระดับ 1: ${r.text(r.eff[0])}`}{t && t < 3 ? ` → ระดับ ${t + 1}: ${r.text(r.eff[t])}` : ''}</div>
+                      {need && <div>{Object.entries(need).map(([k, v]) => <span key={k} className={`mr-2 ${(bag[k] || 0) >= v ? 'text-emerald-700' : 'text-rose-500'}`}>{MATS[k].name} {bag[k] || 0}/{v}</span>)}</div>}
+                    </div>
+                    {need ? <button className="px-btn !py-1 text-xs shrink-0" disabled={!ok} onClick={() => showToast(rpg.makeRelic(r.id) ? (t ? `อัป ${r.name} เป็นระดับ ${t + 1}` : `ได้ ${r.name}`) : 'วัสดุไม่พอ')}>{t ? 'อัป' : 'ส่งของ'}</button> : <span className="text-[10px] text-amber-700 shrink-0">สูงสุด</span>}
+                  </div>
+                )
+              })}
+              {rec.map((r) => {
+                const ok = Object.entries(r.need).every(([k, v]) => (bag[k] || 0) >= v), done = r.decor && rpg.town.decor.includes(r.id)
+                return (
+                  <div key={r.id} className="px-inner p-2 flex items-center gap-2" data-testid={`recipe-${r.id}`}>
+                    <Emo k={hasPx(r.id) ? r.id : r.icon} size={28} />
+                    <div className="flex-1 min-w-0 text-xs"><div className="font-semibold text-sm">{r.name}</div><div className="text-slate-500">{r.gives}</div>
+                      <div>{Object.entries(r.need).map(([k, v]) => <span key={k} className={`mr-2 ${(bag[k] || 0) >= v ? 'text-emerald-700' : 'text-rose-500'}`}>{MATS[k].name} {bag[k] || 0}/{v}</span>)}</div></div>
+                    <button className="px-btn !py-1 text-xs shrink-0" disabled={!ok || done} onClick={() => showToast(rpg.craft(r.id) ? `ได้ “${r.name}” แล้ว` : 'วัสดุไม่พอ')}>{done ? 'มีแล้ว' : 'ส่งของ'}</button>
+                  </div>
+                )
+              })}
+            </div>
+          </section>
+        )
+      })}
+      <div className="text-[11px] text-slate-500 px-1">ตอนนี้มี: ยาฟื้นพลัง {rpg.farm.potions || 0} · ชุดวัสดุก่อสร้าง {rpg.farm.kit || 0} · ความผูกพันสัตว์เลี้ยง {rpg.farm.bond || 0} (ดรอป +{Math.min(5, Math.floor((rpg.farm.bond || 0) / 5))}%)</div>
     </div>
   )
 }
@@ -280,7 +304,7 @@ export function SkillTree({ rpg }) {
   const f = rpg.farm, bag = f.bag || {}
   return (
     <Card icon={Sparkles} title="SKILL TREE · ต้นไม้สกิล" testid="skill-tree" right={<span className="text-[11px]">แต้มเหลือ <b>{rpg.skillPts}</b></span>}>
-      <div className="text-[11px] text-slate-500 mb-2">ได้ 1 แต้มทุกเลเวล + จากหีบวินัย · ขั้น 4–5 ใช้หน้าคัมภีร์และหมึกเวท ขั้น 5 ใช้ดาวแห่งวินัย · สกิลของเพื่อนร่วมทีมใช้ได้เมื่อเขาเข้าทีมแล้ว</div>
+      <div className="text-[11px] text-slate-500 mb-2">ได้ 1 แต้มทุกเลเวล + จากหีบวินัย · ขั้น 4–5 ใช้หน้าคัมภีร์และหมึกเวท ขั้น 5 ใช้ดาวแห่งวินัย · ทุกสกิลทำงานเอง ไม่ต้องกด · สกิลแบบมีโอกาสใช้มานาจากวินัยวันนี้ · สกิลของเพื่อนร่วมทีมทำงานเมื่อเขาเข้าทีมแล้ว</div>
       <div className="space-y-1.5">
         {TREE.map((t) => {
           const r = f.skills?.[t.id] || 0, c = rankCost(r + 1)
@@ -288,7 +312,7 @@ export function SkillTree({ rpg }) {
           return (
             <div key={t.id} className={`px-inner p-2 flex items-center gap-2 ${member?.joined ? '' : 'opacity-60'}`}>
               <Emo k={t.icon} size={30} />
-              <div className="flex-1 min-w-0 text-xs"><div className="font-semibold text-sm">{t.name} <span className="text-slate-400 font-normal">{member?.name} · {t.type === 'active' ? `กดใช้ ${t.mana} มานา` : 'ติดตัว'}</span></div>
+              <div className="flex-1 min-w-0 text-xs"><div className="font-semibold text-sm">{t.name} <span className="text-slate-400 font-normal">{member?.name} · {t.kind === 'chance' ? `ทำงานเองตามโอกาส · ใช้ ${t.mana} มานาเมื่อทำงาน` : 'ทำงานตลอด'}</span></div>
                 <div className="text-slate-600">{r ? t.text(r) : `ขั้น 1: ${t.text(1)}`}</div>
                 <div className="flex gap-0.5 mt-0.5">{[1, 2, 3, 4, 5].map((n) => <span key={n} className={`w-4 h-1.5 ${n <= r ? 'bg-amber-400' : 'bg-slate-200'}`} />)}</div></div>
               {r < 5 && <button className="px-btn !py-1 text-xs shrink-0" disabled={rpg.skillPts < c.pts || (c.page && (bag.page || 0) < c.page) || (c.ink && (bag.ink || 0) < c.ink) || (c.star && (bag.star || 0) < c.star)}
