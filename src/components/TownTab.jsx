@@ -288,7 +288,8 @@ function PlotSheet({ rpg, sel, onClose, ok }) {
               <div key={type} className="px-inner p-2.5 flex items-center gap-3" data-testid={`build-${type}`}>
                 <span className="w-8 text-center"><Art name={`bld_${type}_1`} size={32} fallback={B.emoji} /></span>
                 <div className="flex-1 min-w-0">
-                  <div className="text-sm font-semibold">{B.name} <span className="text-[10px] text-slate-400 font-normal">{T.count(type)}/{B.max}</span></div>
+                  <div className="text-sm font-semibold">{B.name} <span className={`text-[10px] font-normal ${T.count(type) ? 'text-teal-700' : 'text-slate-400'}`}>{B.max === 1 ? (T.count(type) ? 'มีแล้ว' : 'สร้างได้ 1 หลัง') : T.count(type) ? `มีแล้ว ${T.count(type)} · สร้างเพิ่มได้อีก ${Math.max(0, B.max - T.count(type))} (สูงสุด ${B.max})` : `สร้างได้สูงสุด ${B.max} หลัง`}</span></div>
+                  {B.max > 1 && T.count(type) > 0 && T.count(type) < B.max && <div className="text-[10px] text-slate-500">แต่ละหลังให้ผลแยกกัน รายได้รวมกัน · หรืออัปเกรดหลังเดิมได้ที่แปลงนั้น</div>}
                   <div className="text-[11px] text-slate-500">{B.desc}</div>
                   <div className="text-[11px] text-teal-700">{B.perkText(B.perk[0])}</div>
                   {locked && <div className="text-[11px] text-amber-700">🔒 ต้อง: {B.reqText}</div>}
