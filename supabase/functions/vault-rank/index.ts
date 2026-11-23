@@ -1,6 +1,7 @@
 // Market tab sorts for LifeQuest: market cap (converted to USD so mixed HK/China lists sort fairly)
 // and the 7-day change, for up to 200 Yahoo symbols per call.
-// GET ?symbols=PTT.BK,AOT.BK,...  ->  { rows: { sym: { cap, chg7 } }, at }
+// GET ?symbols=PTT.BK,AOT.BK,...  ->  { rows: { sym: { cap, chg1, chg7 } }, at }   (Yahoo)
+// GET ?coins=1                     ->  { rows: { BTC: { cap, chg1, chg7 } }, at }       (CoinGecko top 500)
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
 const CORS = {
@@ -40,7 +41,7 @@ const cache = new Map<string, { at: number; v: any }>();
 const chunks = (a: string[], n: number) => Array.from({ length: Math.ceil(a.length / n) }, (_, i) => a.slice(i * n, i * n + n));
 
 async function rank(symbols: string[]) {
-  const out: Record<string, { cap: number | null; chg7: number | null }> = {};
+  const out: Record<string, { cap: number | null; chg1: number | null; chg7: number | null }> = {};
   const todo = symbols.filter((s) => { const c = cache.get(s); if (c && Date.now() - c.at < 6 * 3600_000) { out[s] = c.v; return false; } return true; });
   if (!todo.length) return out;
   const caps: Record<string, { cap: number | null; ccy: string }> = {};
@@ -58,7 +59,7 @@ async function rank(symbols: string[]) {
       for (const q of f?.quoteResponse?.result || []) fx[q.symbol.slice(0, 3)] = q.regularMarketPrice;
     } catch (_) { /* those caps stay blank */ }
   }
-  const chg: Record<string, number | null> = {};
+  const chg: Record<string, number | null> = {}, chg1: Record<string, number | null> = {};
   const weekAgo = Date.now() / 1000 - 7 * 86400;
   await Promise.all(chunks(todo, 20).map(async (part) => {
     try {
@@ -73,22 +74,44 @@ async function rank(symbols: string[]) {
         let base = pts[0][1];
         for (const [t, c] of pts) if (t <= weekAgo) base = c;
         chg[r.symbol] = base ? ((last - base) / base) * 100 : null;
+        const prev = pts[pts.length - 2][1];
+        chg1[r.symbol] = prev ? ((last - prev) / prev) * 100 : null;
       }
     } catch (_) { /* leave blank */ }
   }));
   for (const s of todo) {
     const c = caps[s], unit = c?.ccy === "GBp" || c?.ccy === "ZAc" || c?.ccy === "ILA" ? 0.01 : 1;
     const rate = c?.ccy ? (c.ccy === "USD" ? 1 : fx[c.ccy]) : null;
-    const v = { cap: c?.cap && rate ? c.cap * rate * unit : null, chg7: chg[s] ?? null };
+    const v = { cap: c?.cap && rate ? c.cap * rate * unit : null, chg1: chg1[s] ?? null, chg7: chg[s] ?? null };
     out[s] = v;
     if (v.cap != null || v.chg7 != null) cache.set(s, { at: Date.now(), v });
   }
   return out;
 }
 
+// ---------- crypto: CoinGecko top 500 by market cap (one entry per ticker, the biggest wins) ----------
+// deno-lint-ignore no-explicit-any
+let coinCache: { at: number; rows: any } | null = null;
+async function coins() {
+  if (coinCache && Date.now() - coinCache.at < 30 * 60_000) return coinCache.rows;
+  const rows: Record<string, { cap: number | null; chg1: number | null; chg7: number | null; rank: number | null }> = {};
+  for (const page of [1, 2]) {
+    const r = await fetch(`https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=250&page=${page}&price_change_percentage=24h,7d`, { headers: { ...UA, accept: "application/json" } });
+    if (!r.ok) { if (coinCache) return coinCache.rows; throw new Error("coingecko " + r.status); }
+    for (const c of await r.json()) {
+      const k = String(c.symbol || "").toUpperCase();
+      if (!k || rows[k]) continue;
+      rows[k] = { cap: c.market_cap ?? null, chg1: c.price_change_percentage_24h_in_currency ?? c.price_change_percentage_24h ?? null, chg7: c.price_change_percentage_7d_in_currency ?? null, rank: c.market_cap_rank ?? null };
+    }
+  }
+  coinCache = { at: Date.now(), rows };
+  return rows;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
   try {
+    if (new URL(req.url).searchParams.get("coins")) return json({ rows: await coins(), at: Date.now() });
     const syms = (new URL(req.url).searchParams.get("symbols") || "").split(",").map((s) => s.trim()).filter(Boolean).slice(0, 200);
     if (!syms.length) return json({ error: "symbols required" }, 400);
     return json({ rows: await rank(syms), at: Date.now() });

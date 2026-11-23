@@ -143,7 +143,7 @@ export default function Market({ onTrade }) {
   const sortNow = sort || sorts?.[0]?.[0] || 'default'
   const [rk, setRk] = useState({})
   const [ranking, setRanking] = useState(false)
-  const wantRank = ['th', 'us', 'cn'].includes(cat) && RANK_SORTS.includes(sortNow) && !!catList
+  const wantRank = ['th', 'us', 'cn', 'crypto', 'gold', 'fx'].includes(cat) && (RANK_SORTS.includes(sortNow) || (cat === 'crypto' && ['up7', 'down7'].includes(sortNow))) && !!catList
   useEffect(() => {
     if (!wantRank) return
     let alive = true
@@ -238,7 +238,8 @@ export default function Market({ onTrade }) {
     if (!wantRank || !inCat || it.kind === 'index') return null
     const r = rk[it.symbol]
     if (sortNow === 'cap') return r?.cap ? { t: capShort(r.cap) } : null
-    return r?.chg7 != null ? { t: `7 วัน ${r.chg7 >= 0 ? '+' : ''}${r.chg7.toFixed(1)}%`, cls: r.chg7 >= 0 ? 'text-emerald-600' : 'text-rose-600' } : null
+    const d7 = sortNow.endsWith('7'), v = d7 ? r?.chg7 : r?.chg1
+    return v != null ? { t: `${d7 ? '7 วัน' : '24 ชม.'} ${v >= 0 ? '+' : ''}${v.toFixed(1)}%`, cls: v >= 0 ? 'text-emerald-600' : 'text-rose-600' } : null
   }
   const rowProps = (it) => ({ it, q: q[it.symbol], starred: isWatched(it.symbol), held: heldSyms.has(it.symbol), onStar: () => toggleWatch(it), onOpen: () => open(it), premium, note: rankNote(it) })
   const tabs = [{ id: 'all', label: 'ภาพรวม', emoji: '🗺️' }, ...(watch.length ? [{ id: 'watch', label: `ติดตาม ${watch.length}`, emoji: '⭐' }] : []), { id: 'fuel', label: 'น้ำมันไทย', emoji: '⛽' }, ...CATS]
@@ -354,6 +355,29 @@ export default function Market({ onTrade }) {
   )
 }
 
+/** two-way calculator on a currency: type either side; ⇅ puts THB on top */
+const fmtAmt = (v) => (!isFinite(v) ? '' : v >= 100 ? v.toLocaleString('en-US', { maximumFractionDigits: 2 }) : v.toLocaleString('en-US', { maximumFractionDigits: v >= 1 ? 4 : 6 }))
+function FxConverter({ it, rate, at }) {
+  const [thbTop, setThbTop] = useState(false)
+  const [amt, setAmt] = useState(String(it.per || 100))
+  const n = Number(String(amt).replace(/,/g, '')) || 0
+  const top = thbTop ? { flag: '🇹🇭', ccy: 'THB' } : { flag: it.flag, ccy: it.ccy }
+  const bot = thbTop ? { flag: it.flag, ccy: it.ccy } : { flag: '🇹🇭', ccy: 'THB' }
+  const out = thbTop ? n / rate : n * rate
+  const side = (s, children) => <div className="flex items-center gap-2 rounded-xl border-2 border-slate-200 px-3 py-2 bg-white"><div className="flex-1 min-w-0">{children}</div><span className="text-lg">{s.flag}</span><span className="font-semibold text-sm w-10">{s.ccy}</span></div>
+  return (
+    <div className="mt-3 card p-3 space-y-2" data-testid="fx-conv">
+      {side(top, <input className="w-full text-xl font-bold num outline-none bg-transparent" inputMode="decimal" value={amt} onChange={(e) => setAmt(e.target.value.replace(/[^0-9.,]/g, ''))} data-testid="fx-in" />)}
+      <div className="flex items-center gap-2">
+        <button onClick={() => { setThbTop(!thbTop); setAmt(fmtAmt(out).replace(/,/g, '')) }} className="w-9 h-9 grid place-items-center rounded-full bg-slate-900 text-white text-lg" aria-label="สลับ" data-testid="fx-swap">⇅</button>
+        <div className="flex gap-1 ml-auto">{[100, 1000, 10000].map((v) => <button key={v} onClick={() => setAmt(String(v))} className="px-2 py-1 rounded-lg border border-slate-200 text-xs num">{v.toLocaleString()}</button>)}</div>
+      </div>
+      {side(bot, <div className="text-xl font-bold num truncate" data-testid="fx-out">{fmtAmt(out)}</div>)}
+      <div className="text-[11px] text-slate-500">เรตกลางตลาด 1 {it.ccy} = {fmtAmt(rate)} บาท{at ? ` · ${new Date(at).toLocaleString('th-TH', { dateStyle: 'short', timeStyle: 'short' })}` : ''} · เรตแลกจริงของธนาคารจะต่างเล็กน้อย</div>
+    </div>
+  )
+}
+
 function CatTools({ cat, sorts, sortNow, setSort, sectors, sector, setSector, total, loading, ranking, searching }) {
   if (cat === 'fund') return null
   return (
@@ -365,9 +389,11 @@ function CatTools({ cat, sorts, sortNow, setSort, sectors, sector, setSector, to
           {sectors.map((x) => <option key={x} value={x}>{x}</option>)}
         </select>
       )}
-      {sorts && !searching && sorts.map(([k, l]) => (
-        <button key={k} onClick={() => setSort(k)} className={`px-2 py-1 rounded-lg border ${sortNow === k ? 'bg-slate-900 text-white border-slate-900' : 'border-slate-200 text-slate-600'}`} data-testid={`cat-sort-${k}`}>{l}</button>
-      ))}
+      {sorts && !searching && (
+        <select value={sortNow} onChange={(e) => setSort(e.target.value)} className="border border-slate-900 rounded-lg px-1.5 py-1 bg-slate-900 text-white font-semibold max-w-[150px]" aria-label="เรียงตาม" data-testid="cat-sort">
+          {sorts.map(([k, l]) => <option key={k} value={k}>↕ {l}</option>)}
+        </select>
+      )}
     </div>
   )
 }
@@ -443,7 +469,7 @@ function DetailSheet({ it, onClose, starred, onStar, assets, onTrade }) {
         <div className={`pb-1 font-semibold num ${up ? 'text-emerald-600' : 'text-rose'}`}>{pctTxt(q.changePct)} <span className="text-xs text-slate-500 font-normal">วันนี้</span></div>
         {live?.live && <span className="pb-1.5 text-[11px] text-emerald-600 flex items-center gap-1"><Radio size={11} /> Live</span>}
       </div>
-      {it.kind === 'fx' && q.price && <div className="text-xs text-slate-500">1 {it.ccy}{per > 1 ? ` × ${per}` : ''} = {fmtP(q.price * per)} บาท · 1,000 บาท = {fmtP(1000 / q.price)} {it.ccy}</div>}
+      {it.kind === 'fx' && q.price && <FxConverter it={it} rate={q.price} at={q.time} />}
       {it.symbol === 'TH-GOLD' && <div className="text-xs text-slate-500">ต่อ 1 บาททองคำ (15.244 กรัม) · ประมาณจาก Gold Spot × ค่าเงิน</div>}
 
       {it.kind !== 'fund' ? (

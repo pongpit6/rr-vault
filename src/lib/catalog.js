@@ -79,33 +79,41 @@ export async function loadCatalog(cat, ccy = 'USD') {
 }
 
 /** sort options a tab offers (price-based sorts only where every price is known up front) */
+const MOVES = [['up1', 'ขึ้นมากสุด 24 ชม.'], ['down1', 'ลงมากสุด 24 ชม.'], ['up7', 'ขึ้นมากสุด 7 วัน'], ['down7', 'ลงมากสุด 7 วัน']]
 export const sortsFor = (cat) => (cat === 'crypto'
-  ? [['vol', 'มูลค่าซื้อขาย'], ['up', 'ขึ้นมากสุด'], ['down', 'ลงมากสุด'], ['az', 'A–Z']]
-  : ['th', 'us', 'cn'].includes(cat) ? [['cap', 'มูลค่าตลาด'], ['az', 'A–Z'], ['up7', 'ขึ้นสุด 7 วัน'], ['down7', 'ลงสุด 7 วัน']] : null)
-export const RANK_SORTS = ['cap', 'up7', 'down7']
+  ? [['cap', 'มูลค่าตลาด'], ['vol', 'มูลค่าซื้อขาย 24 ชม.'], ['az', 'A–Z'], ['up', 'ขึ้นมากสุด 24 ชม.'], ['down', 'ลงมากสุด 24 ชม.'], ['up7', 'ขึ้นมากสุด 7 วัน'], ['down7', 'ลงมากสุด 7 วัน']]
+  : ['th', 'us', 'cn'].includes(cat) ? [['cap', 'มูลค่าตลาด'], ['az', 'A–Z'], ...MOVES]
+    : ['gold', 'fx'].includes(cat) ? [['default', 'ค่าเริ่มต้น'], ['az', 'A–Z'], ...MOVES] : null)
+export const RANK_SORTS = ['cap', 'up1', 'down1', 'up7', 'down7']
 
-/* ---------- market cap + 7-day change for a whole tab (cached for the day on this device) ---------- */
+/* ---------- market cap + 24h / 7-day change for a whole tab (cached for the day on this device) ---------- */
 const RANK_FN = FN.replace('vault-prices', 'vault-rank')
 const rankMem = {}
+const coinOf = (s) => s.replace(/^BKUB:/, '').replace(/-USD$/, '')
 export async function loadRank(cat, symbols) {
-  const key = `vault:rank:${cat}:${new Date().toISOString().slice(0, 10)}`
-  if (rankMem[key]) return rankMem[key]
-  try { const c = JSON.parse(localStorage.getItem(key)); if (c && Object.keys(c).length) return (rankMem[key] = c) } catch { /* no cache */ }
-  const parts = []
-  for (let i = 0; i < symbols.length; i += 200) parts.push(symbols.slice(i, i + 200))
+  const key = `vault:rank2:${cat}:${new Date().toISOString().slice(0, 10)}`
+  const fromCache = (rows) => (cat === 'crypto' ? Object.fromEntries(symbols.map((s) => [s, rows[coinOf(s)]]).filter(([, v]) => v)) : rows)
+  if (rankMem[key]) return fromCache(rankMem[key])
+  try { const c = JSON.parse(localStorage.getItem(key)); if (c && Object.keys(c).length) return fromCache(rankMem[key] = c) } catch { /* no cache */ }
   const rows = {}
-  await Promise.all(parts.map(async (p) => {
-    try {
-      const r = await fetch(`${RANK_FN}?symbols=${encodeURIComponent(p.join(','))}`, H)
-      if (r.ok) Object.assign(rows, (await r.json()).rows || {})
-    } catch { /* that part stays unranked */ }
-  }))
+  if (cat === 'crypto') {
+    try { const r = await fetch(`${RANK_FN}?coins=1`, H); if (r.ok) Object.assign(rows, (await r.json()).rows || {}) } catch { /* unranked */ }
+  } else {
+    const parts = []
+    for (let i = 0; i < symbols.length; i += 200) parts.push(symbols.slice(i, i + 200))
+    await Promise.all(parts.map(async (p) => {
+      try {
+        const r = await fetch(`${RANK_FN}?symbols=${encodeURIComponent(p.join(','))}`, H)
+        if (r.ok) Object.assign(rows, (await r.json()).rows || {})
+      } catch { /* that part stays unranked */ }
+    }))
+  }
   if (!Object.keys(rows).length) return rows
   try {
-    for (const k of Object.keys(localStorage)) if (k.startsWith(`vault:rank:${cat}:`) && k !== key) localStorage.removeItem(k)
+    for (const k of Object.keys(localStorage)) if (/^vault:rank2?:/.test(k) && k !== key && k.includes(`:${cat}:`)) localStorage.removeItem(k)
     localStorage.setItem(key, JSON.stringify(rows))
   } catch { /* storage full: memory only */ }
-  return (rankMem[key] = rows)
+  return fromCache(rankMem[key] = rows)
 }
 
 export function sortItems(list, sort, q, rk = {}) {
@@ -115,10 +123,9 @@ export function sortItems(list, sort, q, rk = {}) {
     const v = (it) => (it.kind === 'index' ? Infinity : rk[it.symbol]?.cap ?? -1)
     return [...list].sort((a, b) => v(b) - v(a))
   }
-  if (sort === 'up7' || sort === 'down7') {
-    const v = (it) => rk[it.symbol]?.chg7
-    return [...list].sort((a, b) => { const x = v(a), y = v(b); if (x == null) return y == null ? 0 : 1; if (y == null) return -1; return sort === 'up7' ? y - x : x - y })
-  }
+  const byNum = (v, desc) => [...list].sort((a, b) => { const x = v(a), y = v(b); if (x == null) return y == null ? 0 : 1; if (y == null) return -1; return desc ? y - x : x - y })
+  if (sort === 'up1' || sort === 'down1') return byNum((it) => rk[it.symbol]?.chg1, sort === 'up1')
+  if (sort === 'up7' || sort === 'down7') return byNum((it) => rk[it.symbol]?.chg7, sort === 'up7')
   if (sort === 'up' || sort === 'down') {
     const v = (it) => q[it.symbol]?.changePct
     return [...list].sort((a, b) => { const x = v(a), y = v(b); if (x == null) return 1; if (y == null) return -1; return sort === 'up' ? y - x : x - y })
