@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Volume2, X, Plus } from 'lucide-react'
 import { Button, Segmented } from './ui'
+import CourseView from './CourseKit'
 import { useStore } from '../store'
 import { sfx } from '../lib/sfx'
 import { LANGS, CATS, LEVELS, MODES, modesFor, loadBank, bankNow, pickRound, grade, sameWord, statsFor, customOf, speak, canSpeak, LEARNT_BOX } from '../lib/vocab'
@@ -36,9 +37,9 @@ export default function VocabSheet({ H }) {
           </button>
         ))}
       </div>
-      <Segmented value={tab} onChange={setTab} options={[{ value: 'quiz', label: 'ฝึก' }, { value: 'words', label: 'คำศัพท์' }]} />
+      <Segmented value={lang.course ? tab : tab === 'script' ? 'quiz' : tab} onChange={setTab} options={[...(lang.course ? [{ value: 'script', label: 'ตัวอักษร' }] : []), { value: 'quiz', label: 'ฝึกคำศัพท์' }, { value: 'words', label: 'คำศัพท์' }]} />
 
-      {!lang.ready ? (
+      {lang.course && tab === 'script' && lang.ready ? <CourseView H={H} lang={prefs.lang} /> : !lang.ready ? (
         <div className="px-inner p-5 text-center text-sm text-slate-600">ภาษา{lang.name}กำลังจะมา พร้อมหลักสูตรตัวอักษร 🛠️</div>
       ) : !bank ? <div className="text-center text-sm text-slate-500 py-6">กำลังโหลดคำศัพท์…</div> : tab === 'quiz' ? (
         <>

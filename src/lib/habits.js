@@ -138,7 +138,7 @@ export function computeHabits({ days = {}, books = [], vocab = {}, state = {}, n
   const thisWeek = weeks.get(thisMon) || 0
   const thisWeekGoal = weekGoal(thisMon)
 
-  const gold = HABITS.reduce((s, h) => s + out[h.id].gold, 0) + finished.length * 2 + Math.floor(learnt / 100) + weeklyGold
+  const gold = HABITS.reduce((s, h) => s + out[h.id].gold, 0) + finished.length * 2 + Math.floor(learnt / 100) + Object.keys(vocab.courseSets || {}).length + weeklyGold
 
   // life rank: average 30-day hit-rate of the six personal habits
   const core = HABITS.filter((h) => h.id !== 'nospend')

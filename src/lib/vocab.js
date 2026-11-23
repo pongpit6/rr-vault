@@ -13,9 +13,9 @@ import { todayISO } from './format'
 
 export const LANGS = {
   en: { name: 'อังกฤษ', flag: '🇬🇧', voice: 'en-US', ready: true },
-  ja: { name: 'ญี่ปุ่น', flag: '🇯🇵', voice: 'ja-JP', ready: false },
-  zh: { name: 'จีน', flag: '🇨🇳', voice: 'zh-CN', ready: false },
-  ko: { name: 'เกาหลี', flag: '🇰🇷', voice: 'ko-KR', ready: false },
+  ja: { name: 'ญี่ปุ่น', flag: '🇯🇵', voice: 'ja-JP', ready: true, course: true },
+  zh: { name: 'จีน', flag: '🇨🇳', voice: 'zh-CN', ready: false, course: true },
+  ko: { name: 'เกาหลี', flag: '🇰🇷', voice: 'ko-KR', ready: false, course: true },
 }
 export const CATS = {
   daily: { name: 'ชีวิตประจำวัน', emoji: '🌅' }, food: { name: 'อาหาร', emoji: '🍜' }, shop: { name: 'ช้อปปิ้ง', emoji: '🛍️' },
@@ -50,6 +50,15 @@ const loaders = {
   ko: () => import('../data/vocab/ko.js'),
 }
 const banks = {}
+const courseLoaders = {
+  ja: () => import('../data/vocab/ja-course.js'),
+}
+const courses = {}
+export async function loadCourse(lang) {
+  if (courses[lang]) return courses[lang]
+  if (!courseLoaders[lang]) return { COURSE: [], SETS: {} }
+  return (courses[lang] = await courseLoaders[lang]())
+}
 export function parseBank(lang, raw) {
   return raw.trim().split('\n').map((line) => line.trim()).filter((l) => l && !l.startsWith('#')).map((line) => {
     const [w, alt, read, th, cat, lv, ex, exTh] = line.split('|').map((x) => (x || '').trim())
