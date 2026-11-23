@@ -7,7 +7,7 @@ import { AssetLogo } from '../components/Logos'
 import FuelCard from '../components/FuelCard'
 import { useSyncedPref, unionBySymbol } from '../lib/prefs'
 import { thaiAbout, howToBuy, loadProfile, loadTop10, fmtCap, capShort, SECTOR_TH } from '../lib/assetInfo'
-import { loadCatalog, sortsFor, sortItems, matchLocal, searchInCat, PAGE } from '../lib/catalog'
+import { loadCatalog, sortsFor, sortItems, matchLocal, searchInCat, PAGE, RANK_SORTS, loadRank } from '../lib/catalog'
 import { CATS, CAT_BY_ID, catOf, WATCH_MAX, bitkubPremium, loadBitkubList, coinCode, isCoin, itemFor, itemCcy, useMarket, loadSpark, loadChart, searchMarket, streamMarketCrypto, stopMarketStream, loadOil } from '../lib/market'
 import { ccyMark, ccyOfSymbol, fetchQuotes, fxSym } from '../lib/prices'
 import { GOLD_PRESETS, COMMODITY_PRESETS } from '../lib/portfolio'
@@ -51,7 +51,7 @@ function Badge({ it, size = 38 }) {
   return <AssetLogo asset={asset} size={size} />
 }
 
-function Row({ it, q, starred, held, onStar, onOpen, premium }) {
+function Row({ it, q, starred, held, onStar, onOpen, premium, note }) {
   const up = (q?.changePct ?? 0) >= 0
   const named = ['index', 'gold', 'commodity'].includes(it.kind) && KNOWN_NAME(it)
   const label = named ? it.name : it.kind === 'crypto' ? it.symbol.replace('-USD', '').replace('BKUB:', '') : it.kind === 'fund' ? it.code || it.name : it.kind === 'fx' ? `${it.ccy}/THB` : it.symbol.replace(/\.BK$/, '')
@@ -66,7 +66,7 @@ function Row({ it, q, starred, held, onStar, onOpen, premium }) {
           {q?.live && <Radio size={11} className="text-emerald-500 shrink-0" />}
           {held && <span className="text-[9.5px] px-1.5 rounded bg-sky-100 text-sky-700 font-semibold shrink-0">ถืออยู่</span>}
         </div>
-        <div className="text-[11px] text-slate-500 truncate">{sub}{prem != null && <span className={`ml-1.5 font-semibold ${prem > 0.5 ? 'text-amber-600' : prem < -0.5 ? 'text-emerald-600' : 'text-slate-400'}`} title="ส่วนต่างเทียบ Binance">{prem > 0 ? '+' : ''}{prem.toFixed(1)}% vs Binance</span>}</div>
+        <div className="text-[11px] text-slate-500 truncate">{note && <span className={`mr-1.5 font-semibold ${note.cls || 'text-slate-600'}`}>{note.t}</span>}{sub}{prem != null && <span className={`ml-1.5 font-semibold ${prem > 0.5 ? 'text-amber-600' : prem < -0.5 ? 'text-emerald-600' : 'text-slate-400'}`} title="ส่วนต่างเทียบ Binance">{prem > 0 ? '+' : ''}{prem.toFixed(1)}% vs Binance</span>}</div>
       </div>
       <div className="hidden min-[380px]:block"><Spark c={q?.c} up={up} /></div>
       <div className="text-right min-w-[84px]">
@@ -141,6 +141,16 @@ export default function Market({ onTrade }) {
   }, [cat, coinCcy]) // eslint-disable-line
   const sorts = sortsFor(cat)
   const sortNow = sort || sorts?.[0]?.[0] || 'default'
+  const [rk, setRk] = useState({})
+  const [ranking, setRanking] = useState(false)
+  const wantRank = ['th', 'us', 'cn'].includes(cat) && RANK_SORTS.includes(sortNow) && !!catList
+  useEffect(() => {
+    if (!wantRank) return
+    let alive = true
+    setRanking(true)
+    loadRank(cat, catList.map((i) => i.symbol)).then((r) => { if (alive) { setRk(r); setRanking(false) } })
+    return () => { alive = false }
+  }, [wantRank, cat, catList]) // eslint-disable-line
   const sectors = useMemo(() => {
     if (!catList) return []
     const n = {}
@@ -156,10 +166,10 @@ export default function Market({ onTrade }) {
     if (sector) rest = rest.filter((x) => x.sector === sector)
     const qs = query.trim()
     if (qs) { const all = matchLocal(dedupe([...pinned, ...rest]), qs); return { pinned: [], rows: all.slice(0, shown), total: all.length, searching: true } }
-    rest = sortItems(rest, sortNow, q)
+    rest = sortItems(rest, sortNow, q, rk)
     return { pinned, rows: rest.slice(0, shown), total: rest.length, searching: false }
     // q only matters for the price sorts
-  }, [inCat, cat, catList, coinCcy, sector, query, shown, sortNow, watch.map((w) => w.symbol).join(','), heldFunds.length, ['up', 'down', 'vol'].includes(sortNow) ? q : null]) // eslint-disable-line
+  }, [inCat, cat, catList, coinCcy, sector, query, shown, sortNow, rk, watch.map((w) => w.symbol).join(','), heldFunds.length, ['up', 'down', 'vol'].includes(sortNow) ? q : null]) // eslint-disable-line
   // online search inside the tab, for symbols the built-in list doesn't have
   const [catRemote, setCatRemote] = useState([])
   useEffect(() => {
@@ -224,7 +234,13 @@ export default function Market({ onTrade }) {
 
   const open = (it) => { sfx('click'); setDetail(it) }
   const premium = (code) => bitkubPremium(code, q)
-  const rowProps = (it) => ({ it, q: q[it.symbol], starred: isWatched(it.symbol), held: heldSyms.has(it.symbol), onStar: () => toggleWatch(it), onOpen: () => open(it), premium })
+  const rankNote = (it) => {
+    if (!wantRank || !inCat || it.kind === 'index') return null
+    const r = rk[it.symbol]
+    if (sortNow === 'cap') return r?.cap ? { t: capShort(r.cap) } : null
+    return r?.chg7 != null ? { t: `7 วัน ${r.chg7 >= 0 ? '+' : ''}${r.chg7.toFixed(1)}%`, cls: r.chg7 >= 0 ? 'text-emerald-600' : 'text-rose-600' } : null
+  }
+  const rowProps = (it) => ({ it, q: q[it.symbol], starred: isWatched(it.symbol), held: heldSyms.has(it.symbol), onStar: () => toggleWatch(it), onOpen: () => open(it), premium, note: rankNote(it) })
   const tabs = [{ id: 'all', label: 'ภาพรวม', emoji: '🗺️' }, ...(watch.length ? [{ id: 'watch', label: `ติดตาม ${watch.length}`, emoji: '⭐' }] : []), { id: 'fuel', label: 'น้ำมันไทย', emoji: '⛽' }, ...CATS]
 
   return (
@@ -304,7 +320,7 @@ export default function Market({ onTrade }) {
           </div>
         ) : <section className="card p-2 md:p-3">
           {cat === 'crypto' && <div className="px-2 pb-2 flex items-center justify-between text-[11px] text-slate-500"><span>{coinCcy === 'THB' ? 'ราคาบาทจาก Bitkub · % เทียบ Binance' : 'ราคา USD สดจาก Binance'}</span>{ccyToggle}</div>}
-          <CatTools cat={cat} sorts={sorts} sortNow={sortNow} setSort={(v) => { setSort(v); setShown(PAGE) }} sectors={sectors} sector={sector} setSector={(v) => { setSector(v); setShown(PAGE) }} total={tabView?.total} loading={!catList && cat !== 'fund'} searching={tabView?.searching} />
+          <CatTools cat={cat} sorts={sorts} sortNow={sortNow} setSort={(v) => { setSort(v); setShown(PAGE) }} sectors={sectors} sector={sector} setSector={(v) => { setSector(v); setShown(PAGE) }} total={tabView?.total} loading={!catList && cat !== 'fund'} ranking={wantRank && ranking} searching={tabView?.searching} />
           {tabView?.pinned.length > 0 && <div className="px-2 pt-1 text-[10px] font-semibold text-amber-500">⭐ ที่ติดตาม</div>}
           {tabView?.pinned.map((it) => <Row key={it.symbol} {...rowProps(it)} />)}
           {tabView?.pinned.length > 0 && tabView.rows.length > 0 && <div className="px-2 pt-2 text-[10px] font-semibold text-slate-400">ทั้งหมดใน{CAT_BY_ID[cat]?.label}</div>}
@@ -338,11 +354,11 @@ export default function Market({ onTrade }) {
   )
 }
 
-function CatTools({ cat, sorts, sortNow, setSort, sectors, sector, setSector, total, loading, searching }) {
+function CatTools({ cat, sorts, sortNow, setSort, sectors, sector, setSector, total, loading, ranking, searching }) {
   if (cat === 'fund') return null
   return (
     <div className="px-2 pb-2 flex flex-wrap items-center gap-1.5 text-[11px]" data-testid="cat-tools">
-      <span className="text-slate-500 mr-auto">{loading ? 'กำลังโหลดรายชื่อ…' : `${searching ? 'พบ' : 'ทั้งหมด'} ${(total || 0).toLocaleString()} รายการ`}</span>
+      <span className="text-slate-500 mr-auto">{loading ? 'กำลังโหลดรายชื่อ…' : ranking ? 'กำลังจัดอันดับ…' : `${searching ? 'พบ' : 'ทั้งหมด'} ${(total || 0).toLocaleString()} รายการ`}</span>
       {sectors.length > 1 && !searching && (
         <select value={sector} onChange={(e) => setSector(e.target.value)} className="border border-slate-200 rounded-lg px-1.5 py-1 bg-white max-w-[120px] sm:max-w-[180px]" aria-label="หมวด" data-testid="cat-sector">
           <option value="">ทุกหมวด</option>

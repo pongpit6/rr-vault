@@ -81,11 +81,44 @@ export async function loadCatalog(cat, ccy = 'USD') {
 /** sort options a tab offers (price-based sorts only where every price is known up front) */
 export const sortsFor = (cat) => (cat === 'crypto'
   ? [['vol', 'มูลค่าซื้อขาย'], ['up', 'ขึ้นมากสุด'], ['down', 'ลงมากสุด'], ['az', 'A–Z']]
-  : ['th', 'us', 'cn'].includes(cat) ? [['default', 'หุ้นใหญ่ก่อน'], ['az', 'A–Z']] : null)
+  : ['th', 'us', 'cn'].includes(cat) ? [['cap', 'มูลค่าตลาด'], ['az', 'A–Z'], ['up7', 'ขึ้นสุด 7 วัน'], ['down7', 'ลงสุด 7 วัน']] : null)
+export const RANK_SORTS = ['cap', 'up7', 'down7']
 
-export function sortItems(list, sort, q) {
+/* ---------- market cap + 7-day change for a whole tab (cached for the day on this device) ---------- */
+const RANK_FN = FN.replace('vault-prices', 'vault-rank')
+const rankMem = {}
+export async function loadRank(cat, symbols) {
+  const key = `vault:rank:${cat}:${new Date().toISOString().slice(0, 10)}`
+  if (rankMem[key]) return rankMem[key]
+  try { const c = JSON.parse(localStorage.getItem(key)); if (c && Object.keys(c).length) return (rankMem[key] = c) } catch { /* no cache */ }
+  const parts = []
+  for (let i = 0; i < symbols.length; i += 200) parts.push(symbols.slice(i, i + 200))
+  const rows = {}
+  await Promise.all(parts.map(async (p) => {
+    try {
+      const r = await fetch(`${RANK_FN}?symbols=${encodeURIComponent(p.join(','))}`, H)
+      if (r.ok) Object.assign(rows, (await r.json()).rows || {})
+    } catch { /* that part stays unranked */ }
+  }))
+  if (!Object.keys(rows).length) return rows
+  try {
+    for (const k of Object.keys(localStorage)) if (k.startsWith(`vault:rank:${cat}:`) && k !== key) localStorage.removeItem(k)
+    localStorage.setItem(key, JSON.stringify(rows))
+  } catch { /* storage full: memory only */ }
+  return (rankMem[key] = rows)
+}
+
+export function sortItems(list, sort, q, rk = {}) {
   const label = (it) => it.symbol.replace(/^BKUB:|-USD$|\.BK$/g, '')
   if (sort === 'az') return [...list].sort((a, b) => label(a).localeCompare(label(b)))
+  if (sort === 'cap') {
+    const v = (it) => (it.kind === 'index' ? Infinity : rk[it.symbol]?.cap ?? -1)
+    return [...list].sort((a, b) => v(b) - v(a))
+  }
+  if (sort === 'up7' || sort === 'down7') {
+    const v = (it) => rk[it.symbol]?.chg7
+    return [...list].sort((a, b) => { const x = v(a), y = v(b); if (x == null) return y == null ? 0 : 1; if (y == null) return -1; return sort === 'up7' ? y - x : x - y })
+  }
   if (sort === 'up' || sort === 'down') {
     const v = (it) => q[it.symbol]?.changePct
     return [...list].sort((a, b) => { const x = v(a), y = v(b); if (x == null) return 1; if (y == null) return -1; return sort === 'up' ? y - x : x - y })
