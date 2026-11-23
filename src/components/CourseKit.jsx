@@ -84,13 +84,14 @@ function Lesson({ H, lang, course, index, onDone }) {
       <div className="px-inner p-6 text-center space-y-2">
         <div className="text-7xl font-bold leading-none" data-testid="lesson-char">{it.ch}</div>
         <div className="text-lg text-sky-700 font-semibold">อ่านว่า {it.read} <span className="text-slate-400 text-sm">({it.ro})</span></div>
-        <div className="text-sm text-slate-600">💡 {it.hook}</div>
-        {canSpeak() && <button onClick={() => speak(it.ch, lang)} className="mx-auto w-12 h-12 grid place-items-center rounded-full bg-sky-100 text-sky-700"><Volume2 size={22} /></button>}
+        {it.say && it.say !== it.ch && <div className="text-sm text-slate-500">ตัวอย่าง: <span className="text-xl">{it.say}</span></div>}
+        {it.hook && <div className="text-sm text-slate-600">💡 {it.hook}</div>}
+        {canSpeak() && <button onClick={() => speak(it.say || it.ch, lang)} className="mx-auto w-12 h-12 grid place-items-center rounded-full bg-sky-100 text-sky-700"><Volume2 size={22} /></button>}
       </div>
       <div className="flex gap-1 justify-center flex-wrap">{l.items.map((x, k) => <span key={k} className={`w-2 h-2 rounded-full ${k === i ? 'bg-slate-800' : k < i ? 'bg-emerald-400' : 'bg-slate-200'}`} />)}</div>
       <div className="flex gap-2">
         <Button variant="ghost" className="flex-1" disabled={i === 0} onClick={() => setI(i - 1)}>ก่อนหน้า</Button>
-        {i + 1 < l.items.length ? <Button className="flex-1" onClick={() => { setI(i + 1); speak(l.items[i + 1].ch, lang) }} data-testid="lesson-next">ต่อไป</Button>
+        {i + 1 < l.items.length ? <Button className="flex-1" onClick={() => { setI(i + 1); speak(l.items[i + 1].say || l.items[i + 1].ch, lang) }} data-testid="lesson-next">ต่อไป</Button>
           : <Button className="flex-1" onClick={() => setStep('quiz')} data-testid="lesson-test">ทำแบบทดสอบ</Button>}
       </div>
       <button onClick={onDone} className="w-full text-xs text-slate-500 underline">กลับแผนที่</button>
@@ -105,7 +106,7 @@ function LessonQuiz({ H, lang, items, pool, lesson, course, title, onDone, revie
   const [score, setScore] = useState(0)
   const [done, setDone] = useState(false)
   const q = qs[i]
-  useEffect(() => { if (q?.kind === 'hear') speak(q.ch, lang) }, [i]) // eslint-disable-line
+  useEffect(() => { if (q?.kind === 'hear') speak(q.say || q.ch, lang) }, [i]) // eslint-disable-line
   const pick = (o) => {
     if (picked) return
     setPicked(o)
@@ -157,9 +158,9 @@ function LessonQuiz({ H, lang, items, pool, lesson, course, title, onDone, revie
       <div className="px-inner p-6 text-center">
         {q.kind === 'see' && <div className="text-6xl font-bold">{q.ch}</div>}
         {q.kind === 'read' && <div><div className="text-2xl font-bold text-sky-700">{q.read}</div><div className="text-xs text-slate-500 mt-1">ตัวไหนอ่านแบบนี้</div></div>}
-        {q.kind === 'hear' && <button onClick={() => speak(q.ch, lang)} className="mx-auto w-16 h-16 grid place-items-center rounded-full bg-sky-100 text-sky-700"><Volume2 size={28} /></button>}
+        {q.kind === 'hear' && <button onClick={() => speak(q.say || q.ch, lang)} className="mx-auto w-16 h-16 grid place-items-center rounded-full bg-sky-100 text-sky-700"><Volume2 size={28} /></button>}
         {picked && q.kind !== 'see' && <div className="text-3xl font-bold mt-2">{q.ch} <span className="text-base text-sky-700">{q.read}</span></div>}
-        {picked && <div className="text-xs text-slate-500 mt-1">💡 {q.hook}</div>}
+        {picked && q.hook && <div className="text-xs text-slate-500 mt-1">💡 {q.hook}</div>}
       </div>
       <div className={`grid ${q.key === 'ch' ? 'grid-cols-4' : 'grid-cols-2'} gap-2`}>
         {q.options.map((o) => {

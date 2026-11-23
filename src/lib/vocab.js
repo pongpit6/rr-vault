@@ -14,8 +14,8 @@ import { todayISO } from './format'
 export const LANGS = {
   en: { name: 'อังกฤษ', flag: '🇬🇧', voice: 'en-US', ready: true },
   ja: { name: 'ญี่ปุ่น', flag: '🇯🇵', voice: 'ja-JP', ready: true, course: true },
-  zh: { name: 'จีน', flag: '🇨🇳', voice: 'zh-CN', ready: false, course: true },
-  ko: { name: 'เกาหลี', flag: '🇰🇷', voice: 'ko-KR', ready: false, course: true },
+  zh: { name: 'จีน', flag: '🇨🇳', voice: 'zh-CN', ready: true, course: true },
+  ko: { name: 'เกาหลี', flag: '🇰🇷', voice: 'ko-KR', ready: true, course: true },
 }
 export const CATS = {
   daily: { name: 'ชีวิตประจำวัน', emoji: '🌅' }, food: { name: 'อาหาร', emoji: '🍜' }, shop: { name: 'ช้อปปิ้ง', emoji: '🛍️' },
@@ -52,6 +52,8 @@ const loaders = {
 const banks = {}
 const courseLoaders = {
   ja: () => import('../data/vocab/ja-course.js'),
+  zh: () => import('../data/vocab/zh-course.js'),
+  ko: () => import('../data/vocab/ko-course.js'),
 }
 const courses = {}
 export async function loadCourse(lang) {

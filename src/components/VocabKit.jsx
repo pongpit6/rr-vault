@@ -89,8 +89,9 @@ function WordFace({ w, size = 'text-3xl' }) {
   return (
     <div className="text-center">
       <div className={`${size} font-bold tracking-wide`} data-testid="vocab-word">{w.w}</div>
-      {w.alt && <div className="text-sm text-slate-600 mt-0.5">{w.alt}</div>}
+      {w.alt && w.lang !== 'zh' && <div className="text-sm text-slate-600 mt-0.5">{w.alt}</div>}
       {w.read && <div className="text-sm text-sky-700 mt-0.5">อ่านว่า {w.read}</div>}
+      {w.alt && w.lang === 'zh' && <div className="text-xs text-slate-500 mt-0.5 tracking-wide">{w.alt}</div>}
     </div>
   )
 }
