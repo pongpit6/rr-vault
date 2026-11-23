@@ -10,8 +10,10 @@ import { selectList } from '../store'
 import { useWeather, loadWeather, sceneWeather, thaiEvent, isThaiHoliday, moneyMood } from './world'
 import { doubleDay, decorOnSale } from './festivals'
 import { setHeroStage, setHeroSkin, setPetStage } from './heroStage'
+import { energyOf, partyPower, fight, emptyFarm, chestsDue, chestLoot, TREE_BY_ID, rankCost, RECIPES, CRAFT_DECOR, itemPrice, mapUnlocked, MAP_BY_ID } from './farm'
 import { outfitOf, condition7, shadowRace, birthdayInfo, bdaySkin, storyAct, albumSnap, FREEDOM_STEPS } from './hero'
 import { usePrices } from './prices'
+import { loadXau } from './market'
 import { budgetStatus } from './plan'
 import { lifeStats, growthOf } from './growth'
 import { monthStats, monthChapter, CHALLENGE_BY_ID, challengeTarget, suggestChallenges, prevMonth } from './chronicle'
@@ -432,8 +434,16 @@ function computeRpg({ accounts, txns, settings, balances, summary, unlocked, por
   const condition = condition7(habitDays, today)
   world.birthday = birthday
 
+  const energy = energyOf({ traces, habitDays, condition, today })
+  const farm = { ...emptyFarm(), ...(data.farm || {}) }
+  const skillPts = lv.level + (farm.bonusPts || 0) - Object.values(farm.skills || {}).reduce((s, r) => s + [0, 1, 2, 3, 4, 6][r], 0)
+  const power = partyPower({ level: lv.level, gear: party.gear, party: party.party, skills: farm.skills, traces })
+  const used = farm.day?.date === today ? farm.day : { date: today, runs: 0, mana: 0 }
+  const chests = chestsDue({ habits: h, rpg: { noSpendStreak, monthBoss, quests, bosses }, today }).filter((c) => !(farm.chests || {})[c.key])
+
   return {
-    outfit, condition, shadow, act, birthday,
+    outfit, condition, shadow, act, birthday, energy, farm, skillPts, power, chests,
+    staminaLeft: Math.max(0, energy.stamina - used.runs), manaLeft: Math.max(0, energy.mana - used.mana),
     inventory: portfolio.open, portfolioValue: portfolio.value,
     xp, xpParts, ...lv, title: title[1], titleEn: title[2], stats, bosses, quests, achievements, newlyUnlocked,
     streak, bestStreak, realm, nextRealm, weather, loggedToday: todayCount, debtFog, town, wallet, days,
@@ -483,6 +493,7 @@ export function useRpg() {
     const d = fresh()
     if (profitNow > (d.profitPeak || 0) + 1) put('rpg', { ...d, id: 'rpg', profitPeak: profitNow })
   }, [Math.floor(profitNow / 1000)]) // eslint-disable-line
+  useEffect(() => { loadXau() }, [todayISO()]) // eslint-disable-line
   const worldLite = JSON.stringify({ weather: rpg.world.weather, event: rpg.world.event?.id || null, mood: rpg.world.mood.id, btc: rpg.world.btc, aurora: rpg.world.aurora, tree: rpg.world.tree, rank: rpg.rank.id, holiday: rpg.world.holiday })
   useEffect(() => { if (JSON.stringify(useStore.getState().ui._worldCache || null) !== worldLite) setUi({ _worldCache: JSON.parse(worldLite) }) }, [worldLite]) // eslint-disable-line
   const fresh = () => useStore.getState().items.rpg?.data || {}
@@ -543,7 +554,7 @@ export function useRpg() {
   }
   const saleOff = (rpg.world.event?.id === 'payday' ? 10 : 0) + (rpg.world.sale?.pct || 0)
   const shopPrice = (item) => priceOf([item.price * GEM_TO_FIAT, 0], data, { discount: Math.min(50, rpg.town.shopDiscount + saleOff) })
-  const decorPrice = (x) => priceOf(x.cost, data, { discount: Math.min(50, saleOff) })
+  const decorPrice = (x) => (x.cost ? priceOf(x.cost, data, { discount: Math.min(50, saleOff) }) : { fiat: 0, gold: 0 })
   const buy = (item) => {
     const d = fresh(), p = shopPrice(item)
     if ((d.owned || {})[item.id] || !afford(p)) return false
@@ -558,14 +569,16 @@ export function useRpg() {
   // ---------- town ----------
   const T = rpg.town
   const townOf = (d) => ({ hall: 1, plots: [], decor: {}, npcs: {}, ...(d.town || {}) })
-  const buildPrice = (type, lv) => priceOf(BUILDINGS[type].cost[lv - 1], data, { discount: T.buildDiscount })
+  const kitOn = ((data.farm || {}).kit || 0) > 0
+  const buildPrice = (type, lv) => priceOf(BUILDINGS[type].cost[lv - 1], data, { discount: Math.min(70, T.buildDiscount + (kitOn ? 40 : 0)) })
+  const useKit = (patch) => (kitOn ? { ...patch, farm: { ...(fresh().farm || {}), kit: ((fresh().farm || {}).kit || 1) - 1 } } : patch)
   const build = (i, type) => {
     const B = BUILDINGS[type], p = buildPrice(type, 1)
     if (!B || T.plots[i] || T.count(type) >= B.max || !afford(p) || (B.req && !B.req(habits))) return false
     const d = fresh(), town = townOf(d), plots = [...town.plots]
     plots[i] = { type, lv: 1, at: now() }
     sfx('levelup')
-    pay(-p.fiat, -p.gold, { icon: B.emoji, text: `สร้าง${B.name}ในแปลงที่ ${i + 1}` }, { town: { ...town, plots } })
+    pay(-p.fiat, -p.gold, { icon: B.emoji, text: `สร้าง${B.name}ในแปลงที่ ${i + 1}` }, useKit({ town: { ...town, plots } }))
     return true
   }
   const upgrade = (i) => {
@@ -576,7 +589,7 @@ export function useRpg() {
     const d = fresh(), town = townOf(d), plots = [...town.plots]
     plots[i] = { ...b, lv: b.lv + 1 }
     sfx('levelup')
-    pay(-p.fiat, -p.gold, { icon: '⬆️', text: `อัปเกรด${B.name}เป็นระดับ ${b.lv + 1}` }, { town: { ...town, plots } })
+    pay(-p.fiat, -p.gold, { icon: '⬆️', text: `อัปเกรด${B.name}เป็นระดับ ${b.lv + 1}` }, useKit({ town: { ...town, plots } }))
     return true
   }
   const demolish = (i) => {
@@ -653,6 +666,62 @@ export function useRpg() {
     pay(0, 1, { icon: '🎂', text: `สุขสันต์วันเกิดอายุ ${rpg.birthday.age}! ได้ชุดวันเกิดประจำปี` }, { owned: { ...(d.owned || {}), [bdayId]: now() }, equip: { ...(d.equip || {}), skin: bdayId } })
     return bdaySkin(bdayId)
   }
+  // ---------- monster farm ----------
+  const F = () => ({ ...emptyFarm(), ...(fresh().farm || {}) })
+  const dayOf = (f) => (f.day?.date === todayISO() ? { ...f.day } : { date: todayISO(), runs: 0, mana: 0 })
+  const saveFarm = (f) => save({ farm: f })
+  const farmFight = (n = 1) => {
+    const f = F(); f.bag = { ...f.bag }; f.kills = { ...f.kills }; f.dex = { ...f.dex }; f.buffs = { ...f.buffs }
+    const day = dayOf(f), logs = []
+    const map = MAP_BY_ID[f.map]
+    if (!mapUnlocked(map, { level: rpg.level, realmTier: rpg.realm.tier }).ok) return []
+    const ctx = { power: rpg.power, skills: f.skills || {}, healer: rpg.party.find((p) => p.id === 'healer')?.joined, hard: rpg.energy.hard, traces: rpg.traces }
+    for (let i = 0; i < n && day.runs < rpg.energy.stamina; i++) { day.runs++; logs.push(fight(f, ctx)) }
+    f.day = day; f.last = new Date().toISOString()
+    if (logs.length) { saveFarm(f); sfx(logs.some((l) => l.win) ? 'coin' : 'hit') }
+    return logs
+  }
+  const setFarm = (patch) => saveFarm({ ...F(), ...patch })
+  const castSkill = (id) => {
+    const t = TREE_BY_ID[id], f = F(), r = (f.skills || {})[id] || 0, day = dayOf(f)
+    if (!t || t.type !== 'active' || !r || day.mana + t.mana > rpg.energy.mana) return false
+    if (t.member !== 'knight' && !rpg.party.find((p) => p.id === t.member)?.joined) return false
+    const add = { storm: 3 + r, revive: 3 + r, meteor: r, hawk: 2 + r }[id]
+    day.mana += t.mana
+    saveFarm({ ...f, day, buffs: { ...f.buffs, [id]: (f.buffs?.[id] || 0) + add } }); sfx('levelup'); return true
+  }
+  const rankUp = (id) => {
+    const f = F(), r = ((f.skills || {})[id] || 0) + 1, c = rankCost(r), bag = { ...f.bag }
+    if (r > 5 || rpg.skillPts < c.pts) return false
+    for (const k of ['page', 'ink', 'star']) if ((bag[k] || 0) < (c[k] || 0)) return false
+    for (const k of ['page', 'ink', 'star']) if (c[k]) bag[k] -= c[k]
+    saveFarm({ ...f, bag, skills: { ...(f.skills || {}), [id]: r } }); sfx('levelup'); return true
+  }
+  const sellItems = (keys) => {
+    const f = F(), bag = { ...f.bag }; let got = 0
+    for (const k of keys) { got += itemPrice(k) * (bag[k] || 0); delete bag[k] }
+    if (!got) return 0
+    pay(got, 0, { icon: '💰', text: `ขายของจากการล่ามอนสเตอร์` }, { farm: { ...f, bag } }); sfx('coin'); return got
+  }
+  const craft = (id) => {
+    const rc = RECIPES.find((x) => x.id === id), d = fresh(), f = { ...emptyFarm(), ...(d.farm || {}) }, bag = { ...f.bag }
+    if (!rc || Object.entries(rc.need).some(([k, v]) => (bag[k] || 0) < v)) return false
+    for (const [k, v] of Object.entries(rc.need)) bag[k] -= v
+    const nf = { ...f, bag }, patch = { farm: nf }
+    if (id === 'potion') nf.potions = (f.potions || 0) + 1
+    if (id === 'treat') nf.bond = (f.bond || 0) + 1
+    if (id === 'kit') nf.kit = (f.kit || 0) + 1
+    if (CRAFT_DECOR[id]) { const town = { hall: 1, plots: [], decor: {}, npcs: {}, ...(d.town || {}) }; if (town.decor[id]) return false; patch.town = { ...town, decor: { ...town.decor, [id]: now() } } }
+    save(patch); sfx('levelup'); return true
+  }
+  const openDiscipline = (c) => {
+    const f = F(); if ((f.chests || {})[c.key]) return null
+    const L = chestLoot(c), bag = { ...f.bag }
+    for (const [k, v] of Object.entries(L.mats)) bag[k] = (bag[k] || 0) + v
+    bag.page = (bag.page || 0) + L.page; if (L.star) bag.star = (bag.star || 0) + L.star
+    pay(L.fiat, 0, { icon: '🎁', text: `เปิดหีบวินัย: ${c.name}` }, { farm: { ...f, bag, bonusPts: (f.bonusPts || 0) + L.points, chests: { ...(f.chests || {}), [c.key]: now() } } }); sfx('levelup')
+    return L
+  }
   const setEquip = (patch) => save({ equip: { ...(fresh().equip || {}), ...patch } })
   const toggleDeco = (id) => { const off = { ...(fresh().decoOff || {}) }; off[id] = !off[id]; save({ decoOff: off }) }
 
@@ -686,7 +755,7 @@ export function useRpg() {
     ...rpg, vault: v, fiat, gold, chestReady, openChest, buy, shopPrice, setEquip, toggleDeco, decorPrice, saleOff, chestCount: data.chestCount || 0,
     inflation: inflationMult(data), afford, buildPrice, build, upgrade, demolish, hallPrice, upgradeHall, hire, dismiss, buyDecor,
     collectReady, collect, collectDays, collectAmount, claim, exchange, exchangeRate: exchangeRate(data), exchangedThisWeek, econData: data,
-    bdayReady, claimBirthday, album: data.album || {},
+    bdayReady, claimBirthday, album: data.album || {}, farmFight, setFarm, castSkill, rankUp, sellItems, craft, openDiscipline,
     markNoSpend, noSpendReward, canNoSpendOn, markNoSpendOn, spentOn, markStorySeen, chooseMonthBoss, markMonthSeen,
   }
 }

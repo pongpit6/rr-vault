@@ -1,5 +1,6 @@
 import { Emo } from './px'
 import { useState, useEffect } from 'react'
+import TownFull from './TownFull'
 import { useActiveTheme } from '../lib/theme'
 import { Hammer, Users, Smile, Coins, ArrowUpCircle, Trash2, Sparkles, Repeat, TrendingUp } from './px'
 import TownScene from './TownScene'
@@ -13,7 +14,7 @@ import { EVENTS } from '../lib/world'
 import { traceList } from './TownTraces'
 import { townLines, storyOf, APPRENTICE } from '../lib/townTalk'
 import { MessageCircle, BookOpen } from './px'
-import { LEVEL_REQ, BUILDINGS, HALL, NPCS, DECOR, priceOf, EXCHANGE_WEEKLY, RESIDENTS } from '../lib/town'
+import { LEVEL_REQ, BUILDINGS, HALL, NPCS, DECOR, priceOf, EXCHANGE_WEEKLY, RESIDENTS, xauPrice } from '../lib/town'
 
 const Art = ({ name, size = 30, fallback }) => { const [ok, setOk] = useState(true); return ok ? <img src={`./sprites/${name}.png`} alt="" width={size} height={size} onError={() => setOk(false)} style={{ imageRendering: 'pixelated' }} className="mx-auto" /> : <span className="text-2xl">{fallback}</span> }
 /** the living-world props every town scene gets */
@@ -124,6 +125,7 @@ export default function TownTab({ rpg }) {
   const showToast = useStore((s) => s.showToast)
   const theme = useActiveTheme()
   const [sel, setSel] = useState(null) // plot index | 'hall' | null
+  const [full, setFull] = useState(false)
   const [res, setRes] = useState(null)
   const party = rpg.party.filter((p) => p.joined && p.id !== 'knight').map((p) => p.id)
   const ok = (done, msg) => { if (done) showToast(msg); else showToast('FIAT/GOLD ไม่พอ หรือทำไม่ได้ตอนนี้') }
@@ -138,7 +140,11 @@ export default function TownTab({ rpg }) {
           </div>
           <Wallet rpg={rpg} />
         </div>
-        <TownScene town={T} party={party} pet={rpg.pet.sprite} hue={rpg.skin?.hue || 0} dark={theme === 'pixel-night'} selected={typeof sel === 'number' ? sel : null} onSelect={setSel} world={sceneWorld(rpg)} traces={rpg.traces} extra={sceneExtra(rpg)} growth={rpg.growth} />
+        <div className="relative">
+          <TownScene town={T} party={party} pet={rpg.pet.sprite} hue={rpg.skin?.hue || 0} dark={theme === 'pixel-night'} selected={typeof sel === 'number' ? sel : null} onSelect={setSel} world={sceneWorld(rpg)} traces={rpg.traces} extra={sceneExtra(rpg)} growth={rpg.growth} />
+          <button onClick={() => setFull(true)} className="absolute right-2 top-2 px-2 py-1 text-xs font-bold bg-slate-900/80 text-white" data-testid="town-full-open">⛶ ดูเต็มจอ</button>
+        </div>
+        {full && <TownFull onClose={() => setFull(false)} town={T} party={party} pet={rpg.pet.sprite} hue={rpg.skin?.hue || 0} dark={theme === 'pixel-night'} selected={typeof sel === 'number' ? sel : null} onSelect={(x) => { setFull(false); setSel(x) }} world={sceneWorld(rpg)} traces={rpg.traces} extra={sceneExtra(rpg)} growth={rpg.growth} />}
         <TodayTraces rpg={rpg} className="px-3 py-2 border-t-2 border-slate-800" />
         <TownTalk rpg={rpg} className="px-3 py-2 border-t-2 border-slate-800/10" />
         <div className="grid grid-cols-4 text-center text-[11px] border-t-2 border-slate-800">
@@ -209,7 +215,7 @@ export default function TownTab({ rpg }) {
 
       <Section icon={Sparkles} title="DECOR · ตกแต่งเมือง">
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-          {DECOR.filter((d) => !d.event || T.decor.includes(d.id) || decorOnSale(d, rpg.world)).map((d) => {
+          {DECOR.filter((d) => (d.craft ? T.decor.includes(d.id) : !d.event || T.decor.includes(d.id) || decorOnSale(d, rpg.world))).map((d) => {
             const own = T.decor.includes(d.id), p = rpg.decorPrice ? rpg.decorPrice(d) : priceOf(d.cost, rpg.econData)
             return (
               <div key={d.id} className={`px-inner p-2 text-center ${own ? 'bg-teal-50' : ''}`}>
@@ -228,9 +234,10 @@ export default function TownTab({ rpg }) {
 
       <Section icon={Repeat} title="EXCHANGE · แลกเงิน">
         <div className="text-sm">แลก <b>FIAT → GOLD</b> เรต <b className="num">{rpg.exchangeRate}</b> : 1 · สัปดาห์นี้แลกแล้ว {rpg.exchangedThisWeek}/{EXCHANGE_WEEKLY}</div>
+        <div className="text-[11px] text-slate-500 mt-1">เรตอิงราคาทองโลก (XAUUSD){xauPrice() ? ` $${Math.round(xauPrice()).toLocaleString()}/ออนซ์` : ''} ÷ 8 · ต่ำสุด 300 สูงสุด 900 · GOLD ไม่ดรอปจากการล่ามอนสเตอร์</div>
         <div className="text-[11px] text-slate-500 mt-1 flex items-center gap-1"><TrendingUp size={12} className="text-rose" /> เงินเฟ้อสะสม +{Math.round((rpg.inflation - 1) * 100)}% · ราคาที่จ่ายด้วย FIAT ขึ้น 2% ทุกเดือน (สูงสุด +20%) — เก็บ FIAT ไว้เฉย ๆ ค่าจะลดลง ส่วน GOLD ไม่เฟ้อ{T.bankRate ? ` · ธนาคารให้ดอกเบี้ย ${T.bankRate}%/วัน` : ''}</div>
         <div className="mt-2 flex gap-2">
-          {[1, 3].map((n) => <button key={n} className={`${btn} bg-amber-400`} disabled={rpg.exchangedThisWeek + n > EXCHANGE_WEEKLY || rpg.fiat < rpg.exchangeRate * n} onClick={() => ok(rpg.exchange(n), `แลกได้ ${n} GOLD`)}>แลก {n} 🪙 ({(rpg.exchangeRate * n).toLocaleString()} 💵)</button>)}
+          {[1, 2].map((n) => <button key={n} className={`${btn} bg-amber-400`} disabled={rpg.exchangedThisWeek + n > EXCHANGE_WEEKLY || rpg.fiat < rpg.exchangeRate * n} onClick={() => ok(rpg.exchange(n), `แลกได้ ${n} GOLD`)}>แลก {n} 🪙 ({(rpg.exchangeRate * n).toLocaleString()} 💵)</button>)}
         </div>
       </Section>
 

@@ -62,6 +62,12 @@ export const DECOR = [
   { id: 'banner', name: 'ธงประจำปาร์ตี้', emoji: '🚩', cost: [240, 0], happy: 8, scene: 'ธงหลังปาร์ตี้ในฉากต่อสู้' },
   { id: 'fountain', name: 'น้ำพุกลางเมือง', emoji: '⛲', cost: [400, 0], happy: 14 },
   { id: 'statue', name: 'รูปปั้นทองคำ', emoji: '🗽', cost: [0, 5], happy: 20 },
+  // crafted at the workshop from monster drops (not sold in the shop)
+  { id: 'cr_garden', name: 'สวนสมุนไพร', emoji: '🌿', cost: null, craft: true, happy: 6 },
+  { id: 'cr_totem', name: 'เสาโทเท็มนักล่า', emoji: '🗿', cost: null, craft: true, happy: 8 },
+  { id: 'cr_tapestry', name: 'ผ้าแขวนลายมอนสเตอร์', emoji: '🎏', cost: null, craft: true, happy: 8 },
+  { id: 'cr_lamp', name: 'โคมคริสตัล', emoji: '💎', cost: null, craft: true, happy: 10 },
+  { id: 'cr_hero', name: 'รูปปั้นวีรบุรุษ', emoji: '🗽', cost: null, craft: true, happy: 20 },
   ...EVENT_DECOR, // festival-only pieces (sold while their festival is on, kept forever)
 ]
 // decorations bought in the old shop count as the matching town decoration
@@ -168,8 +174,10 @@ export function computeWallet({ days, txns, data = {}, achievementsUnlocked = 0,
 }
 
 /** Exchange FIAT → GOLD: rate rises with inflation, max 1 GOLD a week (GOLD should stay scarce). */
-export const exchangeRate = (data) => Math.round(100 * inflationMult(data))
-export const EXCHANGE_WEEKLY = 1
+/** 1 GOLD costs world gold (XAUUSD) ÷ 8 in FIAT, kept between 300 and 900; 500 until the price has loaded */
+export const xauPrice = () => { try { return JSON.parse(localStorage.getItem('vault:xau'))?.price || null } catch { return null } }
+export const exchangeRate = () => { const p = xauPrice(); return p ? Math.max(300, Math.min(900, Math.round(p / 8))) : 500 }
+export const EXCHANGE_WEEKLY = 2
 
 /** Town income piles up for each active day since the last collection (up to 7), so a missed visit never loses it. */
 export const COLLECT_DAYS_MAX = 7

@@ -15,6 +15,7 @@ import { LifeStatsCard, GrowthLine } from '../components/GrowthKit'
 import { MonthBossCard, MonthRecapCard, MonthEndSheet } from '../components/MonthKit'
 import { HeroCard, ShadowRaceCard, AlbumCard, BirthdayCard, ActCard } from '../components/HeroKit'
 import { bdaySkin } from '../lib/hero'
+import FarmTab, { SkillTree } from '../components/FarmKit'
 
 function Section({ icon: I, title, right, children }) {
   return (
@@ -58,6 +59,7 @@ function GearIcon({ slot, color, size = 40 }) {
 const TABS = [
   { id: 'town', label: 'เมือง', icon: Castle },
   { id: 'log', label: 'บันทึกการผจญภัย', icon: BookOpen },
+  { id: 'farm', label: 'ล่ามอนสเตอร์', icon: Swords },
   { id: 'party', label: 'ปาร์ตี้', icon: Users },
   { id: 'gear', label: 'อุปกรณ์', icon: Shield },
   { id: 'skills', label: 'สกิล', icon: Sparkles },
@@ -120,6 +122,7 @@ export default function VaultRpg({ onAdd, go }) {
                 {t.id === 'shop' && SHOP.some((i) => !rpg.owned[i.id] && rpg.afford(rpg.shopPrice(i))) && <span className="dot" />}
                 {t.id === 'town' && rpg.collectReady && <span className="dot" />}
                 {t.id === 'quests' && rpg.quests.some((q) => q.claimable) && <span className="dot" />}
+                {t.id === 'farm' && (rpg.chests.length > 0 || rpg.staminaLeft === rpg.energy.stamina) && <span className="dot" />}
               </button>
             ))}
           </div>
@@ -127,6 +130,7 @@ export default function VaultRpg({ onAdd, go }) {
           <MonthEndSheet rpg={rpg} />
           {tab === 'town' && <TownTab rpg={rpg} />}
           {tab === 'log' && <AdventureLog rpg={rpg} />}
+          {tab === 'farm' && <FarmTab rpg={rpg} />}
           {tab === 'party' && <PartyTab rpg={rpg} />}
           {tab === 'gear' && <GearTab rpg={rpg} />}
           {tab === 'skills' && <SkillsTab rpg={rpg} />}
@@ -272,6 +276,8 @@ function SkillsTab({ rpg }) {
   const groups = [...rpg.party.map((m) => ({ key: m.id, title: `${m.name} · ${m.role.split(' ')[0]}`, m })), { key: 'all', title: 'สกิลติดตัวทั้งปาร์ตี้' }]
   return (
     <div className="space-y-3">
+      <SkillTree rpg={rpg} />
+      <div className="text-[11px] text-slate-500 px-1">สกิลจากชีวิตจริง (ทำงานเองเมื่อทำเรื่องจริง และวันนั้นได้โบนัสการล่า: จ่ายหนี้ → พลังทีม +10%, ออม/ลงทุน → ดรอปวัสดุ +10%)</div>
       {groups.map((gp) => (
         <Section key={gp.key} icon={Sparkles} title={gp.title.toUpperCase()}>
           <div className="space-y-2">

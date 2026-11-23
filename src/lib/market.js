@@ -260,3 +260,14 @@ export const fngZone = (v, name) => (name && FNG_ZONES.find((z) => z.en.toLowerC
 /** Crypto shows one row per coin: price from Binance (USD) or Bitkub (THB), the user's choice. */
 export const coinCode = (s = '') => (s.startsWith('BKUB:') ? s.slice(5) : s.replace(/-USD$/, ''))
 export const isCoin = (s = '') => s.startsWith('BKUB:') || /-USD$/.test(s)
+
+/** world gold price for the game's GOLD exchange rate (cached 6 h) */
+export async function loadXau() {
+  try { const c = JSON.parse(localStorage.getItem('vault:xau')); if (c && Date.now() - c.at < 6 * 3600e3) return c.price } catch { /* */ }
+  try {
+    const r = await fetch(`${FN}?spark=${encodeURIComponent('GC=F')}&range=5d`, H); const j = await r.json()
+    const q = (j.quotes || []).find((x) => x.symbol === 'GC=F' && !x.error)
+    if (q?.price) { localStorage.setItem('vault:xau', JSON.stringify({ price: q.price, at: Date.now() })); return q.price }
+  } catch { /* offline */ }
+  return null
+}

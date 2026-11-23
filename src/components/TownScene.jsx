@@ -12,6 +12,8 @@ const MEMBER_COLOR = { knight: '#f97316', mage: '#6366f1', healer: '#14b8a6', ra
  * Layout (half-res units): gate · town hall · plot 1 · plot 2 · … (the town grows to the right).
  */
 export const TH = 120 // half-res height
+/** basic decor drawn from PixelLab art (falls back to the hand-drawn shape until the file exists) */
+const BASIC_ART = { tree: 'dc_tree', bench: 'dc_bench', lamp: 'dc_lamp', flowers: 'dc_flowers', banner: 'dc_banner', well: 'dc_well', fountain: 'dc_fountain', statue: 'dc_statue' }
 export const GYH = 96 // half-res ground line
 const K = 1.5 // buildings are drawn 1.5× bigger (3 screen px per unit, still crisp)
 const PLOT_W = 62, HALL_W = 84, LEFT = 22, RIGHT = 30
@@ -74,7 +76,7 @@ export function drawTown(g, t, now, o = {}) {
   const big = (ax, fn) => { g.save(); g.translate(ax, G); g.scale(K, K); g.translate(-ax, -G); fn(); g.restore() }
   const hx = HALL_X + 6, hl = t.town.hall
   const hallIm = still(`bld_hall_${hl}`)
-  if (hallIm) big(hx, () => { const sz = [44, 50, 56][hl - 1]; g.drawImage(hallIm, hx + 23 - sz / 2, G - sz + 2, sz, sz) })
+  if (hallIm) big(hx, () => { const sz = [38, 44, 50][hl - 1]; g.drawImage(hallIm, hx + 23 - sz / 2, G - sz + 2, sz, sz) })
   else big(hx, () => {
   if (hl === 1) {
     R(C.wood2, hx, G - 22, 46, 22); roof(hx, G - 22, 46, C.roof, 8)
@@ -115,7 +117,7 @@ export function drawTown(g, t, now, o = {}) {
   function drawBuilding(b, x) {
     const lv = b.lv
     const art = still(`bld_${b.type}_${lv}`)
-    if (art) { const sz = [32, 36, 40][lv - 1]; g.drawImage(art, x + 18 - sz / 2, G - sz + 2, sz, sz); return }
+    if (art) { const sz = [27, 31, 35][lv - 1]; g.drawImage(art, x + 18 - sz / 2, G - sz + 2, sz, sz); return }
     switch (b.type) {
       case 'house': {
         const ww = 18 + lv * 4, h = 10 + (lv - 1) * 6, y = G - h
@@ -252,8 +254,10 @@ export function drawTown(g, t, now, o = {}) {
   const dec = t.decor
   const spots = (k) => LEFT + 4 + Math.round(((k + 0.5) * (w - LEFT - RIGHT)) / Math.max(1, dec.length))
   dec.forEach((id, k) => {
-    const x = spots(k), y = G + 12
+    const x = spots(k), y = G + 12 + (dec.length > 8 && k % 2 ? 9 : 0) // two rows when there are many
     g.save(); g.translate(x, y); g.scale(1.3, 1.3); g.translate(-x, -y)
+    const art = still(BASIC_ART[id] || id)
+    if (art && (BASIC_ART[id] || id.startsWith('ev_') || id.startsWith('cr_'))) { g.drawImage(art, x - 5, y - 17, 18, 18); g.restore(); return }
     if (id === 'tree') { R(C.wood, x + 2, y - 6, 2, 6); R(C.leaf, x - 2, y - 16, 10, 10); R(C.leaf2, x, y - 15, 4, 3) }
     if (id === 'bench') { R(C.wood2, x, y - 4, 10, 2); R(C.wood, x, y - 2, 1, 2); R(C.wood, x + 9, y - 2, 1, 2); R(C.wood, x, y - 7, 10, 1) }
     if (id === 'lamp') { R('#334155', x, y - 16, 1, 16); R(night ? '#fde047' : '#fef9c3', x - 1, y - 18, 3, 2); if (night) { g.fillStyle = 'rgba(253,224,71,.2)'; g.fillRect(x - 6, y - 22, 13, 12) } }
@@ -265,7 +269,7 @@ export function drawTown(g, t, now, o = {}) {
       for (let q = 0; q < 6; q++) { const k2 = (now / 500 + q / 6) % 1; R('#7dd3fc', x + 3 + Math.round(Math.sin(q * 2) * k2 * 6), y - 12 + k2 * 9 - Math.sin(k2 * Math.PI) * 4, 1, 1) }
     }
     // festival pieces: emoji stand-ins until their PixelLab art is drawn
-    if (id.startsWith('ev_')) { const im = still(id); if (im) g.drawImage(im, x - 5, y - 17, 18, 18); else { const it = DECOR_BY_ID[id]; if (it) { g.font = '12px sans-serif'; g.textAlign = 'center'; g.fillText(it.emoji, x + 4, y - 2); g.textAlign = 'left' } } }
+    if ((id.startsWith('ev_') || id.startsWith('cr_')) && !still(id)) { const it = DECOR_BY_ID[id]; if (it) { g.font = '12px sans-serif'; g.textAlign = 'center'; g.fillText(it.emoji, x + 4, y - 2); g.textAlign = 'left' } }
     if (id === 'statue') { R(C.stone2, x, y - 4, 8, 4); R(C.gold, x + 2, y - 14, 4, 10); R(C.gold2, x + 3, y - 16, 2, 2); if (Math.sin(now / 300) > 0.8) R('#fff', x + 5, y - 13, 1, 1) }
     g.restore()
   })

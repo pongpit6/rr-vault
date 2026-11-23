@@ -462,6 +462,8 @@ export default function BattleScene({
         c[0] += dt * 0.004; if (c[0] > BW + 20) c[0] = -24
         g.fillRect(Math.round(c[0]), c[1], c[2], 3); g.fillRect(Math.round(c[0]) + 3, c[1] - 2, c[2] - 6, 2)
       })
+      const btArt = still(`bt_${tier}`) // PixelLab backdrop per realm (the hand-drawn layers stay as a fallback)
+      if (!btArt) {
       const hill = GR.hill || sky.hill
       g.fillStyle = hill[0]
       for (let x = 0; x < BW; x++) { const y = bgy - 8 - Math.round(6 + 4 * Math.sin(x / 17) + 3 * Math.sin(x / 7.3)); g.fillRect(x, y, 1, bgy - y + 2) }
@@ -484,6 +486,7 @@ export default function BattleScene({
       g.fillStyle = GR.speck
       if (GR.cobble) { for (let y = bgy + 5, r = 0; y < BH; y += 4, r++) for (let x = (r % 2) * 4; x < BW; x += 8) g.fillRect(x, y, 6, 1) }
       else for (let x = 2; x < BW; x += 9) g.fillRect(x, bgy + 6 + (x % 3), 2, 1)
+      } else { g.drawImage(btArt, 0, bgy - 82, BW, 120); if (sky.night > 0.2) { g.fillStyle = 'rgba(15,23,42,.5)'; g.fillRect(0, 0, BW, BH) } }
       if (decos.deco_banner) { const bx = Math.round((heroBaseX - 34 * backRow.length - 14) / 2); g.fillStyle = '#334155'; g.fillRect(bx, bgy - 28, 1, 30); const wv = Math.floor(now / 250) % 2; g.fillStyle = '#10b981'; g.fillRect(bx + 1, bgy - 28 + wv, 9, 3); g.fillStyle = '#38bdf8'; g.fillRect(bx + 1, bgy - 25 + wv, 9, 3) }
 
       // ---- sprites (full res) ----
