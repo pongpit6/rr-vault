@@ -226,6 +226,7 @@ function PartyTab({ rpg }) {
         <section className="px-card p-3.5 flex items-center gap-3" data-testid="growth-pet">
           <div className="w-14 h-14 grid place-items-center border-2 border-slate-800 bg-amber-50 shrink-0"><Portrait sprite={rpg.pet.sprite} size={[30, 38, 48][rpg.growth.pet.stage - 1]} /></div>
           <div className="flex-1 min-w-0 text-sm"><b>{rpg.pet.name}</b> <span className="px-font text-[8px] text-amber-600">{'★'.repeat(rpg.growth.pet.stage)}{'☆'.repeat(3 - rpg.growth.pet.stage)}</span>
+            <div className="flex gap-1.5 my-1">{[1, 2, 3].map((n) => <div key={n} className={`px-inner p-0.5 ${n === rpg.growth.pet.stage ? 'ring-2 ring-amber-400' : ''}`}><Portrait sprite={`${rpg.pet.sprite}_${n}`} size={30} dim={n > rpg.growth.pet.stage} /></div>)}</div>
             <div className="text-[11px] text-slate-500">โตตามความสม่ำเสมอ: ทำนิสัยมาแล้ว {rpg.growth.pet.days} วัน{rpg.growth.pet.nextAt ? ` · โตขั้นถัดไปที่ ${rpg.growth.pet.nextAt} วัน` : ' · โตเต็มวัยแล้ว'}</div>
           </div>
         </section>
@@ -302,13 +303,14 @@ function ShopTab({ rpg }) {
         <div className="flex flex-col gap-1 shrink-0"><Wallet rpg={rpg} /></div>
       </section>
       {types.map(([type, label]) => (
-        <Section key={type} icon={Store} title={label.toUpperCase()}>
+        <Section key={type} icon={Store} title={label.toUpperCase()} right={type === 'skin' ? <span className="text-[10px] text-slate-500">ซื้อแล้วโบนัสติดตัวถาวร ใส่ชุดไหนก็ได้</span> : type === 'pet' ? <span className="text-[10px] text-slate-500">โตได้ 3 ร่างตามความสม่ำเสมอ</span> : null}>
+          {type === 'skin' && rpg.town.skinPerk && Object.keys(rpg.town.skinPerk).length > 0 && <div className="text-[11px] text-emerald-700 bg-emerald-50 px-2 py-1.5 mb-2" data-testid="skin-perks">โบนัสจากชุดที่มี: {Object.entries(rpg.town.skinPerk).map(([k, v]) => `${{ townPct: 'รายได้เมือง', habitPct: 'FIAT นิสัย', chestPct: 'หีบรายวัน', nospendPct: 'วันไม่ใช้เงิน', questPct: 'เควสต์', xpPct: 'XP', shopPct: 'ส่วนลดร้าน' }[k]} +${v}%`).join(' · ')}</div>}
           <div className="grid grid-cols-2 gap-2">
             {type === 'pet' && (
               <ShopCard name="จิ้งจอกมิ้นต์" desc="สัตว์เลี้ยงตัวแรก" art={<Portrait sprite="pet_fox" size={44} />} owned equipped={rpg.pet.id === 'pet_fox'} onEquip={() => rpg.setEquip({ pet: null })} />
             )}
             {type === 'skin' && (
-              <ShopCard name="ชุดนักผจญภัยดั้งเดิม" desc="สีเริ่มต้น ไม่มีโบนัส" art={<Portrait sprite="hero" size={48} />} owned equipped={!rpg.skin} onEquip={() => rpg.setEquip({ skin: null })} />
+              <ShopCard name={`ชุดตามยศ: ${rpg.outfit.name}`} desc="เปลี่ยนเองเมื่อเลื่อนยศ" art={<Portrait sprite={`hero${rpg.outfit.stage}`} size={48} />} owned equipped={!rpg.skin} onEquip={() => rpg.setEquip({ skin: null })} />
             )}
             {type === 'skin' && Object.keys(rpg.owned).map(bdaySkin).filter(Boolean).map((i) => (
               <ShopCard key={i.id} name={i.name} desc={i.desc} art={<Portrait sprite="hero" size={48} hue={i.hue} />} owned equipped={rpg.skin?.id === i.id} onEquip={() => rpg.setEquip({ skin: rpg.skin?.id === i.id ? null : i.id })} />
@@ -316,7 +318,7 @@ function ShopTab({ rpg }) {
             {SHOP.filter((i) => i.type === type).map((i) => {
               const owned = !!rpg.owned[i.id]
               const equipped = type === 'deco' ? !!rpg.decos[i.id] : type === 'pet' ? rpg.pet.id === i.id : rpg.skin?.id === i.id
-              const art = i.type === 'pet' ? <Portrait sprite={i.sprite} size={44} /> : i.type === 'skin' ? <Portrait sprite="hero" size={48} hue={i.hue} /> : <span className="text-3xl">{i.id === 'deco_flowers' ? '🌷' : i.id === 'deco_lanterns' ? '🏮' : '🚩'}</span>
+              const art = i.type === 'pet' ? <Portrait sprite={i.sprite} size={44} /> : i.type === 'skin' ? <Portrait sprite={i.art ? i.id : 'hero'} size={48} hue={i.hue} /> : <span className="text-3xl">{i.id === 'deco_flowers' ? '🌷' : i.id === 'deco_lanterns' ? '🏮' : '🚩'}</span>
               return (
                 <ShopCard key={i.id} name={i.name} desc={i.desc} art={art} price={<Price p={rpg.shopPrice(i)} rpg={rpg} />} owned={owned} equipped={equipped} canBuy={rpg.afford(rpg.shopPrice(i))}
                   onBuy={() => { if (rpg.buy(i)) showToast(`ซื้อ “${i.name}” แล้ว!`) }}

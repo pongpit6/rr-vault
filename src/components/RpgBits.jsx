@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Flame, ChevronRight } from './px'
-import BattleScene, { skinUrl, heroSheet } from './BattleScene'
+import BattleScene, { skinUrl, heroSheet, petSprite } from './BattleScene'
 import { SHEETS } from '../lib/spriteSheets'
 import { useStore } from '../store'
 import { diffEvents } from '../lib/rpg'
@@ -46,7 +46,7 @@ export function Portrait({ sprite, size = 44, dim = false, hue: skinHue = 0 }) {
     return () => { alive = false }
   }, [skinHue, sheetName])
   const hue = 0 // the recolour is baked into `tinted`; no CSS hue filter
-  const src = tinted || `./sprites/${sheetName || sprite}.png`
+  const src = tinted || `./sprites/${sheetName || petSprite(sprite)}.png`
   const sp = sheetName ? SHEETS[sheetName] : null
   const k = sp ? size / sp.h : 1
   return (

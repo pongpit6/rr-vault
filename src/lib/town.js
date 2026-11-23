@@ -66,10 +66,30 @@ export const DECOR = [
 ]
 // decorations bought in the old shop count as the matching town decoration
 export const LEGACY_DECO = { deco_flowers: 'flowers', deco_lanterns: 'lamp', deco_banner: 'banner' }
-// knight outfits: each gives a small perk so the choice matters
+// hero outfits: every outfit you own keeps its small perk forever; wearing one only changes the look
 export const SKIN_PERK = {
   skin_royal: { townPct: 5, text: 'รายได้เมือง +5%' },
   skin_flame: { habitPct: 5, text: 'FIAT จากนิสัย +5%' },
+  skin_ninja: { chestPct: 5, text: 'FIAT จากหีบรายวัน +5%' },
+  skin_ranger: { nospendPct: 10, text: 'รางวัลวันไม่ใช้เงิน +10%' },
+  skin_samurai: { questPct: 5, text: 'FIAT จากเควสต์ +5%' },
+  skin_scholar: { xpPct: 3, text: 'XP +3%' },
+  skin_pirate: { shopPct: 3, text: 'ส่วนลดร้านค้า 3%' },
+  skin_thai: { townPct: 3, text: 'รายได้เมือง +3%' },
+  skin_paladin: { habitPct: 3, text: 'FIAT จากนิสัย +3%' },
+  skin_dark: { chestPct: 3, text: 'FIAT จากหีบรายวัน +3%' },
+  skin_nomad: { nospendPct: 5, text: 'รางวัลวันไม่ใช้เงิน +5%' },
+  skin_aviator: { questPct: 3, text: 'FIAT จากเควสต์ +3%' },
+  skin_arctic: { xpPct: 2, text: 'XP +2%' },
+  skin_hood: { shopPct: 2, text: 'ส่วนลดร้านค้า 2%' },
+  skin_alchemist: { townPct: 2, text: 'รายได้เมือง +2%' },
+  skin_hunter: { habitPct: 2, text: 'FIAT จากนิสัย +2%' },
+}
+/** all perks of the outfits you own, added up */
+export function skinPerks(owned = {}) {
+  const t = {}
+  for (const [id, p] of Object.entries(SKIN_PERK)) if (owned[id]) for (const [k, v] of Object.entries(p)) if (k !== 'text') t[k] = (t[k] || 0) + v
+  return t
 }
 export const DECOR_BY_ID = Object.fromEntries(DECOR.map((d) => [d.id, d]))
 
@@ -92,7 +112,7 @@ export function computeTown(data = {}, { realmTier = 1, streak = 0 } = {}) {
   const npcs = Object.keys(town.npcs || {}).filter((id) => NPC_BY_ID[id])
   const legacy = Object.keys(data.owned || {}).map((k) => LEGACY_DECO[k]).filter(Boolean)
   const decor = [...new Set([...Object.keys(town.decor || {}), ...legacy])].filter((id) => DECOR_BY_ID[id])
-  const skinPerk = (data.owned || {})[data.equip?.skin] ? SKIN_PERK[data.equip.skin] || {} : {}
+  const skinPerk = skinPerks(data.owned)
 
   const tenants = built.filter((b) => b.type === 'house').reduce((s, b) => s + BUILDINGS.house.perk[b.lv - 1], 0)
   const pop = 2 + tenants + npcs.length + RESIDENTS.length
@@ -117,7 +137,7 @@ export function computeTown(data = {}, { realmTier = 1, streak = 0 } = {}) {
   const buildDiscount = npcs.reduce((s, id) => s + (NPC_BY_ID[id].perk.discount || 0), 0)
   return {
     town, plots, plotCount, built, npcs, decor, pop, happiness, happyParts, happyMult,
-    dailyFiat, farmFiat, npcFiat, marketFiat: mk ? mk[0] : 0, shopDiscount: mk ? mk[1] : 0,
+    dailyFiat, farmFiat, npcFiat, marketFiat: mk ? mk[0] : 0, shopDiscount: (mk ? mk[1] : 0) + (skinPerk.shopPct || 0), skinPerk,
     bankRate: bank ? bank[0] : 0, bankCap: bank ? Math.round(bank[1] * bankBoost) : 0, goldChance, buildDiscount, rentFiat, habitBoost: (perk('gym') || 0) + (skinPerk.habitPct || 0),
     xpBonus: (perk('library') || 0) + (perk('school') || 0), npcSlots: perk('tavern') || 0, towerGold: perk('tower') || 0, lvOf,
     count: (type) => built.filter((b) => b.type === type).length,

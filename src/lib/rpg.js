@@ -9,7 +9,7 @@ import { computeHabits } from './habits'
 import { selectList } from '../store'
 import { useWeather, loadWeather, sceneWeather, thaiEvent, isThaiHoliday, moneyMood } from './world'
 import { doubleDay, decorOnSale } from './festivals'
-import { setHeroStage } from './heroStage'
+import { setHeroStage, setHeroSkin, setPetStage } from './heroStage'
 import { outfitOf, condition7, shadowRace, birthdayInfo, bdaySkin, storyAct, albumSnap, FREEDOM_STEPS } from './hero'
 import { usePrices } from './prices'
 import { budgetStatus } from './plan'
@@ -276,6 +276,7 @@ function computeRpg({ accounts, txns, settings, balances, summary, unlocked, por
   const debtFog = Math.min(0.55, summary.debts / Math.max(1, summary.assets + summary.debts))
   const town = computeTown(data, { realmTier: realmNow.tier, streak })
   if (town.xpBonus) add(`ห้องสมุด +${town.xpBonus}%`, (xp * town.xpBonus) / 100)
+  if (town.skinPerk?.xpPct) add(`ชุดที่สะสม +${town.skinPerk.xpPct}%`, (xp * town.skinPerk.xpPct) / 100)
   const lv = levelFromXp(xp)
   const title = [...TITLES].reverse().find(([min]) => lv.level >= min)
 
@@ -426,6 +427,8 @@ function computeRpg({ accounts, txns, settings, balances, summary, unlocked, por
 
   const outfit = outfitOf(lv.level)
   setHeroStage(outfit.stage)
+  setHeroSkin(party.skin?.art ? party.skin.id : null)
+  setPetStage(growth?.pet?.stage || 1)
   const condition = condition7(habitDays, today)
   world.birthday = birthday
 
@@ -503,7 +506,7 @@ export function useRpg() {
     const run = rpg.noSpendToday ? rpg.noSpendStreak : rpg.noSpendStreak + 1
     const x2 = rpg.world.event?.id === 'songkran' ? 2 : 1
     // GOLD comes from the 7/30/100-day streak milestones, plus 1 for walking past a double-date sale (1.1 … 12.12)
-    return { run, fiat: (30 + 10 * Math.min(7, run)) * x2, gold: rpg.world.sale ? 1 : 0, sale: rpg.world.sale?.label || null }
+    return { run, fiat: Math.round((30 + 10 * Math.min(7, run)) * x2 * (1 + (rpg.town.skinPerk?.nospendPct || 0) / 100)), gold: rpg.world.sale ? 1 : 0, sale: rpg.world.sale?.label || null }
   })()
   const markNoSpend = () => {
     if (rpg.noSpendToday || rpg.spentToday) return null
@@ -529,7 +532,7 @@ export function useRpg() {
     let gain = 5 + bonus + fit + (roll > 0.9 ? 15 : roll > 0.6 ? 5 : 0)
     const double = rpg.streak >= 30
     if (double) gain *= 2
-    gain *= GEM_TO_FIAT
+    gain = Math.round(gain * GEM_TO_FIAT * (1 + (rpg.town.skinPerk?.chestPct || 0) / 100))
     const tip = CHEST_TIPS[Math.floor(Math.random() * CHEST_TIPS.length)]
     sfx('coin')
     const d = fresh()
@@ -625,7 +628,7 @@ export function useRpg() {
     if (!q.claimable) return false
     const d = fresh()
     sfx('levelup')
-    pay(q.fiat || 0, q.gold || 0, { icon: q.gold ? '🪙' : '💵', text: `รับรางวัลเควสต์ “${q.name}”` }, { claims: { ...(d.claims || {}), [q.key]: now() } })
+    pay(Math.round((q.fiat || 0) * (1 + (rpg.town.skinPerk?.questPct || 0) / 100)), q.gold || 0, { icon: q.gold ? '🪙' : '💵', text: `รับรางวัลเควสต์ “${q.name}”` }, { claims: { ...(d.claims || {}), [q.key]: now() } })
     return true
   }
   const wk = weekKey()

@@ -1,8 +1,8 @@
 import { sfx } from '../lib/sfx'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { SHEETS } from '../lib/spriteSheets'
-import { heroSheet, setHeroStage } from '../lib/heroStage'
-export { heroSheet, setHeroStage }
+import { heroSheet, setHeroStage, petSprite } from '../lib/heroStage'
+export { heroSheet, setHeroStage, petSprite }
 import { money } from '../lib/format'
 import { useStore } from '../store'
 import { ACHIEVEMENTS } from '../lib/rpg'
@@ -24,7 +24,7 @@ export function still(name) {
 ;['pet_fox', 'pet_owl', 'pet_drake', 'npc_merchant', 'npc_farmer', 'chest_closed', 'chest_open'].forEach(still)
 /** draw a static sprite, optionally mirrored, scaled to height h, feet at (x, y) */
 export function drawStill(g, name, x, y, h, flip = false) {
-  const im = still(name); if (!im) return
+  const im = still(petSprite(name)) || still(name); if (!im) return
   const w = (im.width / im.height) * h
   g.save(); g.translate(Math.round(x), Math.round(y - h))
   if (flip) { g.translate(w, 0); g.scale(-1, 1) }

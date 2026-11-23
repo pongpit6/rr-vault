@@ -3,6 +3,7 @@
  * Nothing here is random: every line in the log points back to a transaction or a milestone.
  */
 import { bdaySkin } from './hero'
+import { SKIN_PERK } from './town'
 import { money, round2, todayISO } from './format'
 
 /* ---------------- party ---------------- */
@@ -56,8 +57,17 @@ export const SKILLS = [
 export const SHOP = [
   { id: 'pet_owl', type: 'pet', name: 'นกฮูกหิมะ', desc: 'สัตว์เลี้ยงเดินตามปาร์ตี้', price: 60, sprite: 'pet_owl' },
   { id: 'pet_drake', type: 'pet', name: 'มังกรน้อยทองคำ', desc: 'สัตว์เลี้ยงหายาก', price: 150, sprite: 'pet_drake' },
-  { id: 'skin_royal', type: 'skin', name: 'ชุดนักผจญภัยม่วงราชา', desc: 'เกราะม่วง ผ้าคลุมแดง · รายได้เมือง +5%', price: 80, hue: 120 },
-  { id: 'skin_flame', type: 'skin', name: 'ชุดนักผจญภัยกุหลาบ', desc: 'เกราะสีกุหลาบ ผ้าคลุมเขียวมะกอก · FIAT จากนิสัย +5%', price: 80, hue: 200 },
+  { id: 'pet_cat', type: 'pet', name: 'แมวส้มขี้อ้อน', desc: 'สัตว์เลี้ยงโตได้ 3 ร่าง', price: 60, sprite: 'pet_cat' },
+  { id: 'pet_bunny', type: 'pet', name: 'กระต่ายหิมะ', desc: 'สัตว์เลี้ยงโตได้ 3 ร่าง', price: 60, sprite: 'pet_bunny' },
+  { id: 'pet_turtle', type: 'pet', name: 'เต่าเหรียญทอง', desc: 'ช้าแต่ชัวร์ เหมือนเงินออม', price: 90, sprite: 'pet_turtle' },
+  { id: 'pet_piggy', type: 'pet', name: 'หมูออมสิน', desc: 'โตตามความสม่ำเสมอ', price: 90, sprite: 'pet_piggy' },
+  { id: 'pet_phoenix', type: 'pet', name: 'ฟีนิกซ์เพลิงทอง', desc: 'สัตว์เลี้ยงตำนาน', price: 250, sprite: 'pet_phoenix' },
+  ...[
+    ['skin_royal', 'ชุดเกราะม่วงราชา', 80], ['skin_flame', 'ชุดเกราะกุหลาบ', 80], ['skin_ninja', 'ชุดนินจาเงา', 90], ['skin_ranger', 'ชุดพรานป่า', 90],
+    ['skin_samurai', 'ชุดซามูไรแดง', 110], ['skin_scholar', 'ชุดนักปราชญ์', 110], ['skin_pirate', 'ชุดกัปตันโจรสลัด', 110], ['skin_thai', 'ชุดนักรบไทย', 100],
+    ['skin_paladin', 'ชุดอัศวินทองคำ', 130], ['skin_dark', 'ชุดอัศวินรัตติกาล', 130], ['skin_nomad', 'ชุดนักเดินทางทะเลทราย', 100], ['skin_aviator', 'ชุดนักบินสตีมพังก์', 120],
+    ['skin_arctic', 'ชุดนักสำรวจขั้วโลก', 120], ['skin_hood', 'ชุดนักฆ่าฮู้ดดำ', 120], ['skin_alchemist', 'ชุดนักเล่นแร่แปรธาตุ', 110], ['skin_hunter', 'ชุดนายพรานขนสัตว์', 100],
+  ].map(([id, name, price]) => ({ id, type: 'skin', name, desc: `${SKIN_PERK[id].text} · ติดตัวถาวรเมื่อซื้อ`, price, art: true })),
 ]
 export const PET_DEFAULT = { id: 'pet_fox', name: 'จิ้งจอกมิ้นต์', sprite: 'pet_fox' }
 

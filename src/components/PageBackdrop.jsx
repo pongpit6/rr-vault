@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react'
 import { useActiveTheme } from '../lib/theme'
 import { useStore } from '../store'
 import { frame, drawStill, drawRealm, skyFor, mix, GROUND, still, setHeroStage } from './BattleScene'
+import { setHeroSkin } from '../lib/heroStage'
 import { outfitOf } from '../lib/hero'
 import { drawTown, plotX } from './TownScene'
 import { computeTown } from '../lib/town'
@@ -226,7 +227,9 @@ export function BackdropHost({ tab }) {
   const party = Object.keys(data.joined || {})
   setHeroStage(outfitOf(data.maxLevel || 1).stage)
   const pet = (data.owned || {})[data.equip?.pet] ? data.equip.pet : 'pet_fox'
-  const hue = (data.owned || {})[data.equip?.skin] ? ({ skin_royal: 120, skin_flame: 200 }[data.equip.skin] || 0) : 0
+  const worn = (data.owned || {})[data.equip?.skin] ? data.equip.skin : null
+  setHeroSkin(worn && worn.startsWith('skin_') ? worn : null)
+  const hue = worn && worn.startsWith('bday_') ? (+worn.slice(5) * 47) % 360 : 0
   const tier = data.tier ?? (net == null ? 1 : net < 0 ? 0 : net < 10000 ? 1 : net < 100000 ? 2 : net < 1000000 ? 3 : 4)
   const town = data.town ? computeTown(data, { realmTier: tier }) : null
   const world = useStore((s) => s.ui._worldCache) || null
