@@ -140,16 +140,22 @@ function AccountDetail({ id, onClose, onEditAcc, onEditTxn }) {
   const put = useStore((s) => s.put)
   const showToast = useStore((s) => s.showToast)
   const [adj, setAdj] = useState('')
+  const [adjMode, setAdjMode] = useState('avail')
   const a = accById[id]
-  useEffect(() => setAdj(''), [id])
+  useEffect(() => { setAdj(''); setAdjMode('avail') }, [id])
   if (!a) return null
   const b = balances[a.id] || 0
   const related = txns.filter((t) => postingsOf(t, accById, settings).some((p) => p.acc === a.id)).slice(0, 30)
   const debt = isDebt(a)
+  const cardLimit = a.type === 'credit' && a.limit > 0
+  const loansOwed = cardLimit ? accounts.filter((l) => l.viaCard === a.id && !l.archived).reduce((t, l) => t + Math.max(0, -(balances[l.id] || 0)), 0) : 0
+  const byAvail = cardLimit && adjMode === 'avail'
   const doAdjust = () => {
     let target = evalAmount(adj)
     if (!Number.isFinite(target)) return
-    if (debt) target = -Math.abs(target)
+    // card: the bank app shows the remaining limit, so turn it back into what is owed on the card
+    if (byAvail) target = -Math.max(0, round2(a.limit - loansOwed - Math.abs(target)))
+    else if (debt) target = -Math.abs(target)
     const diff = round2(target - b)
     if (!diff) return
     put('txn', { kind: 'adjust', amount: diff, account: a.id, date: todayISO(), note: '', createdAt: new Date().toISOString() })
@@ -209,9 +215,16 @@ function AccountDetail({ id, onClose, onEditAcc, onEditTxn }) {
 
       <div className="mt-5 card p-4">
         <div className="flex items-center gap-2 text-sm font-medium"><Scale size={16} className="text-sky" /> ปรับยอดให้ตรงความจริง</div>
-        <div className="text-xs text-slate-500 mt-1">ใส่{debt ? 'ยอดหนี้คงค้าง' : 'ยอดเงิน'}จริงตอนนี้ ระบบจะสร้างรายการ “ปรับยอด” ให้อัตโนมัติ</div>
+        {cardLimit && (
+          <div className="flex gap-1 mt-2 p-1 rounded-xl bg-slate-100 text-xs">
+            {[['avail', 'วงเงินคงเหลือ'], ['owed', 'ยอดค้างชำระ']].map(([k, l]) => (
+              <button key={k} onClick={() => { setAdjMode(k); setAdj('') }} className={`flex-1 py-1.5 rounded-lg ${adjMode === k ? 'bg-white shadow font-semibold' : 'text-slate-500'}`}>{l}</button>
+            ))}
+          </div>
+        )}
+        <div className="text-xs text-slate-500 mt-1">{byAvail ? 'ใส่วงเงินคงเหลือตามแอปธนาคาร ระบบหักเงินสดผ่อนที่บันทึกไว้แล้วคำนวณยอดค้างให้' : `ใส่${debt ? 'ยอดหนี้คงค้าง' : 'ยอดเงิน'}จริงตอนนี้`} ระบบจะสร้างรายการ “ปรับยอด” ให้อัตโนมัติ</div>
         <div className="flex gap-2 mt-3">
-          <input className="field num" inputMode="decimal" placeholder={String(Math.abs(b))} value={adj} onChange={(e) => setAdj(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && doAdjust()} />
+          <input className="field num" inputMode="decimal" placeholder={String(byAvail ? round2(a.limit - loansOwed - Math.max(0, -b)) : Math.abs(b))} value={adj} onChange={(e) => setAdj(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && doAdjust()} />
           <Button onClick={doAdjust} disabled={!adj}><Check size={18} /></Button>
         </div>
       </div>
