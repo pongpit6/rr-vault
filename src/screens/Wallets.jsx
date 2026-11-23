@@ -158,7 +158,7 @@ function AccountDetail({ id, onClose, onEditAcc, onEditTxn }) {
     else if (debt) target = -Math.abs(target)
     const diff = round2(target - b)
     if (!diff) return
-    put('txn', { kind: 'adjust', amount: diff, account: a.id, date: todayISO(), note: '', createdAt: new Date().toISOString() })
+    put('txn', { kind: 'adjust', amount: diff, account: a.id, date: todayISO(), note: '', ...(byAvail ? { cycle: 'new' } : {}), createdAt: new Date().toISOString() })
     showToast(`ปรับยอด ${a.name} เป็น ${money(target)} แล้ว`)
     setAdj('')
   }

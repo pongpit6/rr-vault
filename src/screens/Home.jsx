@@ -14,6 +14,7 @@ import { budgetStatus } from '../lib/plan'
 import { assetLabel } from '../lib/portfolio'
 import { useStore, useProfile, selectList } from '../store'
 import { useVault } from '../lib/useVault'
+import { bankCheck } from '../lib/bankcheck'
 import { greeting, money, todayISO, monthKey, round2, shortDate } from '../lib/format'
 
 function useCountUp(target, ms = 900) {
@@ -76,6 +77,7 @@ export default function Home({ onAdd, onEdit, go }) {
   const rpg = useRpg()
   const net = useCountUp(summary.net)
   const uncat = useMemo(() => txns.filter((t) => t.category === 'cat-uncat'), [txns])
+  const bank = useMemo(() => bankCheck(accounts, txns, settings), [accounts, txns, settings])
   const budgets = useMemo(() => budgetStatus(selectList(items, 'budget'), txns), [items, txns])
   const soon = useMemo(() => upcoming(subs, accounts, balances, 7, cycles), [subs, accounts, balances, cycles])
   const month = monthKey(todayISO())
@@ -106,6 +108,9 @@ export default function Home({ onAdd, onEdit, go }) {
   const warnBudgets = budgets.filter((b) => b.status === 'over' || b.status === 'warn')
 
   const todos = []
+  if (bank && !bank.ok) todos.push({ key: 'bank', icon: <IconBadge name="scale" color="#f59e0b" size={36} icon={17} />, title: `ยอดกสิกรในแอปไม่ตรงธนาคาร ${bank.diff > 0 ? '+' : ''}${bank.diff.toLocaleString('th-TH')} บาท`, urgent: true,
+    sub: `ธนาคาร ${bank.bank.toLocaleString('th-TH')} · แอป ${bank.app.toLocaleString('th-TH')} (อีเมลล่าสุด ${bank.time || ''}) · แตะเพื่อปรับให้ตรง`,
+    onClick: () => confirm(`ปรับ ${accById[bank.account]?.name || 'กระเป๋า'} ${bank.diff > 0 ? '+' : ''}${bank.diff} บาท ให้ตรงยอดธนาคาร?`) && useStore.getState().put('txn', { kind: 'adjust', amount: bank.diff, account: bank.account, date: bank.date, time: bank.time, note: `ปรับให้ตรงยอดธนาคาร ${bank.bank}`, createdAt: new Date().toISOString() }) })
   if (uncat.length) todos.push({ key: 'uncat', icon: <IconBadge name="tag" color="#f59e0b" size={36} icon={17} />, title: `${uncat.length} รายการยังไม่ใส่หมวด`, sub: 'แตะเพื่อใส่หมวดรวดเดียว', onClick: () => go('txns', 'uncat') })
   for (const u of soon.slice(0, 3)) {
     todos.push(u.kind === 'sub'

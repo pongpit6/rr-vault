@@ -27,6 +27,7 @@ export function txnVisual(t, catById, accById) {
   const c = catById[t.category]
   let sub = accById[t.account]?.name || ''
   if (t.kind === 'income' && t.split) sub = 'แบ่งเข้า ' + Object.keys(t.split).filter((k) => t.split[k]).map((k) => accById[k]?.name).filter(Boolean).join(' · ')
+  if (t.src === 'email') sub = '📧 ' + [t.time, sub].filter(Boolean).join(' · ')
   const subscription = t.subId ? itemData(t.subId) : null
   return { icon: c?.icon || 'more', color: c?.color || '#94a3b8', title: c?.name || TXN_KINDS[t.kind]?.label, sub, subscription }
 }

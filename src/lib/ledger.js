@@ -210,7 +210,7 @@ const dueAfter = (stmt, sd, dd) => (dd > sd ? clampDay(stmt.getFullYear(), stmt.
 /**
  * Splits a credit card balance into the bill of the latest statement (due on dueDay) and
  * the new cycle (spending after the statement date, billed next time).
- * "ปรับยอด" entries count as part of the billed balance.
+ * "ปรับยอด" entries count as part of the billed balance unless marked cycle:'new'.
  */
 export function cardCycle(a, txns, accById, settings, todayIso) {
   if (a.type !== 'credit' || !a.statementDay) return null
@@ -226,7 +226,8 @@ export function cardCycle(a, txns, accById, settings, todayIso) {
   for (const x of txns) {
     for (const p of postingsOf(x, accById, settings)) {
       if (p.acc !== a.id) continue
-      if (x.kind === 'adjust' || x.date <= stmtIso) balAtStmt += p.amt
+      // an adjust is part of the billed balance, unless it was made from the bank app's remaining limit (cycle:'new')
+      if ((x.kind === 'adjust' && x.cycle !== 'new') || x.date <= stmtIso) balAtStmt += p.amt
       else if (p.amt > 0) paidAfter += p.amt
       else chargedAfter += -p.amt
     }

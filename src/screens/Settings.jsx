@@ -8,6 +8,7 @@ import { Avatar, Button, Sheet, Label, IconBadge, IconPicker, ColorPicker, Segme
 import AvatarEditor from '../components/AvatarEditor'
 import AuthPanel from '../components/AuthPanel'
 import { LockSettings } from '../components/Lock'
+import EmailAuto from '../components/EmailAuto'
 import { useStore, useProfile } from '../store'
 import { useVault } from '../lib/useVault'
 import { ICON_KEYS, COLORS } from '../lib/icons'
@@ -44,6 +45,7 @@ export default function Settings({ opt }) {
   const [installOpen, setInstallOpen] = useState(false)
   const [lockOpen, setLockOpen] = useState(false)
   const [slipOpen, setSlipOpen] = useState(false)
+  const [mailOpen, setMailOpen] = useState(false)
   const lock = useStore((s) => s.ui.lock)
   const fileRef = useRef(null)
 
@@ -112,6 +114,7 @@ export default function Settings({ opt }) {
           right={<div className={`w-11 h-6 rounded-full p-0.5 transition ${privacy ? 'bg-ac' : 'bg-slate-900/10'}`}><div className={`w-5 h-5 rounded-full bg-white transition ${privacy ? 'translate-x-5' : ''}`} /></div>}
           onClick={() => setUi({ privacy: !privacy })} />
         <Row icon="scan" color="#10b981" title="นำเข้าสลิป K PLUS" sub={`เตือนทุกวัน ${(useStore.getState().items.settings?.data?.slipSummaryTime ?? '20:00') || 'ปิดอยู่'} · วิธีใช้`} onClick={() => setSlipOpen(true)} />
+        <Row icon="receipt" color="#0ea5e9" title="บันทึกอัตโนมัติจากอีเมล K PLUS" sub={useStore.getState().items.settings?.data?.emailAuto?.off ? 'ปิดอยู่' : 'อ่านอีเมลแจ้งผลจากกสิกรแล้วบันทึกให้เอง'} onClick={() => setMailOpen(true)} />
         <Row icon="shield" color="#10b981" title="ล็อกแอปด้วย PIN / Face ID" sub={lock?.enabled ? `เปิดอยู่${lock.bio ? ' · ใช้ไบโอเมตริกซ์ได้' : ''}` : 'ปิดอยู่ · แนะนำให้เปิดเพื่อความปลอดภัย'} onClick={() => setLockOpen(true)} />
         <Row icon="sparkles" color="#14b8a6" title="ตั้งค่าเริ่มต้นใหม่ (ตัวช่วยทีละขั้น)" sub="เงินสด บัตร ผ่อนผ่านบัตร และการแบ่งเงิน" onClick={() => setUi({ onboardingOpen: true })} />
         <Row icon="tag" color="#fbbf24" title="หมวดหมู่รายรับ-รายจ่าย" sub="เพิ่ม แก้ไข หรือลบหมวดหมู่ และเลือกไอคอน" onClick={() => setCatsOpen(true)} />
@@ -164,6 +167,7 @@ export default function Settings({ opt }) {
       <CategoryManager open={catsOpen} onClose={() => setCatsOpen(false)} />
       <LockSettings open={lockOpen} onClose={() => setLockOpen(false)} />
       <SlipSettings open={slipOpen} onClose={() => setSlipOpen(false)} />
+      <EmailAuto open={mailOpen} onClose={() => setMailOpen(false)} />
     </div>
   )
 }
