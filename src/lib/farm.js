@@ -1,13 +1,13 @@
 /* Monster farming, energy from real discipline, skill tree, discipline chests and the workshop.
  * Everything runs on the "rpg" item (data.farm …), so it syncs like the rest of the game. */
-import { MAPS, MAP_BY_ID, MON_BY_ID, MATS, trophyPrice, monPower, BOSS_AFTER } from './farmData'
+import { MAPS, MAP_BY_ID, MON_BY_ID, MATS, trophyPrice, monPower, BOSS_AFTER, bossOf, eliteOf, normalsOf } from './farmData'
 import { addDays } from './habits'
 
 /* ---------------- energy: real discipline is the fuel ---------------- */
 // points per habit done today; harder habits give more
 export const ENERGY_PTS = [
   ['logged', 'จดบัญชี', 2], ['read', 'อ่านหนังสือ', 2], ['vocab', 'ท่องศัพท์', 2],
-  ['meditate', 'นั่งสมาธิ', 3], ['nospend', 'วันไม่ใช้เงิน', 3], ['ontime', 'นอนตรงเวลา', 4],
+  ['meditate', 'นั่งสมาธิ', 3], ['nospend', 'วันไม่ใช้เงิน', 3], ['budget', 'ใช้จ่ายอยู่ในงบ', 3], ['ontime', 'นอนตรงเวลา', 4],
   ['nocarb', 'ไม่กินแป้ง/น้ำตาล', 4], ['exercise', 'ออกกำลังกายครบ', 5], ['paid', 'จ่ายหนี้', 5], ['saved', 'ออม/ลงทุน', 5],
 ]
 export const STAMINA_BASE = 20, STAMINA_BONUS_MAX = 20
@@ -88,7 +88,8 @@ export function chestsDue({ habits, rpg, today }) {
   if (rpg.monthBoss?.done) out.push({ key: `mboss:${rpg.monthBoss.mk}`, name: 'ชนะบอสประจำเดือน', tier: 2 })
   const save = rpg.quests?.find((q) => q.key.endsWith(':save') && q.key.startsWith('m:'))
   if (save?.done) out.push({ key: `save:${save.key}`, name: 'ออมได้ 20% ทั้งเดือน', tier: 2 })
-  for (const b of rpg.bosses || []) if (!b.isGoal && b.defeated) out.push({ key: `debt:${b.id}`, name: `ปลดหนี้ ${b.accName}`, tier: 3 })
+  for (const b of rpg.bosses || []) if (!b.isGoal && b.defeated && b.account?.type === 'loan') out.push({ key: `debt:${b.id}`, name: `ปลดหนี้ ${b.accName}`, tier: 3 })
+  if (rpg.budgetMonth) out.push({ key: `budget:${rpg.budgetMonth}`, name: 'ทุกหมวดอยู่ในงบทั้งเดือน', tier: 2 })
   return out
 }
 /** what a chest holds (deterministic from its key, so it can't be re-rolled) */
@@ -104,7 +105,6 @@ export function chestLoot(chest) {
 /* ---------------- workshop ---------------- */
 export const RECIPES = [
   { id: 'potion', npc: 'npc_alchemist', name: 'ยาฟื้นพลัง', icon: 'Pill', need: { herb: 3 }, gives: 'กันแพ้ 1 ครั้ง (ใช้อัตโนมัติ)' },
-  { id: 'treat', npc: 'npc_farmer', name: 'ขนมสัตว์เลี้ยง', icon: 'Gift', need: { fruit: 2, herb: 1 }, gives: 'ความผูกพันสัตว์เลี้ยง +1 (ทุก 5 แต้มเพิ่มโอกาสดรอป 1%, สูงสุด 5%)' },
   { id: 'kit', npc: 'npc_smith', name: 'ชุดวัสดุก่อสร้าง', icon: 'Hammer', need: { wood: 6, stone: 6, iron: 2 }, gives: 'สร้าง/อัปเกรดอาคารครั้งถัดไป ลด FIAT 40%' },
   { id: 'cr_garden', npc: 'npc_smith', name: 'สวนสมุนไพร', icon: 'Sprout', need: { herb: 6, fruit: 4, wood: 4 }, decor: true, gives: 'ของตกแต่งเมือง · ความสุข +6' },
   { id: 'cr_totem', npc: 'npc_smith', name: 'เสาโทเท็มนักล่า', icon: 'Trophy', need: { wood: 8, feather: 4, hide: 4 }, decor: true, gives: 'ของตกแต่งเมือง · ความสุข +8' },
@@ -113,6 +113,58 @@ export const RECIPES = [
   { id: 'cr_hero', npc: 'npc_smith', name: 'รูปปั้นวีรบุรุษ', icon: 'Award', need: { stone: 15, crystal: 3, star: 1 }, decor: true, gives: 'ของตกแต่งตำนาน · ความสุข +20' },
 ]
 export const CRAFT_DECOR = { cr_garden: 6, cr_totem: 8, cr_tapestry: 8, cr_lamp: 10, cr_hero: 20 }
+
+/* ---------------- shadow soldiers: you in original hero costumes with a shadow aura; expensive, up to 5 ---------------- */
+// [id, name, gold, fiat, effect key, value, text]
+const SH = [
+  ['sh_ninja', 'นินจาเงาจันทร์', 6, 1200, 'shadowProc', 3, 'สกิลแบบมีโอกาสทำงานบ่อยขึ้น +3%'],
+  ['sh_pirate', 'กัปตันพายุคลั่ง', 6, 1200, 'shadowRare', 3, 'ของหายาก +3%'],
+  ['sh_star', 'ยอดมนุษย์ผ้าคลุมดาว', 8, 1500, 'shadowPower', 6, 'พลังทีม +6%'],
+  ['sh_demon', 'นักดาบอสูรโลหิต', 8, 1500, 'shadowBoss', 8, 'ชนะหัวหน้า/บอสง่ายขึ้น +8%'],
+  ['sh_crystal', 'ผู้พิทักษ์คริสตัล', 6, 1200, 'shadowGuard', 5, 'กันแพ้ +5%'],
+  ['sh_rider', 'นักบิดเกราะมังกร', 10, 2000, 'shadowStamina', 2, 'พลังกาย +2 ต่อวัน'],
+  ['sh_boxer', 'นักชกหมัดเงา', 5, 1000, 'shadowTrophy', 5, 'ดรอปของประจำตัว +5%'],
+  ['sh_sun', 'จอมเวทสุริยะดำ', 8, 1500, 'shadowMana', 1, 'มานา +1 ต่อวัน'],
+  ['sh_samurai', 'ซามูไรเกราะดำ', 7, 1400, 'shadowPower', 5, 'พลังทีม +5%'],
+  ['sh_cyborg', 'ไซบอร์กแขนพลังงาน', 7, 1400, 'shadowMat', 5, 'ดรอปวัสดุ +5%'],
+  ['sh_astro', 'อัศวินอวกาศ', 6, 1200, 'shadowRaid', 15, 'ป้องกันเมืองตอนถูกบุก +15%'],
+  ['sh_dragon', 'อัศวินมังกรทอง', 12, 3000, 'shadowPower', 8, 'พลังทีม +8%'],
+  ['sh_assassin', 'นักฆ่าทะเลทราย', 6, 1200, 'shadowRare', 2, 'ของหายาก +2%'],
+  ['sh_monk', 'พระสายฟ้า', 8, 1500, 'shadowMana', 1, 'มานา +1 ต่อวัน'],
+  ['sh_gun', 'มือปืนพเนจร', 6, 1200, 'shadowElite', 5, 'เจอหัวหน้าบ่อยขึ้น +5%'],
+  ['sh_frost', 'นักล่าแม่มดน้ำแข็ง', 6, 1200, 'shadowGuard', 4, 'กันแพ้ +4%'],
+]
+export const SHADOWS = SH.map(([id, name, gold, fiat, key, val, text], i) => ({ id, name, gold, fiat, key, val, text, art: i }))
+export const SHADOW_BY_ID = Object.fromEntries(SHADOWS.map((x) => [x.id, x]))
+export const SHADOW_SLOT_LV = [1, 15, 25, 35, 45]
+export const shadowSlots = (level) => SHADOW_SLOT_LV.filter((l) => level >= l).length
+/** effect totals of the shadow soldiers you field */
+export function shadowFx(f) {
+  const fx = {}
+  for (const id of f.shadowWorn || []) { const x = SHADOW_BY_ID[id]; if (x && (f.shadows || {})[id]) fx[x.key] = (fx[x.key] || 0) + x.val }
+  return fx
+}
+
+/* ---------------- enhancement: magic crystals push gear from +0 to +10 (never breaks; from +5 a miss drops one step) ---------------- */
+export const ENH = [null,
+  { p: 1, c: 1, fiat: 20 }, { p: 1, c: 1, fiat: 20 }, { p: 1, c: 1, fiat: 20 }, { p: 0.85, c: 1, fiat: 40 }, { p: 0.7, c: 2, fiat: 60 },
+  { p: 0.6, c: 2, fiat: 80 }, { p: 0.5, c: 3, fiat: 100 }, { p: 0.4, c: 3, fiat: 150 }, { p: 0.3, c: 4, fiat: 200 }, { p: 0.2, c: 5, fiat: 300 }]
+export const ENH_FX = { weapon: 'พลังทีม', armor: 'กันแพ้', boots: 'เจอหัวหน้า', satchel: 'ดรอปวัสดุ', ring: 'ของหายาก' }
+/** next step from level n: chance, crystals, FIAT, what a miss does */
+export const enhStep = (n) => (n >= 10 ? null : { ...ENH[n + 1], down: n >= 5 })
+export const SHARDS_PER_GOLD = 10
+
+/* ---------------- town raids: monsters come to the town in the background (no stamina), up to 5 times a day ---------------- */
+const hash = (str) => { let h = 2166136261; for (const c of str) h = Math.imul(h ^ c.charCodeAt(0), 16777619); return h >>> 0 }
+/** the raids planned for one day (same every time for that date) */
+export function raidsOf(date, uid = '') {
+  let h = hash(`${uid}:${date}`)
+  const r = () => ((h = Math.imul(h ^ (h >>> 15), 2246822507) >>> 0) % 10000) / 10000
+  const n = Math.floor(r() * 6) // 0–5 raids
+  const out = []
+  for (let i = 0; i < n; i++) out.push({ id: `${date}:${i}`, at: `${date}T${String(7 + Math.floor(r() * 16)).padStart(2, '0')}:${String(Math.floor(r() * 60)).padStart(2, '0')}`, size: 1 + Math.floor(r() * 5), roll: r() })
+  return out.sort((a, b) => a.at.localeCompare(b.at))
+}
 
 /* ---------------- combat ---------------- */
 export function mapUnlocked(map, { level, realmTier }) {
@@ -124,7 +176,7 @@ export function partyPower({ level, gear = [], party = [], skills = {}, traces =
   const tiers = gear.reduce((s, g) => s + g.tier, 0)
   const joined = party.filter((p) => p.joined && p.id !== 'knight').length
   let p = 10 + level * 4 + tiers * 10 + joined * 6
-  const pct = (skills.blade || 0) * 5 + (party.find((x) => x.id === 'mage')?.joined ? (skills.arcane || 0) * 4 : 0) + (traces.paid ? 10 : 0) + (fx.rl_sword || 0)
+  const pct = (skills.blade || 0) * 5 + (party.find((x) => x.id === 'mage')?.joined ? (skills.arcane || 0) * 4 : 0) + (traces.paid ? 10 : 0) + (fx.rl_sword || 0) + (fx.enh?.weapon || 0) + (fx.shadowPower || 0)
   return Math.round(p * (1 + pct / 100))
 }
 const rnd = () => Math.random()
@@ -133,12 +185,13 @@ export function fight(f, day, ctx) {
   const map = MAP_BY_ID[f.map], sk = ctx.skills, fx = ctx.fx, procs = []
   const has = (m) => m === 'knight' || ctx.joined.includes(m)
   const rank = (id) => (has(TREE_BY_ID[id].member) ? sk[id] || 0 : 0)
-  const proc = (id) => { const t = TREE_BY_ID[id], r = rank(id); if (!r || day.mana + t.mana > ctx.mana || rnd() >= t.chance(r)) return false; day.mana += t.mana; procs.push(t.name); return true }
+  const proc = (id) => { const t = TREE_BY_ID[id], r = rank(id); if (!r || day.mana + t.mana > ctx.mana || rnd() >= t.chance(r) + (fx.shadowProc || 0) / 100) return false; day.mana += t.mana; procs.push(t.name); return true }
   const kills = f.kills[map.id] || 0, bossKills = f.bossKills?.[map.id] || 0
   const bossAfter = fx.rl_badge || BOSS_AFTER
-  const mon = kills >= bossAfter * (bossKills + 1) ? map.mons[9] : rnd() < 0.1 + (fx.rl_cloak || 0) / 100 ? map.mons[8] : map.mons[Math.floor(rnd() * 8)]
+  const norm = normalsOf(map)
+  const mon = kills >= bossAfter * (bossKills + 1) ? bossOf(map) : rnd() < 0.1 + ((fx.rl_cloak || 0) + (fx.enh?.boots || 0) + (fx.shadowElite || 0)) / 100 ? eliteOf(map) : norm[Math.floor(rnd() * norm.length)]
   const mp = monPower(mon)
-  let win = rnd() < Math.max(0.05, Math.min(0.97, 0.5 + (ctx.power - mp) / (2 * mp) + (fx.rl_shield || 0) / 100))
+  let win = rnd() < Math.max(0.05, Math.min(0.97, 0.5 + (ctx.power - mp) / (2 * mp) + ((fx.rl_shield || 0) + (fx.enh?.armor || 0) + (fx.shadowGuard || 0) + (mon.kind !== 'normal' ? fx.shadowBoss || 0 : 0)) / 100))
   let meteor = false
   if (mon.kind !== 'normal' && proc('meteor')) { win = true; meteor = true }
   if (!win && proc('revive')) win = true
@@ -154,15 +207,18 @@ export function fight(f, day, ctx) {
     f.dex[mon.id] = (f.dex[mon.id] || 0) + 1
     const big = mon.kind === 'boss' ? 4 : mon.kind === 'elite' ? 2 : 1
     // slot 1: its own trophy
-    if (mon.kind !== 'normal' || rnd() < 0.55) add(`t:${mon.id}`, 1 + (meteor ? 1 : 0))
+    if (mon.kind !== 'normal' || rnd() < 0.55 + (fx.shadowTrophy || 0) / 100) add(`t:${mon.id}`, 1 + (meteor ? 1 : 0))
     // slot 2: materials (a second piece needs luck)
-    const matChance = 0.45 + rank('eye') * 0.04 + ctx.hard * 0.05 + Math.min(5, Math.floor((f.bond || 0) / 5)) * 0.01 + (ctx.traces.saved ? 0.1 : 0)
+    const matChance = 0.45 + rank('eye') * 0.04 + ctx.hard * 0.05 + ((fx.enh?.satchel || 0) + (fx.shadowMat || 0)) / 100 + (ctx.traces.saved ? 0.1 : 0)
     const mat = () => map.mats[Math.floor(rnd() * map.mats.length)]
     if (rnd() < matChance) { add(mat(), big); if (rnd() < 0.15 + (fx.rl_bag || 0) / 100) add(mat(), 1) }
     if (proc('hawk')) add(mat(), 1)
     // slot 3: something rare
-    const rare = (mon.kind === 'boss' ? 0.3 : mon.kind === 'elite' ? 0.08 : 0.02) + (fx.rl_map || 0) / 100
+    const rare = (mon.kind === 'boss' ? 0.3 : mon.kind === 'elite' ? 0.08 : 0.02) + ((fx.rl_map || 0) + (fx.enh?.ring || 0) + (fx.shadowRare || 0)) / 100
     if (rnd() < rare) add(map.id === 'meadow' || map.id === 'forest' ? (rnd() < 0.5 ? 'crystal' : 'ink') : rnd() < 0.5 ? 'page' : 'ink', 1)
+    // gold shards (very rare) and magic crystals for enhancing gear
+    if (rnd() < (mon.kind === 'boss' ? 0.02 : mon.kind === 'elite' ? 0.015 : 0.01)) add('shard', 1)
+    if (rnd() < (mon.kind === 'boss' ? 0.3 : mon.kind === 'elite' ? 0.1 : 0.03)) add('mcrystal', 1)
     // the pet brings something back
     if (fx.rl_snack && rnd() < fx.rl_snack / 100) { add(mat(), 1); procs.push('สัตว์เลี้ยงคาบของมา') }
     if (proc('storm')) for (const k of Object.keys(drops)) drops[k] *= 2
@@ -171,10 +227,32 @@ export function fight(f, day, ctx) {
   return { mon: mon.id, win, drops, note: procs.join(' · ') }
 }
 
+/** a raid on the town: each monster is fought by the town guard with part of the party's power (no stamina, no skills) */
+export function defendRaid(f, raid, ctx) {
+  const maps = MAPS.filter((m) => mapUnlocked(m, ctx).ok)
+  const map = maps[Math.floor(raid.roll * maps.length)] || MAPS[0]
+  const norm = normalsOf(map), res = { id: raid.id, at: raid.at, map: map.id, mons: [], won: 0, drops: {} }
+  const guard = ctx.power * (0.7 + (ctx.towerLv || 0) * 0.1) * (1 + (ctx.fx?.shadowRaid || 0) / 100)
+  for (let i = 0; i < raid.size; i++) {
+    const mon = rnd() < 0.08 ? eliteOf(map) : norm[Math.floor(rnd() * norm.length)]
+    const mp = monPower(mon), win = rnd() < Math.max(0.05, Math.min(0.95, 0.5 + (guard - mp) / (2 * mp)))
+    res.mons.push(mon.id)
+    if (!win) continue
+    res.won++
+    f.dex[mon.id] = (f.dex[mon.id] || 0) + 1
+    const add = (k, n) => { res.drops[k] = (res.drops[k] || 0) + n; f.bag[k] = (f.bag[k] || 0) + n }
+    if (mon.kind !== 'normal' || rnd() < 0.5) add(`t:${mon.id}`, 1)
+    if (rnd() < 0.4) add(map.mats[Math.floor(rnd() * map.mats.length)], 1)
+    if (rnd() < 0.01) add('shard', 1)
+    if (rnd() < 0.03) add('mcrystal', 1)
+  }
+  return res
+}
+
 /* ---------------- selling ---------------- */
 export const itemName = (k) => (k.startsWith('t:') ? MON_BY_ID[k.slice(2)]?.trophy : MATS[k]?.name) || k
-export const itemPrice = (k) => (k.startsWith('t:') ? trophyPrice(MON_BY_ID[k.slice(2)]) : MATS[k]?.price || 0)
+export const itemPrice = (k) => (k.startsWith('t:') ? trophyPrice(MON_BY_ID[k.slice(2)]) : MATS[k]?.noSell ? 0 : MATS[k]?.price || 0)
 export const itemIcon = (k) => (k.startsWith('t:') ? `tro_${k.slice(2)}` : `mat_${k}`)
 
-export function emptyFarm() { return { map: 'meadow', kills: {}, bossKills: {}, bag: {}, dex: {}, skills: {}, relics: {}, worn: [], runs: 0, day: null, auto: false, last: null, potions: 0, bond: 0, kit: 0, chests: {}, bonusPts: 0 } }
+export function emptyFarm() { return { map: 'meadow', kills: {}, bossKills: {}, bag: {}, dex: {}, skills: {}, relics: {}, worn: [], enh: {}, raids: [], raidSeen: null, shadows: {}, shadowWorn: [], runs: 0, day: null, auto: false, last: null, potions: 0, bond: 0, kit: 0, chests: {}, bonusPts: 0 } }
 export { MAPS, MAP_BY_ID, MON_BY_ID, MATS }

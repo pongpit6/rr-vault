@@ -35,7 +35,7 @@ const GEAR = [
   { slot: 'armor', label: 'เกราะ', names: ['เสื้อผ้าป่าน', 'เกราะเหล็ก', 'เกราะเงิน', 'เกราะทองคำ', 'เกราะตำนาน “ป้อมปราการ”'], th: [0, 1, 3, 6, 12], unit: 'months', how: 'เงินสำรองพอใช้กี่เดือน' },
   { slot: 'boots', label: 'รองเท้า', names: ['รองเท้าผ้า', 'รองเท้าหนัง', 'รองเท้าเดินป่า', 'รองเท้าทองคำ', 'รองเท้าตำนาน “ก้าวไม่หยุด”'], th: [0, 10, 30, 60, 100], unit: 'days', how: 'วันออกกำลังกายสะสม' },
   { slot: 'satchel', label: 'กระเป๋า', names: ['ย่ามผ้า', 'กระเป๋าหนัง', 'กระเป๋าคัมภีร์', 'กระเป๋าทองคำ', 'กระเป๋าตำนาน “ห้องสมุดพกพา”'], th: [0, 20, 60, 120, 200], unit: 'pts', how: 'คะแนนความรู้ (อ่านจบเล่มละ 20 + คำศัพท์ที่จำได้ทุก 10 คำ + วันที่อ่าน)' },
-  { slot: 'ring', label: 'แหวน', names: ['แหวนเชือก', 'แหวนเหล็ก', 'แหวนเงิน', 'แหวนทองคำ', 'แหวนตำนาน “ดอกเบี้ยทบต้น”'], th: [0, 10000, 50000, 200000, 1000000], unit: 'money', how: 'มูลค่าเงินลงทุนรวม' },
+  { slot: 'ring', label: 'แหวน', names: ['แหวนเชือก', 'แหวนเหล็ก', 'แหวนเงิน', 'แหวนทองคำ', 'แหวนตำนาน “ดอกเบี้ยทบต้น”'], th: [0, 10000, 50000, 200000, 1000000], unit: 'money', how: 'เงินที่ส่งเข้าลงทุนสะสม (ไม่ขึ้นลงตามราคาตลาด)' },
 ]
 
 /* ---------------- skills ---------------- */
@@ -114,7 +114,18 @@ export function computeParty({ growthG = {}, accounts, txns, summary, portfolio,
   const newlyJoined = party.filter((p) => p.id !== 'knight' && p.ready && !joinedData[p.id]).map((p) => p.id)
 
   // gear
-  const metric = { weapon: debtPaid, armor: emergencyMonths, ring: invTotal, boots: growthG.exerciseDays || 0, satchel: (growthG.books || 0) * 20 + Math.floor((growthG.learnt || 0) / 10) + (growthG.readDays || 0) }
+  // money you put into investing over time (transfers and income splits into invest accounts, minus what you took back out)
+  const isInv = (id) => accounts.find((a) => a.id === id)?.type === 'invest'
+  let invested = 0
+  for (const t of txns) {
+    if (t.kind === 'transfer' && isInv(t.to) && !isInv(t.account)) invested += t.amount
+    if (t.kind === 'transfer' && isInv(t.account) && !isInv(t.to)) invested -= t.amount
+    if (t.kind === 'income' && t.split) for (const [k, v] of Object.entries(t.split)) if (isInv(k)) invested += v
+    if (t.kind === 'income' && !t.split && isInv(t.account)) invested += t.amount
+    if (t.kind === 'trade' && !isInv(t.account)) invested += (t.side === 'buy' ? 1 : -1) * (t.total || t.amount || 0)
+  }
+  invested = Math.max(0, round2(invested))
+  const metric = { weapon: debtPaid, armor: emergencyMonths, ring: invested, boots: growthG.exerciseDays || 0, satchel: (growthG.books || 0) * 20 + Math.floor((growthG.learnt || 0) / 10) + (growthG.readDays || 0) }
   const gear = GEAR.map((g) => {
     const v = metric[g.slot]
     let tier = 0; while (tier + 1 < g.th.length && v >= g.th[tier + 1]) tier++

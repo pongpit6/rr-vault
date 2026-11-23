@@ -5,6 +5,16 @@ import { itemName } from '../lib/farm'
 import { sfx } from '../lib/sfx'
 
 const W = 400, H = 180, GY = 168
+const shadowCache = {}
+/** dark purple aura around a sprite */
+function shadowOf(im, key) {
+  if (shadowCache[key]) return shadowCache[key]
+  const c = document.createElement('canvas'); c.width = im.width + 6; c.height = im.height + 6
+  const x = c.getContext('2d')
+  x.filter = 'drop-shadow(0 0 3px rgba(124,58,237,1)) drop-shadow(0 0 2px rgba(30,0,60,1))'; x.drawImage(im, 3, 3); x.filter = 'none'
+  x.globalCompositeOperation = 'source-atop'; x.fillStyle = 'rgba(46,16,101,.35)'; x.fillRect(0, 0, c.width, c.height)
+  return (shadowCache[key] = c)
+}
 const flashCache = {}
 function flashOf(im, key) {
   if (flashCache[key]) return flashCache[key]
@@ -20,10 +30,10 @@ const SLOT = { knight: 0, healer: 1, mage: 2, ranger: 3 }
  * (sword, staff light, fireball, arrow), the monster flashes and shakes, damage pops up,
  * then it falls and its drops float up (or it strikes back when the party loses).
  */
-export default function FarmScene({ mapId, party = [], events = [], hue = 0, idleMon }) {
+export default function FarmScene({ mapId, party = [], shadows = [], events = [], hue = 0, idleMon }) {
   const cv = useRef(null)
   const S = useRef({ queue: [], cur: null, seen: 0, fx: [], monId: idleMon })
-  const P = useRef({}); P.current = { mapId, party, hue }
+  const P = useRef({}); P.current = { mapId, party, hue, shadows }
   // new fight results join the queue (newest last)
   useEffect(() => {
     const s = S.current
@@ -47,12 +57,12 @@ export default function FarmScene({ mapId, party = [], events = [], hue = 0, idl
   }, [])
 
   function draw(g, now, dt) {
-    const s = S.current, { mapId, party, hue } = P.current
+    const s = S.current, { mapId, party, hue, shadows } = P.current
     // next fight from the queue; faster when several are waiting
     if (!s.cur && s.queue.length) {
       const e = s.queue.shift()
       const members = party.filter((p) => p.joined).map((p) => p.id)
-      s.cur = { ...e, t: 0, dur: s.queue.length > 2 ? 650 : 1100, who: members[Math.floor(Math.random() * members.length)] || 'knight', dmg: 0, hitDone: false }
+      s.cur = { ...e, shadow: shadows.length && Math.random() < 0.35 ? Math.floor(Math.random() * shadows.length) : -1, t: 0, dur: s.queue.length > 2 ? 650 : 1100, who: members[Math.floor(Math.random() * members.length)] || 'knight', dmg: 0, hitDone: false }
       s.monId = e.mon
     }
     const c = s.cur
@@ -64,6 +74,14 @@ export default function FarmScene({ mapId, party = [], events = [], hue = 0, idl
     const bg = still(`map_${mapId}`)
     if (bg) g.drawImage(bg, 0, H - 240, 400, 240); else { g.fillStyle = '#bae6fd'; g.fillRect(0, 0, W, H) }
 
+    // shadow soldiers stand behind the party in a dark aura; one lunges in now and then
+    shadows.forEach((id, i) => {
+      const lunge = c && c.shadow === i && k > 0.2 && k < 0.6
+      const x = 4 + i * 34 + (lunge ? Math.sin(((k - 0.2) / 0.4) * Math.PI) * 170 : 0), y = GY - 74
+      const fi = lunge ? Math.floor(((k - 0.2) / 0.4) * 8.99) : Math.floor(now / 200 + i) % 6
+      const im = frame(lunge ? `${id}_atk` : `${id}_idle`, fi, 'normal', 0)
+      if (im) { g.globalAlpha = 0.75; g.drawImage(shadowOf(im, `${id}:${lunge ? 'a' : 'i'}:${fi}`), x - 3, y - 3, 62, 62); g.globalAlpha = 1 }
+    })
     // party
     const members = party.filter((p) => p.joined)
     members.forEach((p, i) => {

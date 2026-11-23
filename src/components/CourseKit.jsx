@@ -1,3 +1,4 @@
+import { WritePad } from './WriteKit'
 import { useEffect, useMemo, useState } from 'react'
 import { Lock, Check, Volume2 } from './px'
 import { Button } from './ui'
@@ -74,6 +75,7 @@ function Lesson({ H, lang, course, index, onDone }) {
   const l = course.COURSE[index]
   const [step, setStep] = useState('learn') // learn | quiz | words
   const [i, setI] = useState(0)
+  const [write, setWrite] = useState(false)
   const pool = useMemo(() => course.COURSE.slice(0, index + 1).flatMap((x) => x.items), [course, index])
   const it = l.items[i]
   if (step === 'quiz') return <LessonQuiz H={H} lang={lang} items={l.items} pool={pool} lesson={l} course={course} title={l.title} onDone={(ok) => (ok ? setStep('words') : onDone())} />
@@ -81,13 +83,14 @@ function Lesson({ H, lang, course, index, onDone }) {
   return (
     <div className="space-y-3" data-testid="lesson-learn">
       <div className="flex justify-between text-xs text-slate-500"><span>{l.title}</span><span>{i + 1}/{l.items.length}</span></div>
-      <div className="px-inner p-6 text-center space-y-2">
+      {[...it.ch].length === 1 && <div className="flex gap-1.5"><button className={`px-tab ${write ? '' : 'on'}`} onClick={() => setWrite(false)}>ดูตัวอักษร</button><button className={`px-tab ${write ? 'on' : ''}`} onClick={() => setWrite(true)} data-testid="lesson-write">✍️ หัดเขียน</button></div>}
+      {write && [...it.ch].length === 1 ? <div className="px-inner p-3"><WritePad lang={lang} it={it} onPass={() => H.vocabRound(1, 1)} /></div> : <div className="px-inner p-6 text-center space-y-2">
         <div className="text-7xl font-bold leading-none" data-testid="lesson-char">{it.ch}</div>
         <div className="text-lg text-sky-700 font-semibold">อ่านว่า {it.read} <span className="text-slate-400 text-sm">({it.ro})</span></div>
         {it.say && it.say !== it.ch && <div className="text-sm text-slate-500">ตัวอย่าง: <span className="text-xl">{it.say}</span></div>}
         {it.hook && <div className="text-sm text-slate-600">💡 {it.hook}</div>}
         {canSpeak() && <button onClick={() => speak(it.say || it.ch, lang)} className="mx-auto w-12 h-12 grid place-items-center rounded-full bg-sky-100 text-sky-700"><Volume2 size={22} /></button>}
-      </div>
+      </div>}
       <div className="flex gap-1 justify-center flex-wrap">{l.items.map((x, k) => <span key={k} className={`w-2 h-2 rounded-full ${k === i ? 'bg-slate-800' : k < i ? 'bg-emerald-400' : 'bg-slate-200'}`} />)}</div>
       <div className="flex gap-2">
         <Button variant="ghost" className="flex-1" disabled={i === 0} onClick={() => setI(i - 1)}>ก่อนหน้า</Button>

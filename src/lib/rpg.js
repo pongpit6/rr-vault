@@ -2,7 +2,7 @@ import { sfx } from './sfx'
 import { useEffect, useMemo } from 'react'
 import { useStore } from '../store'
 import { useVault } from './useVault'
-import { postingsOf } from './ledger'
+import { postingsOf, cardCycle } from './ledger'
 import { round2, todayISO, monthKey } from './format'
 import { computeParty } from './party'
 import { computeHabits } from './habits'
@@ -10,7 +10,7 @@ import { selectList } from '../store'
 import { useWeather, loadWeather, sceneWeather, thaiEvent, isThaiHoliday, moneyMood } from './world'
 import { doubleDay, decorOnSale } from './festivals'
 import { setHeroStage, setHeroSkin, setPetStage } from './heroStage'
-import { energyOf, partyPower, fight, emptyFarm, chestsDue, chestLoot, TREE_BY_ID, rankCost, RECIPES, CRAFT_DECOR, itemPrice, mapUnlocked, MAP_BY_ID, SKILLS_V, RELIC_BY_ID, relicFx, relicSlots } from './farm'
+import { energyOf, partyPower, fight, emptyFarm, chestsDue, chestLoot, TREE_BY_ID, rankCost, RECIPES, CRAFT_DECOR, itemPrice, mapUnlocked, MAP_BY_ID, SKILLS_V, RELIC_BY_ID, relicFx, relicSlots, shadowFx, shadowSlots, SHADOW_BY_ID, enhStep, SHARDS_PER_GOLD, raidsOf, defendRaid } from './farm'
 import { outfitOf, condition7, shadowRace, birthdayInfo, bdaySkin, storyAct, albumSnap, FREEDOM_STEPS } from './hero'
 import { usePrices } from './prices'
 import { loadXau } from './market'
@@ -118,7 +118,9 @@ function computeRpg({ accounts, txns, settings, balances, summary, unlocked, por
         if (p.amt > 0 && t.kind === 'payment') { dmg += p.amt; hits++ }
       }
     }
-    const owed = Math.max(0, -(balances[a.id] || 0))
+    let owed = Math.max(0, -(balances[a.id] || 0))
+    // a card you pay in full each cycle is not debt: its boss is only the part that went past the due date
+    if (a.type === 'credit') { const cy = cardCycle(a, txns, accById, settings, todayISO()); if (cy) { owed = cy.overdue ? cy.billDue : 0; peak = owed } }
     const kind = BOSS_KIND[a.type]
     return {
       id: a.id, account: a, sprite: kind.sprite, name: `${kind.name}`, en: kind.en, accName: a.name,
@@ -274,7 +276,8 @@ function computeRpg({ accounts, txns, settings, balances, summary, unlocked, por
     add('คำศัพท์ที่จำได้', habits.learnt)
   }
   add('Achievement', unlockedCount * 50)
-  const realmNow = [...REALMS].reverse().find((r) => summary.net >= r.min)
+  const realmNet = Math.max(summary.net, data.peakNet || 0) // the highest you ever reached: market dips never take land away
+  const realmNow = [...REALMS].reverse().find((r) => realmNet >= r.min)
   const debtFog = Math.min(0.55, summary.debts / Math.max(1, summary.assets + summary.debts))
   const town = computeTown(data, { realmTier: realmNow.tier, streak })
   if (town.xpBonus) add(`ห้องสมุด +${town.xpBonus}%`, (xp * town.xpBonus) / 100)
@@ -409,11 +412,19 @@ function computeRpg({ accounts, txns, settings, balances, summary, unlocked, por
     paid: todayTx.some((t) => t.kind === 'payment'),
   }
   traces.count = ['read', 'exercise', 'meditate', 'vocab', 'nocarb', 'nospend', 'saved', 'paid'].filter((k) => traces[k]).length + (traces.sleep != null && traces.sleep >= 6 ? 1 : 0)
+  // within budget: today's spending in budgeted categories stays under the daily share of the monthly budgets (needs logging today)
+  const bLimit = (b) => Number(b.limit ?? b.amount) || 0
+  const bCats = new Set(budgets.map((b) => b.category))
+  const dailyAllow = budgets.reduce((t, b) => t + bLimit(b), 0) / 30.44
+  const todayBudgeted = todayTx.filter((t) => t.kind === 'expense' && bCats.has(t.category)).reduce((a, t) => a + t.amount, 0)
+  traces.budget = budgets.length > 0 && todayCount > 0 && todayBudgeted <= dailyAllow
+  const lmKey = prevMonth(mk)
+  const budgetMonthOk = budgets.length > 0 && txns.some((t) => t.date.startsWith(lmKey)) && budgets.every((b) => txns.filter((t) => t.kind === 'expense' && t.category === b.category && t.date.startsWith(lmKey)).reduce((a, t) => a + t.amount, 0) <= bLimit(b))
   // the hero's form today, from last night's sleep and this morning's workout
   traces.form = traces.paused ? 'rest' : traces.sleep != null && traces.sleep < 6 ? 'tired' : (traces.sleep >= 8 || traces.exercise) ? 'sharp' : 'ok'
 
   const realm = realmNow
-  const nextRealm = REALMS.find((r) => r.min > summary.net)
+  const nextRealm = REALMS.find((r) => r.min > realmNet)
   const party = computeParty({ growthG: growth.g, accounts, txns, summary, portfolio, settings, catById, level: lv.level, into: lv.into, need: lv.need, streak, bestStreak, goodMonths, months, data: { ...data, unlocked }, privacy })
   // ---------- the living world: real weather, Thai calendar, money mood, market mood ----------
   const budgetStates = budgetStatus(budgets, txns)
@@ -429,23 +440,23 @@ function computeRpg({ accounts, txns, settings, balances, summary, unlocked, por
 
   const outfit = outfitOf(lv.level)
   setHeroStage(outfit.stage)
-  setHeroSkin(party.skin?.art ? party.skin.id : null)
+  setHeroSkin(party.skin?.art ? party.skin.sheet || party.skin.id : null)
   setPetStage(growth?.pet?.stage || 1)
   const condition = condition7(habitDays, today)
   world.birthday = birthday
 
   const farm = { ...emptyFarm(), ...(data.farm || {}) }
   if (farm.skillsV !== SKILLS_V) farm.skills = {} // skills were rebalanced: every point comes back
-  const fxR = relicFx(farm)
+  const fxR = { ...relicFx(farm), ...shadowFx(farm), enh: farm.enh || {} }
   const energy0 = energyOf({ traces, habitDays, condition, today })
-  const energy = { ...energy0, mana: energy0.mana + (fxR.rl_dust || 0) }
+  const energy = { ...energy0, stamina: energy0.stamina + (fxR.shadowStamina || 0), mana: energy0.mana + (fxR.rl_dust || 0) + (fxR.shadowMana || 0) }
   const skillPts = lv.level + (farm.bonusPts || 0) - Object.values(farm.skills || {}).reduce((s, r) => s + [0, 1, 2, 3, 4, 6][r], 0)
   const power = partyPower({ level: lv.level, gear: party.gear, party: party.party, skills: farm.skills, traces, fx: fxR })
   const used = farm.day?.date === today ? farm.day : { date: today, runs: 0, mana: 0 }
-  const chests = chestsDue({ habits: h, rpg: { noSpendStreak, monthBoss, quests, bosses }, today }).filter((c) => !(farm.chests || {})[c.key])
+  const chests = chestsDue({ habits: h, rpg: { noSpendStreak, monthBoss, quests, bosses, budgetMonth: budgetMonthOk ? lmKey : null }, today }).filter((c) => !(farm.chests || {})[c.key])
 
   return {
-    outfit, condition, shadow, act, birthday, energy, farm, skillPts, power, chests, relicFx: fxR, relicSlots: relicSlots(lv.level),
+    outfit, condition, shadow, act, birthday, energy, farm, skillPts, power, chests, relicFx: fxR, relicSlots: relicSlots(lv.level), shadowSlots: shadowSlots(lv.level),
     staminaLeft: Math.max(0, energy.stamina - used.runs), manaLeft: Math.max(0, energy.mana - used.mana),
     inventory: portfolio.open, portfolioValue: portfolio.value,
     xp, xpParts, ...lv, title: title[1], titleEn: title[2], stats, bosses, quests, achievements, newlyUnlocked,
@@ -670,7 +681,12 @@ export function useRpg() {
     return bdaySkin(bdayId)
   }
   // ---------- monster farm ----------
-  const F = () => { const f = { ...emptyFarm(), ...(fresh().farm || {}) }; if (f.skillsV !== SKILLS_V) { f.skills = {}; f.skillsV = SKILLS_V } return f }
+  const F = () => {
+    const f = { ...emptyFarm(), ...(fresh().farm || {}) }
+    if (f.skillsV !== SKILLS_V) { f.skills = {}; f.skillsV = SKILLS_V }
+    if (f.bond > 0) { f.bag = { ...f.bag, fruit: (f.bag.fruit || 0) + f.bond * 2, herb: (f.bag.herb || 0) + f.bond }; f.bond = 0 } // pet treats were retired: their materials come back
+    return f
+  }
   const dayOf = (f) => (f.day?.date === todayISO() ? { ...f.day } : { date: todayISO(), runs: 0, mana: 0 })
   const saveFarm = (f) => save({ farm: f })
   const farmFight = (n = 1) => {
@@ -678,7 +694,7 @@ export function useRpg() {
     const day = dayOf(f), logs = []
     const map = MAP_BY_ID[f.map]
     if (!mapUnlocked(map, { level: rpg.level, realmTier: rpg.realm.tier }).ok) return []
-    const ctx = { power: rpg.power, skills: f.skills || {}, joined: rpg.party.filter((p) => p.joined).map((p) => p.id), hard: rpg.energy.hard, traces: rpg.traces, mana: rpg.energy.mana, fx: relicFx(f) }
+    const ctx = { power: rpg.power, skills: f.skills || {}, joined: rpg.party.filter((p) => p.joined).map((p) => p.id), hard: rpg.energy.hard, traces: rpg.traces, mana: rpg.energy.mana, fx: { ...relicFx(f), ...shadowFx(f), enh: f.enh || {} } }
     for (let i = 0; i < n && day.runs < rpg.energy.stamina; i++) { day.runs++; logs.push(fight(f, day, ctx)) }
     f.day = day; f.last = new Date().toISOString()
     if (logs.length) { saveFarm(f); sfx(logs.some((l) => l.win) ? 'coin' : 'hit') }
@@ -707,6 +723,33 @@ export function useRpg() {
     for (const k of ['page', 'ink', 'star']) if (c[k]) bag[k] -= c[k]
     saveFarm({ ...f, bag, skills: { ...(f.skills || {}), [id]: r }, skillsV: SKILLS_V }); sfx('levelup'); return true
   }
+  // enhancement with magic crystals
+  const enhance = (slot) => {
+    const f = F(), n = (f.enh || {})[slot] || 0, st = enhStep(n), bag = { ...f.bag }
+    if (!st || (bag.mcrystal || 0) < st.c || fiat < st.fiat) return null
+    bag.mcrystal -= st.c
+    const ok = Math.random() < st.p, to = ok ? n + 1 : st.down ? n - 1 : n
+    pay(-st.fiat, 0, { icon: ok ? '✨' : '💥', text: ok ? `ตีบวกสำเร็จ +${to}` : `ตีบวกไม่สำเร็จ${to < n ? ` (ลดเหลือ +${to})` : ''}` }, { farm: { ...f, bag, enh: { ...(f.enh || {}), [slot]: to } } })
+    sfx(ok ? 'levelup' : 'hit'); return { ok, from: n, to }
+  }
+  const combineShards = () => {
+    const f = F(), have = f.bag.shard || 0, n = Math.floor(have / SHARDS_PER_GOLD)
+    if (!n) return 0
+    pay(0, n, { icon: '🪙', text: `หลอมเศษทองคำเป็น ${n} GOLD` }, { farm: { ...f, bag: { ...f.bag, shard: have - n * SHARDS_PER_GOLD } } }); sfx('levelup'); return n
+  }
+  // shadow soldiers
+  const buyShadow = (id) => {
+    const x = SHADOW_BY_ID[id], f = F()
+    if (!x || (f.shadows || {})[id] || fiat < x.fiat || gold < x.gold) return false
+    const worn = f.shadowWorn || []
+    pay(-x.fiat, -x.gold, { icon: '👤', text: `ทหารเงา “${x.name}” เข้าร่วมทีม` }, { farm: { ...f, shadows: { ...(f.shadows || {}), [id]: now() }, shadowWorn: worn.length < rpg.shadowSlots ? [...worn, id] : worn } }); sfx('levelup'); return true
+  }
+  const wearShadow = (id) => {
+    const f = F(), worn = f.shadowWorn || []
+    if (worn.includes(id)) { saveFarm({ ...f, shadowWorn: worn.filter((x) => x !== id) }); return true }
+    if (!(f.shadows || {})[id] || worn.length >= rpg.shadowSlots) return false
+    saveFarm({ ...f, shadowWorn: [...worn, id] }); return true
+  }
   const sellItems = (keys) => {
     const f = F(), bag = { ...f.bag }; let got = 0
     for (const k of keys) { got += itemPrice(k) * (bag[k] || 0); delete bag[k] }
@@ -719,7 +762,6 @@ export function useRpg() {
     for (const [k, v] of Object.entries(rc.need)) bag[k] -= v
     const nf = { ...f, bag }, patch = { farm: nf }
     if (id === 'potion') nf.potions = (f.potions || 0) + 1
-    if (id === 'treat') nf.bond = (f.bond || 0) + 1
     if (id === 'kit') nf.kit = (f.kit || 0) + 1
     if (CRAFT_DECOR[id]) { const town = { hall: 1, plots: [], decor: {}, npcs: {}, ...(d.town || {}) }; if (town.decor[id]) return false; patch.town = { ...town, decor: { ...town.decor, [id]: now() } } }
     save(patch); sfx('levelup'); return true
@@ -735,6 +777,25 @@ export function useRpg() {
   }
   const setEquip = (patch) => save({ equip: { ...(fresh().equip || {}), ...patch } })
   const toggleDeco = (id) => { const off = { ...(fresh().decoOff || {}) }; off[id] = !off[id]; save({ decoOff: off }) }
+
+  // town raids happen in the background; resolve the ones whose time has come (today and yesterday), keep 7 days of log
+  useEffect(() => {
+    const run = () => {
+      const st = useStore.getState()
+      if ((st.session && !st.pulled) || !v.txns.length) return
+      const f = F(), seen = new Set((f.raids || []).map((r) => r.id)), nowIso = new Date().toISOString().slice(0, 16)
+      const due = [addDaysISO(todayISO(), -1), todayISO()].flatMap((d) => raidsOf(d, st.session?.user?.id || '')).filter((r) => !seen.has(r.id) && new Date(r.at).toISOString().slice(0, 16) <= nowIso)
+      if (!due.length) return
+      const nf = { ...f, bag: { ...f.bag }, dex: { ...f.dex } }
+      const towerLv = (rpg.town.plots || []).find((p) => p?.type === 'tower')?.lv || 0
+      const ctx = { power: rpg.power, level: rpg.level, realmTier: rpg.realm.tier, towerLv, fx: shadowFx(f) }
+      const res = due.map((r) => defendRaid(nf, r, ctx))
+      const keep = addDaysISO(todayISO(), -7)
+      nf.raids = [...(f.raids || []), ...res].filter((r) => r.at.slice(0, 10) >= keep).slice(-40)
+      saveFarm(nf)
+    }
+    run(); const id = setInterval(run, 10 * 60e3); return () => clearInterval(id)
+  }, [v.txns.length > 0, rpg.level]) // eslint-disable-line
 
   // growth album: this month's picture of you, refreshed once a day (the last one of a month stays as its page)
   useEffect(() => {
@@ -759,14 +820,15 @@ export function useRpg() {
     if (d.tier === undefined) patch.tier = rpg.realm.tier
     else if (rpg.realm.tier !== d.tier) { patch.tier = rpg.realm.tier; patch.realms = [...(d.realms || []).slice(-20), { name: rpg.realm.name, at: now, down: rpg.realm.tier < d.tier }] }
     if (rpg.act.free && !d.act2At) patch.act2At = now
+    if (v.summary.net > (d.peakNet || 0) + 1) patch.peakNet = Math.round(v.summary.net)
     if (Object.keys(patch).length) save(patch)
-  }, [rpg.newlyUnlocked.join(), rpg.newlyJoined.join(), rpg.level, rpg.realm.tier, rpg.act.free]) // eslint-disable-line
+  }, [rpg.newlyUnlocked.join(), rpg.newlyJoined.join(), rpg.level, rpg.realm.tier, rpg.act.free, Math.round(v.summary.net / 1000)]) // eslint-disable-line
 
   return {
     ...rpg, vault: v, fiat, gold, chestReady, openChest, buy, shopPrice, setEquip, toggleDeco, decorPrice, saleOff, chestCount: data.chestCount || 0,
     inflation: inflationMult(data), afford, buildPrice, build, upgrade, demolish, hallPrice, upgradeHall, hire, dismiss, buyDecor,
     collectReady, collect, collectDays, collectAmount, claim, exchange, exchangeRate: exchangeRate(data), exchangedThisWeek, econData: data,
-    bdayReady, claimBirthday, album: data.album || {}, farmFight, setFarm, makeRelic, wearRelic, rankUp, sellItems, craft, openDiscipline,
+    bdayReady, claimBirthday, album: data.album || {}, farmFight, setFarm, makeRelic, wearRelic, rankUp, enhance, combineShards, buyShadow, wearShadow, sellItems, craft, openDiscipline,
     markNoSpend, noSpendReward, canNoSpendOn, markNoSpendOn, spentOn, markStorySeen, chooseMonthBoss, markMonthSeen,
   }
 }

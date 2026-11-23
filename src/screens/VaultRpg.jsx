@@ -11,11 +11,11 @@ import { useRpg, REALMS } from '../lib/rpg'
 import { SHOP, GEAR_TIERS, memberById } from '../lib/party'
 import { money, compact, todayISO, shortDate } from '../lib/format'
 import TownTab, { Wallet, Price } from '../components/TownTab'
-import { LifeStatsCard, GrowthLine } from '../components/GrowthKit'
+import { LifeStatsCard } from '../components/GrowthKit'
 import { MonthBossCard, MonthRecapCard, MonthEndSheet } from '../components/MonthKit'
-import { HeroCard, ShadowRaceCard, AlbumCard, BirthdayCard, ActCard } from '../components/HeroKit'
+import { HeroCard, AlbumCard, BirthdayCard, ActCard } from '../components/HeroKit'
 import { bdaySkin } from '../lib/hero'
-import FarmTab, { SkillTree } from '../components/FarmKit'
+import FarmTab, { SkillTree, EnhanceCard, ShadowCard } from '../components/FarmKit'
 
 function Section({ icon: I, title, right, children }) {
   return (
@@ -153,7 +153,7 @@ function dayTitle(d) {
   return d === t ? 'วันนี้' : d === ys ? 'เมื่อวาน' : shortDate(d)
 }
 function AdventureLog({ rpg }) {
-  return <div className="space-y-4"><MonthRecapCard rpg={rpg} /><ShadowRaceCard rpg={rpg} /><DayLog rpg={rpg} /></div>
+  return <div className="space-y-4"><MonthRecapCard rpg={rpg} /><DayLog rpg={rpg} /></div>
 }
 function DayLog({ rpg }) {
   const [n, setN] = useState(5)
@@ -192,6 +192,7 @@ function DayLog({ rpg }) {
 function PartyTab({ rpg }) {
   return (
     <div className="space-y-3">
+      <ShadowCard rpg={rpg} />
       {rpg.party.map((m) => {
         const skills = rpg.skills.filter((k) => k.member === m.id)
         return (
@@ -217,7 +218,6 @@ function PartyTab({ rpg }) {
                 )}
               </div>
             </div>
-            <GrowthLine rpg={rpg} id={m.id} />
             <div className="flex flex-wrap gap-1.5 mt-2.5">
               {skills.map((k) => (
                 <span key={k.id} className={`text-[11px] px-2 py-1 border ${k.unlocked ? 'border-slate-800 bg-white' : 'border-slate-200 text-slate-400'}`}><Emo k={`sk_${k.id}`} e={k.icon} size={16} /> {k.name}{!k.unlocked && ` · ${k.lockText}`}</span>
@@ -245,6 +245,7 @@ function GearTab({ rpg }) {
   return (
     <div className="space-y-3">
       <HeroCard rpg={rpg} />
+      <EnhanceCard rpg={rpg} />
       {rpg.gear.map((g) => (
         <section key={g.slot} className="px-card p-3.5">
           <div className="flex gap-3 items-center">
@@ -273,26 +274,11 @@ function GearTab({ rpg }) {
 
 /* ---------------- skills ---------------- */
 function SkillsTab({ rpg }) {
-  const groups = [...rpg.party.map((m) => ({ key: m.id, title: `${m.name} · ${m.role.split(' ')[0]}`, m })), { key: 'all', title: 'สกิลติดตัวทั้งปาร์ตี้' }]
   return (
     <div className="space-y-3">
       <SkillTree rpg={rpg} />
       <div className="text-[11px] text-slate-500 px-1">สกิลจากชีวิตจริง (ทำงานเองเมื่อทำเรื่องจริง และวันนั้นได้โบนัสการล่า: จ่ายหนี้ → พลังทีม +10%, ออม/ลงทุน → ดรอปวัสดุ +10%)</div>
-      {groups.map((gp) => (
-        <Section key={gp.key} icon={Sparkles} title={gp.title.toUpperCase()}>
-          <div className="space-y-2">
-            {rpg.skills.filter((k) => k.member === gp.key).map((k) => (
-              <div key={k.id} className={`px-inner p-2.5 flex gap-3 ${k.unlocked ? '' : 'opacity-60'}`}>
-                <div className={`w-10 h-10 grid place-items-center text-xl shrink-0 ${k.unlocked ? 'bg-amber-50' : 'bg-slate-100 grayscale'}`}>{k.unlocked ? <Emo k={`sk_${k.id}`} e={k.icon} size={28} /> : <Lock size={16} className="text-slate-400" />}</div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2"><span className="font-semibold text-sm">{k.name}</span>{!k.unlocked && <span className="text-[10px] text-amber-700">ปลดล็อก: {k.lockText}</span>}</div>
-                  <div className="text-xs text-slate-600 mt-0.5">เมื่อคุณ <b>{k.how}</b> → {k.does}</div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </Section>
-      ))}
+      <section className="px-card p-4" data-testid="real-skills"><div className="flex flex-wrap gap-1.5">{rpg.skills.filter((k) => k.unlocked).map((k) => <span key={k.id} className="px-inner px-2 py-1 text-[11px]" title={`เมื่อคุณ ${k.how} → ${k.does}`}><Emo k={`sk_${k.id}`} e={k.icon} size={14} /> {k.name}</span>)}</div></section>
     </div>
   )
 }
@@ -324,7 +310,7 @@ function ShopTab({ rpg }) {
             {SHOP.filter((i) => i.type === type).map((i) => {
               const owned = !!rpg.owned[i.id]
               const equipped = type === 'deco' ? !!rpg.decos[i.id] : type === 'pet' ? rpg.pet.id === i.id : rpg.skin?.id === i.id
-              const art = i.type === 'pet' ? <Portrait sprite={i.sprite} size={44} /> : i.type === 'skin' ? <Portrait sprite={i.art ? i.id : 'hero'} size={48} hue={i.hue} /> : <span className="text-3xl">{i.id === 'deco_flowers' ? '🌷' : i.id === 'deco_lanterns' ? '🏮' : '🚩'}</span>
+              const art = i.type === 'pet' ? <Portrait sprite={i.sprite} size={44} /> : i.type === 'skin' ? <Portrait sprite={i.art ? i.sheet || i.id : 'hero'} size={48} hue={i.hue} /> : <span className="text-3xl">{i.id === 'deco_flowers' ? '🌷' : i.id === 'deco_lanterns' ? '🏮' : '🚩'}</span>
               return (
                 <ShopCard key={i.id} name={i.name} desc={i.desc} art={art} price={<Price p={rpg.shopPrice(i)} rpg={rpg} />} owned={owned} equipped={equipped} canBuy={rpg.afford(rpg.shopPrice(i))}
                   onBuy={() => { if (rpg.buy(i)) showToast(`ซื้อ “${i.name}” แล้ว!`) }}

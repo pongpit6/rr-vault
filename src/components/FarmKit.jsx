@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
-import { Swords, Backpack, Hammer, BookOpen, Zap, Lock, Gift, Sparkles, Play, Pause, ScrollText } from './px'
+import { Swords, Backpack, Hammer, BookOpen, Zap, Lock, Gift, Sparkles, Play, Pause, ScrollText, Castle as Castle2, Ghost, Gem } from './px'
 import { Emo, PxIcon, hasPx } from './px'
 import { Portrait } from './RpgBits'
 import FarmScene from './FarmScene'
 import { useStore } from '../store'
-import { MAPS, MAP_BY_ID, MON_BY_ID, MATS, TREE, rankCost, RECIPES, mapUnlocked, itemName, itemPrice, itemIcon, RELICS, RELIC_BY_ID, NPC_INFO } from '../lib/farm'
-import { monPower, BOSS_AFTER, trophyPrice } from '../lib/farmData'
+import { MAPS, MAP_BY_ID, MON_BY_ID, MATS, TREE, rankCost, RECIPES, mapUnlocked, itemName, itemPrice, itemIcon, RELICS, RELIC_BY_ID, NPC_INFO, SHADOWS, SHADOW_SLOT_LV, enhStep, ENH_FX, SHARDS_PER_GOLD } from '../lib/farm'
+import { monPower, BOSS_AFTER, trophyPrice, bossOf, eliteOf } from '../lib/farmData'
 import { MAP_LORE, MON_LORE, STORY, STORY_STEPS } from '../lib/farmLore'
 import { Sheet } from './ui'
 
@@ -51,7 +51,7 @@ function Energy({ rpg }) {
     <Card icon={Zap} title="ENERGY · พลังจากวินัยวันนี้" testid="farm-energy">
       <div className="grid grid-cols-2 gap-3 text-sm">
         <div><div className="flex justify-between"><b>พลังกาย</b><span className="num">{rpg.staminaLeft}/{e.stamina}</span></div><Bar pct={rpg.staminaLeft / e.stamina} color="#f97316" /><div className="text-[10px] text-slate-500 mt-0.5">1 รอบการล่า = 1 พลังกาย</div></div>
-        <div><div className="flex justify-between"><b>มานา</b><span className="num">{rpg.manaLeft}/{e.mana}</span></div><Bar pct={rpg.manaLeft / Math.max(1, e.mana)} color="#6366f1" /><div className="text-[10px] text-slate-500 mt-0.5">ใช้กดสกิล</div></div>
+        <div><div className="flex justify-between"><b>มานา</b><span className="num">{rpg.manaLeft}/{e.mana}</span></div><Bar pct={rpg.manaLeft / Math.max(1, e.mana)} color="#6366f1" /><div className="text-[10px] text-slate-500 mt-0.5">สกิลโอกาสใช้เองอัตโนมัติ</div></div>
       </div>
       <div className="flex flex-wrap gap-1 mt-2">
         {e.parts.map((p) => <span key={p.id} className={`text-[10px] px-1.5 py-0.5 border ${p.done ? 'border-emerald-500 bg-emerald-50 text-emerald-800' : 'border-slate-200 text-slate-400'}`}>{p.done ? '✓' : '+'}{p.pts} {p.name}</span>)}
@@ -70,7 +70,7 @@ function Hunt({ rpg }) {
   const R = useRef(rpg); R.current = rpg
   const hit = (n) => {
     const out = R.current.farmFight(n)
-    if (!out.length) { showToast(R.current.staminaLeft ? 'แผนที่นี้ยังไม่ปลดล็อก' : 'พลังกายหมดแล้ว ทำวินัยเพิ่มเพื่อได้พลังกายอีก'); R.current.setFarm({ auto: false }); return }
+    if (!out.length) { showToast(R.current.staminaLeft ? 'แผนที่นี้ยังไม่ปลดล็อก' : 'พลังกายหมดแล้ว ทำวินัยเพิ่มเพื่อได้พลังกายอีก · ระหว่างนี้มอนสเตอร์อาจมาบุกเมือง'); R.current.setFarm({ auto: false }); return }
     setEvents((e) => [...e, ...out.map((l) => ({ ...l, seq: ++SEQ.n }))].slice(-40)); setLog((l) => [...[...out].reverse(), ...l].slice(0, 12))
   }
   // auto: one fight every 6 s while this screen is open; on return, catch up the time away (max 8 h, still limited by stamina)
@@ -100,12 +100,12 @@ function Hunt({ rpg }) {
       </Card>
       <section className="px-card overflow-hidden" data-testid="farm-battle">
         <div className="relative">
-          <FarmScene mapId={map.id} party={rpg.party} events={events} hue={rpg.skin?.hue || 0} idleMon={map.mons[0].id} />
+          <FarmScene mapId={map.id} party={rpg.party} shadows={f.shadowWorn || []} events={events} hue={rpg.skin?.hue || 0} idleMon={map.mons[0].id} />
           <div className="absolute left-2 top-2 px-font text-[10px] bg-white/85 px-1.5 py-0.5">พลังทีม {rpg.power}</div>
           <div className="absolute right-2 top-2 text-[11px] bg-white/85 px-1.5 py-0.5"><b>{last.name}</b> · พลัง {monPower(last)}{last.kind !== 'normal' && <span className="text-rose-600"> · {last.kind === 'boss' ? 'บอส' : 'หัวหน้า'}</span>}</div>
         </div>
         <div className="p-3 space-y-2">
-          <div className="text-[11px] text-slate-500">บอส “{map.mons[9].name}” จะออกมาเมื่อล่าครบ {bossNext} ตัว (ตอนนี้ {kills})</div>
+          <div className="text-[11px] text-slate-500">บอส “{bossOf(map).name}” จะออกมาเมื่อล่าครบ {bossNext} ตัว (ตอนนี้ {kills})</div>
           <Bar pct={kills / bossNext} color="#ef4444" />
           <div className="flex gap-2 flex-wrap">
             <button className="px-btn" onClick={() => hit(1)} disabled={!rpg.staminaLeft} data-testid="farm-hit1"><Swords size={15} /> สู้ 1 รอบ</button>
@@ -126,7 +126,28 @@ function Hunt({ rpg }) {
           </div>
         </div>
       </section>
+      <RaidLog rpg={rpg} />
     </div>
+  )
+}
+
+/** monsters raid the town in the background (up to 5 times a day); this is what happened */
+function RaidLog({ rpg }) {
+  const list = [...(rpg.farm.raids || [])].reverse().slice(0, 15)
+  return (
+    <Card icon={Castle2} title="RAIDS · มอนสเตอร์บุกเมือง" testid="raid-log">
+      <div className="text-[11px] text-slate-500 mb-2">เกิดเองเบื้องหลัง วันละ 0–5 ครั้ง ครั้งละ 1–5 ตัว ไม่ใช้พลังกาย · ทหารยามใช้พลังทีม 70% (+10% ต่อระดับหอสังเกตการณ์)</div>
+      {list.length ? <div className="space-y-1.5">{list.map((r) => {
+        const d = new Date(r.at)
+        return (
+          <div key={r.id} className="px-inner p-2 text-xs">
+            <div className="flex items-center gap-2"><b>{d.toLocaleDateString('th-TH', { day: 'numeric', month: 'short' })} {r.at.slice(11, 16)} น.</b><span className="text-slate-500">{MAP_BY_ID[r.map]?.emoji} {r.mons.length} ตัวบุก</span><span className={`ml-auto font-bold ${r.won === r.mons.length ? 'text-emerald-600' : r.won ? 'text-amber-600' : 'text-rose-500'}`}>ชนะ {r.won}/{r.mons.length}</span></div>
+            <div className="flex gap-0.5 my-1">{r.mons.map((m, i) => <Portrait key={i} sprite={`mon_${m}`} size={24} />)}</div>
+            <div className="text-slate-600">{Object.keys(r.drops).length ? 'ได้: ' + Object.entries(r.drops).map(([k, v]) => `${itemName(k)}×${v}`).join(', ') : 'ไม่ได้ของ'}</div>
+          </div>
+        )
+      })}</div> : <div className="text-sm text-slate-400">ยังไม่มีมอนสเตอร์มาบุก</div>}
+    </Card>
   )
 }
 
@@ -147,7 +168,7 @@ function Bag({ rpg }) {
       <Card icon={Hammer} title="MATERIALS · วัสดุ" testid="farm-mats">
         <div className="text-[11px] text-slate-500 mb-2">ใช้ที่โรงช่าง หรือขายก็ได้</div>
         {mats.length ? <div className="space-y-1.5">{mats.map(([k, v]) => (
-          <div key={k} className="px-inner p-1.5 flex items-center gap-2 text-xs"><ItemIcon k={k} /><div className="flex-1 min-w-0"><div className="font-semibold">{MATS[k]?.name} ×{v}</div><div className="text-slate-500 truncate">{MATS[k]?.use}</div></div><button className="text-[11px] ui-link shrink-0" onClick={() => sell([k])}>ขาย {(itemPrice(k) * v).toLocaleString()}</button></div>
+          <div key={k} className="px-inner p-1.5 flex items-center gap-2 text-xs"><ItemIcon k={k} /><div className="flex-1 min-w-0"><div className="font-semibold">{MATS[k]?.name} ×{v}</div><div className="text-slate-500 truncate">{MATS[k]?.use}</div></div>{k === 'shard' ? <button className="px-btn !py-1 text-xs shrink-0" disabled={v < SHARDS_PER_GOLD} onClick={() => { const n = rpg.combineShards(); if (n) showToast(`หลอมได้ ${n} GOLD`) }} data-testid="combine-shards">หลอม {Math.floor(v / SHARDS_PER_GOLD)} GOLD</button> : MATS[k]?.noSell ? null : <button className="text-[11px] ui-link shrink-0" onClick={() => sell([k])}>ขาย {(itemPrice(k) * v).toLocaleString()}</button>}</div>
         ))}</div> : <div className="text-sm text-slate-400">ยังไม่มีวัสดุ</div>}
       </Card>
     </div>
@@ -160,7 +181,7 @@ function Craft({ rpg }) {
   return (
     <div className="space-y-3">
       <Card icon={Gift} title="DISCIPLINE CHEST · หีบวินัย" testid="discipline-chests">
-        <div className="text-[11px] text-slate-500 mb-2">ได้จากวินัยที่ยากในชีวิตจริงเท่านั้น: ออกกำลังกาย 14 วันติด, ไม่กินแป้ง 7 วันติด, สมาธิ 21 วันติด, ไม่ใช้เงิน 7 วันติด, อ่านจบ 1 เล่ม, ชนะบอสประจำเดือน, ออม 20% ทั้งเดือน, ปลดหนี้ได้ 1 ก้อน</div>
+        <div className="text-[11px] text-slate-500 mb-2">ได้จากวินัยที่ยากในชีวิตจริงเท่านั้น: ออกกำลังกาย 14 วันติด, ไม่กินแป้ง 7 วันติด, สมาธิ 21 วันติด, ไม่ใช้เงิน 7 วันติด, อ่านจบ 1 เล่ม, ชนะบอสประจำเดือน, ออม 20% ทั้งเดือน, ทุกหมวดอยู่ในงบทั้งเดือน, ปิดเงินกู้ได้ 1 ก้อน</div>
         {rpg.chests.length ? rpg.chests.map((c) => (
           <div key={c.key} className="px-inner p-2 flex items-center gap-2 mb-1.5"><PxIcon name="g_chest" size={30} /><div className="flex-1 text-sm"><b>{c.name}</b><div className="text-[10px] text-slate-500">{['', 'หีบเงิน', 'หีบทอง', 'หีบตำนาน'][c.tier]}</div></div>
             <button className="px-btn !py-1 text-xs" onClick={() => { const L = rpg.openDiscipline(c); if (L) showToast(`ได้ ${L.fiat} FIAT · แต้มสกิล +${L.points} · หน้าคัมภีร์ ${L.page}${L.star ? ' · ดาวแห่งวินัย 1' : ''}`) }}>เปิด</button></div>
@@ -209,7 +230,7 @@ function Craft({ rpg }) {
           </section>
         )
       })}
-      <div className="text-[11px] text-slate-500 px-1">ตอนนี้มี: ยาฟื้นพลัง {rpg.farm.potions || 0} · ชุดวัสดุก่อสร้าง {rpg.farm.kit || 0} · ความผูกพันสัตว์เลี้ยง {rpg.farm.bond || 0} (ดรอป +{Math.min(5, Math.floor((rpg.farm.bond || 0) / 5))}%)</div>
+      <div className="text-[11px] text-slate-500 px-1">ตอนนี้มี: ยาฟื้นพลัง {rpg.farm.potions || 0} · ชุดวัสดุก่อสร้าง {rpg.farm.kit || 0}</div>
     </div>
   )
 }
@@ -223,7 +244,7 @@ function Dex({ rpg }) {
       {MAPS.map((m) => {
         const seen = m.mons.filter((x) => dex[x.id]).length
         return (
-          <Card key={m.id} icon={BookOpen} title={`${m.name}`} right={<span className="text-[11px] text-slate-500">{seen}/10{seen === 10 ? ' 🏅' : ''}</span>}>
+          <Card key={m.id} icon={BookOpen} title={`${m.name}`} right={<span className="text-[11px] text-slate-500">{seen}/{m.mons.length}{seen === m.mons.length ? ' 🏅' : ''}</span>}>
             <div className="grid grid-cols-5 gap-1.5">
               {m.mons.map((x) => <button key={x.id} onClick={() => setOpen(x)} className="px-inner p-1 text-center" title={x.name} data-testid={`dex-${x.id}`}><Portrait sprite={`mon_${x.id}`} size={44} dim={!dex[x.id]} /><div className="text-[9px] truncate">{dex[x.id] ? x.name : '???'}</div></button>)}
             </div>
@@ -274,7 +295,7 @@ function Story({ rpg }) {
         const u = mapUnlocked(m, { level: rpg.level, realmTier: rpg.realm.tier }).ok
         const kills = f.kills?.[m.id] || 0, boss = f.bossKills?.[m.id] || 0
         const open = [u, u && kills >= 15, u && boss > 0]
-        const cast = (i) => (i === 0 ? m.mons.slice(0, 4) : i === 1 ? m.mons.slice(4, 9) : [m.mons[9]])
+        const cast = (i) => (i === 0 ? m.mons.slice(0, 6) : i === 1 ? [...m.mons.slice(6, 12), eliteOf(m)] : [bossOf(m)])
         return (
           <section key={m.id} className="px-card overflow-hidden">
             <div className="h-20 relative" style={{ backgroundImage: `url(./sprites/map_${m.id}.png)`, backgroundSize: 'cover', backgroundPosition: 'center 70%', imageRendering: 'pixelated', filter: u ? 'none' : 'grayscale(1) brightness(.6)' }}>
@@ -317,6 +338,60 @@ export function SkillTree({ rpg }) {
                 <div className="flex gap-0.5 mt-0.5">{[1, 2, 3, 4, 5].map((n) => <span key={n} className={`w-4 h-1.5 ${n <= r ? 'bg-amber-400' : 'bg-slate-200'}`} />)}</div></div>
               {r < 5 && <button className="px-btn !py-1 text-xs shrink-0" disabled={rpg.skillPts < c.pts || (c.page && (bag.page || 0) < c.page) || (c.ink && (bag.ink || 0) < c.ink) || (c.star && (bag.star || 0) < c.star)}
                 onClick={() => showToast(rpg.rankUp(t.id) ? `${t.name} ขั้น ${r + 1}` : 'แต้มหรือวัสดุไม่พอ')}>+ ({c.pts}{c.page ? ` · คัมภีร์ ${c.page} · หมึก ${c.ink}` : ''}{c.star ? ' · ดาว 1' : ''})</button>}
+            </div>
+          )
+        })}
+      </div>
+    </Card>
+  )
+}
+
+/** +0 → +10 with magic crystals (in the Gear tab) */
+export function EnhanceCard({ rpg }) {
+  const showToast = useStore((s) => s.showToast)
+  const [res, setRes] = useState(null)
+  const bag = rpg.farm.bag || {}, enh = rpg.farm.enh || {}
+  return (
+    <Card icon={Gem} title="ENHANCE · ตีบวกอุปกรณ์" testid="enhance" right={<span className="text-[11px]">คริสตัลเวท <b>{bag.mcrystal || 0}</b></span>}>
+      <div className="text-[11px] text-slate-500 mb-2">ระดับอุปกรณ์มาจากชีวิตจริง ส่วนการตีบวกเป็นพลังเสริมจากการล่า · ไม่มีแตก · ตั้งแต่ +5 ถ้าพลาดจะลด 1 ขั้น · +1% ต่อขั้นตามความถนัดของแต่ละชิ้น</div>
+      <div className="space-y-1.5">
+        {rpg.gear.map((g) => {
+          const n = enh[g.slot] || 0, st = enhStep(n)
+          return (
+            <div key={g.slot} className="px-inner p-2 flex items-center gap-2" data-testid={`enh-${g.slot}`}>
+              <div className="relative"><PxIcon name={SLOT_KEY[g.slot]} size={30} />{n >= 7 && <span className="absolute -inset-1 rounded-full animate-pulse" style={{ boxShadow: '0 0 10px 2px rgba(250,204,21,.7)' }} />}</div>
+              <div className="flex-1 min-w-0 text-xs">
+                <div className="font-semibold text-sm">{g.name} <span className="text-amber-600">+{n}</span></div>
+                <div className="text-slate-600">{ENH_FX[g.slot]} +{n}%{st ? ` · ต่อไป +${n + 1}: โอกาส ${Math.round(st.p * 100)}% · คริสตัล ${st.c} · ${st.fiat} FIAT${st.down ? ' · พลาดลด 1 ขั้น' : ''}` : ' · สูงสุดแล้ว'}</div>
+              </div>
+              {st && <button className="px-btn !py-1 text-xs shrink-0" disabled={(bag.mcrystal || 0) < st.c || rpg.fiat < st.fiat} onClick={() => { const r = rpg.enhance(g.slot); if (r) { setRes({ ...r, slot: g.slot }); showToast(r.ok ? `✨ สำเร็จ! ${g.name} +${r.to}` : `💥 ไม่สำเร็จ${r.to < r.from ? ` ลดเหลือ +${r.to}` : ''}`) } }}>ตีบวก</button>}
+            </div>
+          )
+        })}
+      </div>
+      {res && <div className={`mt-2 text-center text-sm font-bold ${res.ok ? 'text-amber-600' : 'text-rose-500'}`}>{res.ok ? `✨ +${res.from} → +${res.to}` : `💥 +${res.from} → +${res.to}`}</div>}
+    </Card>
+  )
+}
+const SLOT_KEY = { weapon: 'g_weapon', armor: 'g_armor', boots: 'g_boots', satchel: 'g_satchel', ring: 'g_ring' }
+
+/** shadow soldiers (in the Party tab) */
+export function ShadowCard({ rpg }) {
+  const showToast = useStore((s) => s.showToast)
+  const f = rpg.farm, worn = f.shadowWorn || [], own = f.shadows || {}
+  return (
+    <Card icon={Ghost} title="SHADOW ARMY · ทหารเงา" testid="shadow-army" right={<span className="text-[11px]">ออกรบ {worn.length}/{rpg.shadowSlots}</span>}>
+      <div className="text-[11px] text-slate-500 mb-2">ตัวคุณในชุดฮีโร่ต่าง ๆ พร้อมออร่าเงา ช่วยบัพและออกโจมตีในการล่า · ช่องเปิดที่เลเวล {SHADOW_SLOT_LV.join(' / ')} · ซื้อด้วย GOLD + FIAT</div>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+        {SHADOWS.map((x) => {
+          const has = !!own[x.id], on = worn.includes(x.id)
+          return (
+            <div key={x.id} className={`px-inner p-2 text-center ${on ? 'ring-2 ring-violet-500' : ''}`} data-testid={`shadow-${x.id}`}>
+              <div className="mx-auto w-fit" style={{ filter: has ? 'drop-shadow(0 0 4px rgba(124,58,237,.9))' : 'none' }}><Portrait sprite={x.id} size={52} dim={!has} /></div>
+              <div className="text-[11px] font-semibold leading-tight mt-1">{x.name}</div>
+              <div className="text-[10px] text-slate-500">{x.text}</div>
+              {has ? <button className="px-btn !py-0.5 !px-2 text-[11px] mt-1" onClick={() => { if (!rpg.wearShadow(x.id)) showToast('ช่องเต็มแล้ว') }}>{on ? 'พัก' : 'ออกรบ'}</button>
+                : <button className="px-btn !py-0.5 !px-2 text-[11px] mt-1" disabled={rpg.gold < x.gold || rpg.fiat < x.fiat} onClick={() => showToast(rpg.buyShadow(x.id) ? `${x.name} เข้าร่วมทีม` : 'GOLD หรือ FIAT ไม่พอ')}>{x.gold} GOLD + {x.fiat.toLocaleString()}</button>}
             </div>
           )
         })}

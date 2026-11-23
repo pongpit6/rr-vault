@@ -1,3 +1,4 @@
+import { ShadowRaceCard } from './HeroKit'
 import { Emo } from './px'
 import { useState } from 'react'
 import { Swords, ScrollText } from './px'
@@ -105,6 +106,7 @@ export function MonthRecapCard({ rpg }) {
       {showPrev && C.prev
         ? <MonthChapter stats={C.prev} prev={null} chapter={C.prevChapter} label={`บทที่ผ่านมา · ${monthLabel(C.prev.mk)}`} />
         : <MonthChapter stats={C.cur} prev={C.prevSame} chapter={C.chapter} label={`บทปัจจุบัน · ${monthLabel(C.cur.mk)} (ยังเขียนอยู่)`} vsLabel={`เทียบเดือนก่อน ณ วันที่ ${new Date().getDate()}`} />}
+      {!showPrev && <ShadowRaceCard rpg={rpg} bare />}
     </section>
   )
 }

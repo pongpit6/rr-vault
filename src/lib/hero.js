@@ -84,7 +84,7 @@ export const bdaySkin = (id) => {
   const m = /^bday_(\d+)$/.exec(id || '')
   if (!m) return null
   const age = +m[1]
-  return { id, type: 'skin', name: `ชุดวันเกิดอายุ ${age}`, desc: 'ของสะสมประจำปี ได้ในสัปดาห์วันเกิด', hue: (age * 47) % 360, bday: age }
+  return { id, type: 'skin', name: `ชุดวันเกิดอายุ ${age}`, desc: 'ของสะสมประจำปี ได้ในสัปดาห์วันเกิด', hue: 0, art: true, sheet: `bday${age % 4}`, bday: age }
 }
 
 /* ---------------- one year of the adventure (birthday to birthday) ---------------- */

@@ -73,12 +73,13 @@ export function HeroCard({ rpg }) {
 }
 
 /* ---------------- shadow of last month ---------------- */
-export function ShadowRaceCard({ rpg }) {
+export function ShadowRaceCard({ rpg, bare }) {
   const s = rpg.shadow
   if (!s) return null
+  const Wrap = bare ? ({ children }) => <div className="mt-3 pt-3 border-t border-slate-100" data-testid="shadow-race"><div className="text-[11px] font-bold mb-1">👤 แข่งกับเงาของตัวเอง (เดือนก่อน ณ วันที่ {new Date().getDate()})</div>{children}</div> : ({ children }) => <Section icon={Ghost} title="SHADOW · เงาของตัวเอง" testid="shadow-race">{children}</Section>
   const you = Math.max(8, Math.min(92, 50 + s.lead * 14))
   return (
-    <Section icon={Ghost} title="SHADOW · เงาของตัวเอง" testid="shadow-race" right={<span className="text-[11px] text-slate-500">เดือนก่อน ณ วันที่ {new Date().getDate()}</span>}>
+    <Wrap>
       <div className="relative h-14 px-inner overflow-hidden">
         <div className="absolute inset-x-2 bottom-2 border-b-2 border-dashed border-slate-300" />
         <div className="absolute bottom-2 -translate-x-1/2 opacity-40 grayscale" style={{ left: '50%' }}><Portrait sprite="hero" size={40} /></div>
@@ -99,7 +100,7 @@ export function ShadowRaceCard({ rpg }) {
         ))}
       </div>
       <div className="text-[11px] text-slate-400 mt-2">จบเดือนแล้วชนะเงาอย่างน้อย 2 ใน 3 ด้าน รับ 120 FIAT ในเควสต์รายเดือน</div>
-    </Section>
+    </Wrap>
   )
 }
 

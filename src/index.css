@@ -168,3 +168,5 @@ html[data-theme^="pixel"] .ui-fab-notch { background: var(--px-card); border: 2p
 @keyframes pxBob { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-3px) } }
 .anim-bob { animation: pxBob 1.4s steps(2) infinite; }
 @media (prefers-reduced-motion: reduce) { .anim-bob { animation: none; } }
+.stroke-demo { stroke-dashoffset: 1; animation: strokeDraw .6s ease-out forwards; }
+@keyframes strokeDraw { to { stroke-dashoffset: 0; } }
