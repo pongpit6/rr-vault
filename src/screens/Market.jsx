@@ -528,7 +528,8 @@ function TopTen({ onOpen }) {
       <div className="flex items-baseline gap-2 px-1 mb-2"><h2 className="font-semibold text-sm flex-1">🏆 10 อันดับสินทรัพย์มูลค่าสูงสุดในโลก</h2><span className="text-[10px] text-slate-500">Market Cap · USD</span></div>
       {!d ? <div className="text-xs text-slate-400 px-1 py-3">กำลังโหลด…</div> : d.items.map((r, i) => (
         <button key={r.symbol} onClick={() => open(r)} className="w-full flex items-center gap-2.5 px-1 py-1.5 text-left rounded-lg hover:bg-slate-900/[.03]" data-testid="top10-row">
-          <span className="w-5 text-right text-xs font-bold text-slate-400 num">{i + 1}</span>
+          <span className={`w-5 text-center text-xs font-bold num ${i < 3 ? ['text-amber-500', 'text-slate-400', 'text-orange-700'][i] : 'text-slate-400'}`}>{i < 3 ? ['🥇', '🥈', '🥉'][i] : i + 1}</span>
+          <Badge it={itemFor(r.symbol, { name: r.name })} size={32} />
           <div className="flex-1 min-w-0">
             <div className="flex items-baseline gap-1.5"><span className="text-sm font-semibold truncate">{r.kind === 'metal' ? r.name : r.name}</span><span className="text-[10px] text-slate-400 shrink-0">{r.kind === 'metal' ? 'โลหะมีค่า' : r.kind === 'crypto' ? 'คริปโต' : r.symbol}</span></div>
             <div className="h-1.5 rounded-full bg-slate-900/[.05] mt-1 overflow-hidden"><div className="h-full rounded-full" style={{ width: `${Math.max(2, (r.marketCap / max) * 100)}%`, background: r.kind === 'metal' ? '#f59e0b' : r.kind === 'crypto' ? '#f97316' : '#0d9488' }} /></div>

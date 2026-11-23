@@ -447,13 +447,20 @@ export function useRpg() {
   const profitNow = Math.round((v.portfolio.pnl || 0) + (v.portfolio.realized || 0))
   useEffect(() => {
     if (!v.portfolio.value && !v.portfolio.realized) return
+    const st = useStore.getState()
+    if (st.session && !st.pulled) return
     const d = fresh()
     if (profitNow > (d.profitPeak || 0) + 1) put('rpg', { ...d, id: 'rpg', profitPeak: profitNow })
   }, [Math.floor(profitNow / 1000)]) // eslint-disable-line
   const worldLite = JSON.stringify({ weather: rpg.world.weather, event: rpg.world.event?.id || null, mood: rpg.world.mood.id, btc: rpg.world.btc, aurora: rpg.world.aurora, tree: rpg.world.tree, rank: rpg.rank.id, holiday: rpg.world.holiday })
   useEffect(() => { if (JSON.stringify(useStore.getState().ui._worldCache || null) !== worldLite) setUi({ _worldCache: JSON.parse(worldLite) }) }, [worldLite]) // eslint-disable-line
   const fresh = () => useStore.getState().items.rpg?.data || {}
-  const save = (patch) => put('rpg', { ...fresh(), id: 'rpg', ...patch })
+  // signed in but the game hasn't been downloaded yet (fresh install): don't write a blank game over the real one
+  const save = (patch) => {
+    const st = useStore.getState()
+    if (st.session && !st.pulled) { st.showToast('กำลังโหลดข้อมูลเกมจากระบบ ลองอีกครั้งในอีกสักครู่'); return }
+    put('rpg', { ...fresh(), id: 'rpg', ...patch })
+  }
   const { fiat, gold } = rpg.wallet
   const now = () => new Date().toISOString()
   const logE = (d, e) => [...(d.econLog || []).slice(-80), { at: now(), ...e }]
