@@ -3,8 +3,8 @@ import { Check, Plus, Minus, Moon, Sun, Play, Pause, RotateCcw, BookOpen, Trash2
 import { Sheet, Button, Segmented } from './ui'
 import { useStore } from '../store'
 import { useRpg } from '../lib/rpg'
-import { HABITS, HABIT_BY_ID, MOVES, SETS, REPS, SLEEP_TARGET, BACKFILL_DAYS, useHabits, fastingOf, pickRound, grade, addDays, doneOf } from '../lib/habits'
-import { VOCAB_LEVELS, POS_TH } from '../lib/vocab'
+import { HABITS, HABIT_BY_ID, MOVES, SETS, REPS, SLEEP_TARGET, BACKFILL_DAYS, useHabits, fastingOf, addDays, doneOf } from '../lib/habits'
+import VocabSheet from './VocabKit'
 import { sfx, bell } from '../lib/sfx'
 import { todayISO } from '../lib/format'
 
@@ -448,76 +448,6 @@ function MealLater({ H }) {
       <Button className="!py-1.5" disabled={!ok} onClick={() => { H.ateNow(new Date(at).toISOString()); sfx('click'); setOpen(false) }} data-testid="meal-later-save">บันทึก</Button>
       {!ok && <span className="text-[11px] text-rose-600">ย้อนหลังได้ไม่เกิน {BACKFILL_DAYS} วัน และต้องไม่ใช่เวลาในอนาคต</span>}
     </div>
-  )
-}
-
-/* ---- vocab ---- */
-function VocabSheet({ H }) {
-  const [mode, setMode] = useState('quiz')
-  const [round, setRound] = useState(null)
-  const [i, setI] = useState(0)
-  const [picked, setPicked] = useState(null)
-  const [score, setScore] = useState(0)
-  const [form, setForm] = useState({ en: '', th: '' })
-  const v = H.vocab
-  const start = () => { setRound(pickRound(v, 10)); setI(0); setPicked(null); setScore(0) }
-  const w = round?.[i]
-  const answer = (opt) => {
-    if (picked) return
-    const ok = opt === w.th
-    setPicked(opt); if (ok) setScore((s) => s + 1)
-    sfx(ok ? 'coin' : 'hit')
-    H.saveVocab(grade(useStore.getState().items.vocab?.data || {}, w.id, ok))
-  }
-  const next = () => {
-    if (i + 1 >= round.length) { H.vocabRound(score, round.length); setRound((r) => ({ done: true, length: r.length })); return }
-    setI(i + 1); setPicked(null)
-  }
-  const cards = v.cards || {}
-  const byLv = Object.keys(VOCAB_LEVELS).map((lv) => { const list = H.VOCAB.filter((x) => x.lv === +lv); return { lv, name: VOCAB_LEVELS[lv], n: list.length, learnt: list.filter((x) => (cards[x.id]?.box || 0) >= 3).length } })
-  const dueN = Object.values(cards).filter((c) => c.due <= todayISO()).length
-  return (
-    <>
-      <Segmented value={mode} onChange={setMode} options={[{ value: 'quiz', label: 'ฝึก' }, { value: 'words', label: 'คำของฉัน' }]} />
-      {mode === 'quiz' && (
-        !round ? (
-          <div className="space-y-3">
-            <div className="grid grid-cols-3 gap-2 text-center"><Stat label="จำได้แล้ว" v={`${H.learnt} คำ`} /><Stat label="ต้องทบทวนวันนี้" v={`${dueN} คำ`} /><Stat label="วันนี้" v={`${H.dayOf().vocab?.rounds || 0} รอบ`} /></div>
-            <div className="space-y-1.5">{byLv.map((x) => <div key={x.lv} className="text-xs"><div className="flex justify-between"><span>{x.name}</span><span className="text-slate-500">{x.learnt}/{x.n}</span></div><div className="px-hp mt-0.5"><div style={{ width: `${(x.learnt / x.n) * 100}%`, background: '#0284c7' }} /></div></div>)}</div>
-            <Button className="w-full" onClick={start} data-testid="vocab-start">เริ่มรอบละ 10 คำ</Button>
-            <div className="text-[11px] text-slate-500">คำที่ตอบผิดจะกลับมาบ่อยขึ้น คำที่ตอบถูกติดกันจะห่างออกไป ถูก 3 ครั้งติดนับว่า "จำได้" · ทุก 100 คำที่จำได้ = 1 GOLD</div>
-          </div>
-        ) : round.done ? (
-          <div className="text-center py-6 space-y-3" data-testid="vocab-done">
-            <div className="text-4xl">🎓</div><div className="font-semibold">จบรอบ! ถูก {score}/{round.length}</div><div className="text-xs text-slate-500">+10 FIAT</div>
-            <div className="flex gap-2"><Button className="flex-1" onClick={start}>อีกรอบ</Button><Button variant="ghost" className="flex-1" onClick={() => setRound(null)}>พอแล้ว</Button></div>
-          </div>
-        ) : (
-          <div className="space-y-3" data-testid="vocab-q">
-            <div className="flex justify-between text-xs text-slate-500"><span>คำที่ {i + 1}/{round.length}</span><span>ถูก {score}</span></div>
-            <div className="px-inner p-5 text-center"><div className="text-3xl font-bold tracking-wide" data-testid="vocab-word">{w.en}</div><div className="text-[11px] text-slate-500 mt-1">{POS_TH[w.pos]} · {VOCAB_LEVELS[w.lv] || 'คำของฉัน'}</div></div>
-            <div className="grid grid-cols-1 gap-2">
-              {w.options.map((o) => {
-                const isRight = picked && o === w.th, isWrong = picked === o && o !== w.th
-                return <button key={o} onClick={() => answer(o)} className="text-left px-4 py-3 border-2 text-sm font-medium transition" style={{ borderColor: isRight ? '#16a34a' : isWrong ? '#e11d48' : 'rgba(148,163,184,.4)', background: isRight ? 'rgba(22,163,74,.1)' : isWrong ? 'rgba(225,29,72,.08)' : 'transparent' }} data-testid="vocab-opt">{o}</button>
-              })}
-            </div>
-            {picked && <Button className="w-full" onClick={next} data-testid="vocab-next">{i + 1 >= round.length ? 'ดูผล' : 'ต่อไป'}</Button>}
-          </div>
-        )
-      )}
-      {mode === 'words' && (
-        <div className="space-y-3">
-          <div className="px-inner p-3 space-y-2">
-            <div className="text-sm font-semibold">เพิ่มคำของฉัน</div>
-            <div className="grid grid-cols-2 gap-2"><input className="field" placeholder="English" value={form.en} onChange={(e) => setForm({ ...form, en: e.target.value })} /><input className="field" placeholder="คำแปล" value={form.th} onChange={(e) => setForm({ ...form, th: e.target.value })} /></div>
-            <Button className="w-full !py-2" disabled={!form.en.trim() || !form.th.trim()} onClick={() => { H.saveVocab({ custom: [...(v.custom || []), { id: `my:${form.en.trim().toLowerCase()}`, en: form.en.trim(), th: form.th.trim(), pos: 'n', lv: 0, lang: 'en' }] }); setForm({ en: '', th: '' }); sfx('save') }}>เพิ่มคำ</Button>
-          </div>
-          {(v.custom || []).map((c) => <div key={c.id} className="flex justify-between text-sm px-1"><span><b>{c.en}</b> · {c.th}</span><button onClick={() => H.saveVocab({ custom: v.custom.filter((x) => x.id !== c.id) })} className="text-slate-400 hover:text-rose-600"><X size={14} /></button></div>)}
-          <div className="text-[11px] text-slate-500">ชุดคำในตัว {H.VOCAB.length} คำ (ชีวิตประจำวัน) · ภาษาอื่นจะเพิ่มในอนาคต</div>
-        </div>
-      )}
-    </>
   )
 }
 

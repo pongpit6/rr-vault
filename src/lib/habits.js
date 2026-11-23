@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { useStore, selectList } from '../store'
 import { todayISO } from './format'
-import { VOCAB } from './vocab'
+import { isWordId, LEARNT_BOX } from './vocab'
 
 /**
  * Daily habits. Each day is its own synced item (id `hd-YYYY-MM-DD`, kind 'habitday') so two devices
@@ -123,7 +123,7 @@ export function computeHabits({ days = {}, books = [], vocab = {}, state = {}, n
   const avgSleep = last7.length ? last7.reduce((s, x) => s + x.hours, 0) / last7.length : null
   // vocab
   const cards = vocab.cards || {}
-  const learnt = Object.values(cards).filter((c) => (c.box || 0) >= 3).length
+  const learnt = Object.entries(cards).filter(([id, c]) => isWordId(id) && (c.box || 0) >= LEARNT_BOX).length
 
   // weekly quest: any habit on ≥5 days of a week (Mon–Sun) → 1 GOLD; each rest day lowers the bar by one (never below 3)
   const weeks = new Map(), pauses = new Map()
@@ -241,7 +241,6 @@ export function useHabits() {
     // vocab
     saveVocab: (v) => put('vocab', { ...(useStore.getState().items.vocab?.data || {}), ...v, id: 'vocab' }),
     vocabRound: (correct, total, d = today) => patchDay((c) => ({ vocab: { rounds: (c.vocab?.rounds || 0) + 1, correct: (c.vocab?.correct || 0) + correct, total: (c.vocab?.total || 0) + total } }), d),
-    VOCAB,
   }
 }
 
@@ -253,27 +252,4 @@ export function fastingOf(lastMeal, fastHours = 16, now = Date.now()) {
   return { since, next, done: since >= fastHours, pct: Math.min(1, since / fastHours) }
 }
 
-/* ---------- vocabulary: Leitner boxes (1 → 5), wrong answers drop to box 1 ---------- */
-const BOX_DAYS = [0, 0, 1, 3, 7, 21]
-export function nextDue(box, from = todayISO()) { return addDays(from, BOX_DAYS[Math.min(5, box)] || 0) }
-export function pickRound(vocab, n = 10, today = todayISO(), list = VOCAB) {
-  const cards = vocab.cards || {}
-  const all = [...list, ...(vocab.custom || [])]
-  const due = all.filter((w) => cards[w.id] && cards[w.id].due <= today).sort((a, b) => (cards[a.id].box || 0) - (cards[b.id].box || 0))
-  const fresh = all.filter((w) => !cards[w.id]).sort((a, b) => (a.lv || 1) - (b.lv || 1))
-  const pick = [...due.slice(0, n), ...fresh].slice(0, n)
-  return pick.map((w) => {
-    const pool = all.filter((x) => x.id !== w.id && x.th !== w.th && (x.pos || '') === (w.pos || ''))
-    const alt = (pool.length >= 3 ? pool : all.filter((x) => x.id !== w.id && x.th !== w.th))
-    const opts = new Set([w.th])
-    while (opts.size < 4 && opts.size < alt.length + 1) opts.add(alt[Math.floor(Math.random() * alt.length)].th)
-    return { ...w, options: [...opts].sort(() => Math.random() - 0.5) }
-  })
-}
-export function grade(vocab, id, ok, today = todayISO()) {
-  const cards = { ...(vocab.cards || {}) }
-  const c = cards[id] || { box: 0, seen: 0, right: 0, wrong: 0 }
-  const box = ok ? Math.min(5, (c.box || 0) + 1) : 1
-  cards[id] = { box, seen: c.seen + 1, right: c.right + (ok ? 1 : 0), wrong: c.wrong + (ok ? 0 : 1), due: nextDue(box, today), last: today }
-  return { ...vocab, cards }
-}
+/* vocabulary engine: see ./vocab.js */
