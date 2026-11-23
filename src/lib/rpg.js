@@ -9,6 +9,7 @@ import { computeHabits } from './habits'
 import { selectList } from '../store'
 import { useWeather, loadWeather, sceneWeather, thaiEvent, isThaiHoliday, moneyMood } from './world'
 import { doubleDay, decorOnSale } from './festivals'
+import { outfitOf, condition7, shadowRace, birthdayInfo, bdaySkin, storyAct, albumSnap, FREEDOM_STEPS } from './hero'
 import { usePrices } from './prices'
 import { budgetStatus } from './plan'
 import { lifeStats, growthOf } from './growth'
@@ -342,6 +343,14 @@ function computeRpg({ accounts, txns, settings, balances, summary, unlocked, por
   if (monthBoss.chosen) monthBoss.done = monthBoss.progress >= monthBoss.chosen.target
   const prevSame = hasPrev ? monthStats(prevMonth(mk), statArgs, +today.slice(8, 10)) : null // last month up to the same day, for a fair comparison
   const chronicle = { cur: curStats, prev: hasPrev ? prevStats : null, prevSame, chapter: monthChapter(curStats, prevSame), prevChapter: hasPrev ? monthChapter(prevStats, null) : null }
+  // ---------- you as the hero: shadow of last month, story act, birthday ----------
+  const shadow = shadowRace(curStats, prevSame)
+  const ppMk = prevMonth(prevMonth(mk))
+  const hasPP = txns.some((t) => t.date.startsWith(ppMk)) || Object.keys(habitDays).some((d) => d.startsWith(ppMk))
+  const lastShadow = hasPrev && hasPP ? shadowRace(prevStats, monthStats(ppMk, statArgs)) : null
+  const act = storyAct({ bosses, coverage: summary.coverage, hasCoverTarget: summary.target > 0, invTotal: (summary.byType.invest || 0) + portfolio.value, avgExp })
+  const birthday = birthdayInfo(settings.birthday, today)
+  const FREE_GOLD = { 10: 3, 25: 5, 50: 10, 100: 30 }
   const quests = [
     { tier: 'รายวัน', key: `d:${today}:1`, name: 'บันทึกรายการวันนี้', progress: Math.min(1, todayCount), goal: 1, fiat: 20 * (evNow?.id === 'newyear' ? 2 : 1) },
     { tier: 'รายวัน', key: `d:${today}:3`, name: 'บันทึกให้ครบ 3 รายการ', progress: Math.min(3, todayCount), goal: 3, fiat: 20 * (evNow?.id === 'newyear' ? 2 : 1) },
@@ -360,6 +369,8 @@ function computeRpg({ accounts, txns, settings, balances, summary, unlocked, por
     { tier: 'รายเดือน', key: `m:${lastMonth}:save`, name: 'เดือนที่แล้วออมได้ 20% ของรายรับ', progress: Math.max(0, Math.min(20, Math.round(lmRate * 100))), goal: 20, unit: '%', gold: 5 },
     monthBoss.chosen ? { tier: 'รายเดือน', key: `m:${mk}:boss`, name: `${monthBoss.chosen.emoji} ปราบ${monthBoss.chosen.boss}: ${monthBoss.chosen.name(monthBoss.chosen.target)}`, progress: Math.min(monthBoss.chosen.target, monthBoss.progress), goal: monthBoss.chosen.target, unit: monthBoss.chosen.unit === '%' ? '%' : undefined, gold: 2, fiat: 150 } : null,
     { tier: 'รายเดือน', key: `m:${mk}:cover`, name: 'กันเงินชำระหนี้ให้ครบ 100%', progress: Math.round((summary.target > 0 ? summary.coverage : 1) * 100), goal: 100, unit: '%', gold: 1 },
+    lastShadow ? { tier: 'รายเดือน', key: `m:${prevMonth(mk)}:shadow`, name: '👤 เดือนที่แล้วชนะเงาของตัวเอง (ชนะ 2 ใน 3 ด้าน)', progress: lastShadow.wins, goal: 2, fiat: 120, hint: lastShadow.lanes.map((l) => `${l.icon}${l.win ? 'ชนะ' : l.tie ? 'เสมอ' : 'แพ้'}`).join(' · ') } : null,
+    ...(act.free ? FREEDOM_STEPS.filter((st) => st <= (act.nextStep ?? 100)).map((st) => ({ tier: 'เควสต์หลัก', key: `main:free${st}`, name: `🏰 สร้างอาณาจักร: เงินลงทุนจ่ายแทนค่าใช้จ่ายได้ ${st}%`, progress: Math.min(st, Math.floor(act.freedom * 100)), goal: st, unit: '%', gold: FREE_GOLD[st], hint: 'คิดแบบถอนปีละ 4% ของเงินลงทุน เทียบค่าใช้จ่ายเฉลี่ยต่อเดือน' })) : []),
     { tier: 'เควสต์หลัก', key: 'main:bosses', name: 'ปราบบอสหนี้ทุกตัว', progress: bosses.filter((b) => b.defeated).length, goal: Math.max(1, bosses.length), gold: 20, need: bosses.length > 0 },
     { tier: 'เควสต์หลัก', key: 'main:free', name: 'ออกจากแดนหมอกหนี้ (มูลค่าสุทธิ ≥ 0)', progress: summary.net >= 0 && txns.length ? 1 : 0, goal: 1, gold: 10 },
     { tier: 'เควสต์หลัก', key: 'main:invest100k', name: 'สะสมเงินลงทุน 100,000', progress: Math.min(100000, Math.round((summary.byType.invest || 0) + portfolio.value)), goal: 100000, money: true, gold: 30 },
@@ -399,7 +410,7 @@ function computeRpg({ accounts, txns, settings, balances, summary, unlocked, por
 
   const realm = realmNow
   const nextRealm = REALMS.find((r) => r.min > summary.net)
-  const party = computeParty({ accounts, txns, summary, portfolio, settings, catById, level: lv.level, into: lv.into, need: lv.need, streak, bestStreak, goodMonths, months, data: { ...data, unlocked }, privacy })
+  const party = computeParty({ growthG: growth.g, accounts, txns, summary, portfolio, settings, catById, level: lv.level, into: lv.into, need: lv.need, streak, bestStreak, goodMonths, months, data: { ...data, unlocked }, privacy })
   // ---------- the living world: real weather, Thai calendar, money mood, market mood ----------
   const budgetStates = budgetStatus(budgets, txns)
   const event = evNow
@@ -412,7 +423,12 @@ function computeRpg({ accounts, txns, settings, balances, summary, unlocked, por
     sunrise: wx?.sunrise || '06:10', sunset: wx?.sunset || '18:10', temp: wx?.temp,
   }
 
+  const outfit = outfitOf(lv.level)
+  const condition = condition7(habitDays, today)
+  world.birthday = birthday
+
   return {
+    outfit, condition, shadow, act, birthday,
     inventory: portfolio.open, portfolioValue: portfolio.value,
     xp, xpParts, ...lv, title: title[1], titleEn: title[2], stats, bosses, quests, achievements, newlyUnlocked,
     streak, bestStreak, realm, nextRealm, weather, loggedToday: todayCount, debtFog, town, wallet, days,
@@ -507,7 +523,8 @@ export function useRpg() {
     if (!chestReady) return null
     const bonus = rpg.streak >= 3 ? Math.min(10, rpg.streak) : 0
     const roll = Math.random()
-    let gain = 5 + bonus + (roll > 0.9 ? 15 : roll > 0.6 ? 5 : 0)
+    const fit = rpg.condition?.id === 'fit' ? 3 : 0
+    let gain = 5 + bonus + fit + (roll > 0.9 ? 15 : roll > 0.6 ? 5 : 0)
     const double = rpg.streak >= 30
     if (double) gain *= 2
     gain *= GEM_TO_FIAT
@@ -517,7 +534,7 @@ export function useRpg() {
     // ตรุษจีน: 1 in 4 chests hides a red envelope with 1 GOLD
     const angpao = rpg.world.event?.id === 'cny' && Math.random() < 0.25
     save({ fiat: (d.fiat || 0) + gain, ...(angpao ? { gold: (d.gold || 0) + 1, econLog: logE(d, { icon: '🧧', text: 'อั่งเปาในหีบตรุษจีน', gold: 1 }) } : {}), chestLast: todayISO(), chestCount: (d.chestCount || 0) + 1, chestLog: [...(d.chestLog || []).slice(-40), { at: now(), gain, ccy: 'fiat', rare: roll > 0.9, angpao }] })
-    return { gain, rare: roll > 0.9, tip, bonus, double, angpao }
+    return { gain, rare: roll > 0.9, tip, bonus, double, angpao, fit: fit * GEM_TO_FIAT }
   }
   const saleOff = (rpg.world.event?.id === 'payday' ? 10 : 0) + (rpg.world.sale?.pct || 0)
   const shopPrice = (item) => priceOf([item.price * GEM_TO_FIAT, 0], data, { discount: Math.min(50, rpg.town.shopDiscount + saleOff) })
@@ -621,8 +638,27 @@ export function useRpg() {
   const chooseMonthBoss = (id) => { const d = fresh(); const o = rpg.monthBoss.options.find((x) => x.id === id); if (!o || (d.monthBoss || {})[rpg.monthBoss.mk]) return false; save({ monthBoss: { ...(d.monthBoss || {}), [rpg.monthBoss.mk]: { id, target: o.target } } }); sfx('levelup'); return true }
   const markMonthSeen = (mk) => { if (fresh().recapSeen !== mk) save({ recapSeen: mk }) }
   const markStorySeen = (n) => { if ((fresh().storySeen || 0) < n) save({ storySeen: n }) }
+  // birthday week: an outfit for this age + 1 GOLD, once a year
+  const bdayId = rpg.birthday ? `bday_${rpg.birthday.age}` : null
+  const bdayReady = !!(rpg.birthday?.week && bdayId && !(data.owned || {})[bdayId])
+  const claimBirthday = () => {
+    if (!bdayReady) return null
+    const d = fresh()
+    sfx('levelup')
+    pay(0, 1, { icon: '🎂', text: `สุขสันต์วันเกิดอายุ ${rpg.birthday.age}! ได้ชุดวันเกิดประจำปี` }, { owned: { ...(d.owned || {}), [bdayId]: now() }, equip: { ...(d.equip || {}), skin: bdayId } })
+    return bdaySkin(bdayId)
+  }
   const setEquip = (patch) => save({ equip: { ...(fresh().equip || {}), ...patch } })
   const toggleDeco = (id) => { const off = { ...(fresh().decoOff || {}) }; off[id] = !off[id]; save({ decoOff: off }) }
+
+  // growth album: this month's picture of you, refreshed once a day (the last one of a month stays as its page)
+  useEffect(() => {
+    const st = useStore.getState()
+    if ((st.session && !st.pulled) || !v.txns.length) return
+    const d = fresh(), mkNow = monthKey(todayISO()), cur = (d.album || {})[mkNow]
+    if (cur && cur.day === todayISO()) return
+    put('rpg', { ...d, id: 'rpg', album: { ...(d.album || {}), [mkNow]: { day: todayISO(), ...albumSnap(rpg, v.summary) } } })
+  }, [todayISO(), rpg.level, v.txns.length > 0]) // eslint-disable-line
 
   // keep milestones (achievements, party joins, level-ups, realms) so they show in the adventure log
   useEffect(() => {
@@ -637,13 +673,15 @@ export function useRpg() {
     else if (rpg.level > d.maxLevel) { patch.maxLevel = rpg.level; patch.levels = [...(d.levels || []).slice(-40), { lv: rpg.level, at: now }] }
     if (d.tier === undefined) patch.tier = rpg.realm.tier
     else if (rpg.realm.tier !== d.tier) { patch.tier = rpg.realm.tier; patch.realms = [...(d.realms || []).slice(-20), { name: rpg.realm.name, at: now, down: rpg.realm.tier < d.tier }] }
+    if (rpg.act.free && !d.act2At) patch.act2At = now
     if (Object.keys(patch).length) save(patch)
-  }, [rpg.newlyUnlocked.join(), rpg.newlyJoined.join(), rpg.level, rpg.realm.tier]) // eslint-disable-line
+  }, [rpg.newlyUnlocked.join(), rpg.newlyJoined.join(), rpg.level, rpg.realm.tier, rpg.act.free]) // eslint-disable-line
 
   return {
     ...rpg, vault: v, fiat, gold, chestReady, openChest, buy, shopPrice, setEquip, toggleDeco, decorPrice, saleOff, chestCount: data.chestCount || 0,
     inflation: inflationMult(data), afford, buildPrice, build, upgrade, demolish, hallPrice, upgradeHall, hire, dismiss, buyDecor,
     collectReady, collect, collectDays, collectAmount, claim, exchange, exchangeRate: exchangeRate(data), exchangedThisWeek, econData: data,
+    bdayReady, claimBirthday, album: data.album || {},
     markNoSpend, noSpendReward, canNoSpendOn, markNoSpendOn, spentOn, markStorySeen, chooseMonthBoss, markMonthSeen,
   }
 }

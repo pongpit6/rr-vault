@@ -49,7 +49,7 @@ export function lifeStats({ days = {}, noSpend = {}, loggedDays = new Set(), sav
 
 /* ---------- permanent growth stages (1–3) per party member, from lifetime totals ---------- */
 export const STAGES = {
-  knight: { area: 'body', name: ['ทหารฝึกหัด', 'อัศวินเหล็ก', 'อัศวินเพลิง'], next: ['ออกกำลังกายรวม 30 วัน', 'ออกกำลังกายรวม 100 วัน'], pts: (g) => g.exerciseDays + Math.floor(g.nocarbDays / 2), at: [30, 100] },
+  knight: { area: 'body', name: ['นักเดินทางฝึกหัด', 'นักผจญภัยเหล็ก', 'นักผจญภัยเพลิง'], next: ['ออกกำลังกายรวม 30 วัน', 'ออกกำลังกายรวม 100 วัน'], pts: (g) => g.exerciseDays + Math.floor(g.nocarbDays / 2), at: [30, 100] },
   mage: { area: 'mind', name: ['นักเวทฝึกหัด', 'จอมเวทแห่งหน้ากระดาษ', 'ปราชญ์ผู้รอบรู้'], next: ['อ่านจบ 3 เล่ม (หรือคะแนนความรู้ 60)', 'อ่านจบ 10 เล่ม (หรือคะแนนความรู้ 200)'], pts: (g) => g.books * 20 + Math.floor(g.learnt / 10) + g.readDays, at: [60, 200] },
   healer: { area: 'calm', name: ['นักบวชฝึกหัด', 'ผู้รักษาแห่งความสงบ', 'นักบุญแห่งแสง'], next: ['สมาธิ + นอนตรงเวลา รวม 30 วัน', 'สมาธิ + นอนตรงเวลา รวม 100 วัน'], pts: (g) => g.medDays + g.ontimeNights, at: [30, 100] },
   ranger: { area: 'money', name: ['พรานฝึกหัด', 'พรานเหยี่ยวทอง', 'พรานผู้ไม่พลาดเป้า'], next: ['วันไม่ใช้เงินรวม 20 วัน', 'วันไม่ใช้เงินรวม 60 วัน'], pts: (g) => g.noSpendDays, at: [20, 60] },
@@ -68,5 +68,5 @@ export function growthOf({ habits, noSpendTotal = 0 }) {
   }))
   // the pet grows with consistency: days with any habit done
   const petStage = g.activeDays >= 100 ? 3 : g.activeDays >= 30 ? 2 : 1
-  return { members, pet: { stage: petStage, days: g.activeDays, nextAt: petStage === 1 ? 30 : petStage === 2 ? 100 : null } }
+  return { g, members, pet: { stage: petStage, days: g.activeDays, nextAt: petStage === 1 ? 30 : petStage === 2 ? 100 : null } }
 }

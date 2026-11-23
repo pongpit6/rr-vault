@@ -354,7 +354,7 @@ export default function BattleScene({
           if (crit) setTimeout(() => addFloat('ฟันพายุ!', ecx - 30, etop, 'gold'), 250)
           for (let i = 0; i < 26; i++) s.fx.push({ x: ecx - 10, y: gy - sp.h / 2, vx: Math.random() * 4 - 1, vy: -Math.random() * 3.5, life: 700, c: i % 2 ? wcol : '#ffffff', z: 2 })
           buzz(ev.kill ? [40, 60, 40, 60, 120] : [25, 40, 50]); sfx('hit')
-          tell(`⚔️ อัศวินใช้${gear?.weapon?.name || 'ดาบ'}${crit ? ' ร่าย “ฟันพายุ”' : ''} ฟัน${enemy?.name || 'บอส'} −${M(ev.amount)} — มาจากการชำระ${enemy?.accName || 'หนี้'}จริง`)
+          tell(`⚔️ ฮีโร่ใช้${gear?.weapon?.name || 'ดาบ'}${crit ? ' ร่าย “ฟันพายุ”' : ''} ฟัน${enemy?.name || 'บอส'} −${M(ev.amount)} — มาจากการชำระ${enemy?.accName || 'หนี้'}จริง`)
           if (Math.random() < 0.6) say('hero', QUIPS[Math.floor(Math.random() * QUIPS.length)], hx + 34, gy - 74, 1400)
           if (ev.kill) {
             s.dying = 1500; showBanner({ text: 'DEFEATED!', sub: `ปราบ${enemy?.name || 'บอส'}สำเร็จ`, cls: 'gold' }, 2800)
@@ -390,7 +390,7 @@ export default function BattleScene({
           }
           tell(T[ev.skill] || '', 5500)
         } else {
-          tell(ev.skill === 'shield' ? `🛡️ อัศวินเก็บเงินเข้าคลังกันหนี้ ${M(ev.amount)}` : `💰 อัศวินส่งเงินเข้าคลังลงทุน ${M(ev.amount)}`, 5000)
+          tell(ev.skill === 'shield' ? `🛡️ ฮีโร่เก็บเงินเข้าคลังกันหนี้ ${M(ev.amount)}` : `💰 ฮีโร่ส่งเงินเข้าคลังลงทุน ${M(ev.amount)}`, 5000)
           s.glow = 900
         }
         ev._done = true

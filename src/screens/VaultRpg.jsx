@@ -12,6 +12,8 @@ import { money, compact, todayISO, shortDate } from '../lib/format'
 import TownTab, { Wallet, Price } from '../components/TownTab'
 import { LifeStatsCard, GrowthLine } from '../components/GrowthKit'
 import { MonthBossCard, MonthRecapCard, MonthEndSheet } from '../components/MonthKit'
+import { HeroCard, ShadowRaceCard, AlbumCard, BirthdayCard, ActCard } from '../components/HeroKit'
+import { bdaySkin } from '../lib/hero'
 
 function Section({ icon: I, title, right, children }) {
   return (
@@ -31,7 +33,7 @@ const REALM_INFO = [
   'หนองน้ำสีม่วง ต้นไม้ตาย หลุมศพ ป้าย “หนี้” และหมอกหนา — ที่ที่หนี้มากกว่าทรัพย์สิน',
   'บ้าน 2 หลัง บ่อน้ำ รั้วไม้ ต้นไม้ · พ่อค้าเดินเล่นในหมู่บ้าน',
   'ตลาดแผงลอย ถนนหินปู โคมไฟ บ้าน 4 หลัง · ชาวนามาเยือน',
-  'ปราสาทพร้อมประตูเมือง หอคอยปักธง ถนนหินแกรนิต · อัศวินได้ออร่า',
+  'ปราสาทพร้อมประตูเมือง หอคอยปักธง ถนนหินแกรนิต · ฮีโร่ได้ออร่า',
   'พระราชวังโดมทองคำ ถนนทอง ประกายระยิบระยับ — จุดหมายสูงสุด',
 ]
 
@@ -40,6 +42,8 @@ function GearIcon({ slot, color, size = 40 }) {
   const px = {
     weapon: ['....##', '...#c#', '..#c#.', '.#c#..', '##b#..', '.##...', '#..#..'],
     armor: ['#....#', '##cc##', '#cccc#', '#cbbc#', '.#cc#.', '.#cc#.', '..##..'],
+    boots: ['......', '.##...', '.#c#..', '.#c#..', '.#cc##', '.#cccb', '.#####'],
+    satchel: ['..##..', '.#..#.', '######', '#cccc#', '#cbbc#', '#cccc#', '######'],
     ring: ['..##..', '.#bb#.', '......', '#c..c#', '#c..c#', '.#cc#.', '..##..'],
   }[slot]
   const fill = { '#': '#1e293b', c: color, b: '#fde68a' }
@@ -144,7 +148,7 @@ function dayTitle(d) {
   return d === t ? 'วันนี้' : d === ys ? 'เมื่อวาน' : shortDate(d)
 }
 function AdventureLog({ rpg }) {
-  return <div className="space-y-4"><MonthRecapCard rpg={rpg} /><DayLog rpg={rpg} /></div>
+  return <div className="space-y-4"><MonthRecapCard rpg={rpg} /><ShadowRaceCard rpg={rpg} /><DayLog rpg={rpg} /></div>
 }
 function DayLog({ rpg }) {
   const [n, setN] = useState(5)
@@ -234,6 +238,7 @@ function PartyTab({ rpg }) {
 function GearTab({ rpg }) {
   return (
     <div className="space-y-3">
+      <HeroCard rpg={rpg} />
       {rpg.gear.map((g) => (
         <section key={g.slot} className="px-card p-3.5">
           <div className="flex gap-3 items-center">
@@ -255,7 +260,7 @@ function GearTab({ rpg }) {
           ) : <div className="text-[11px] text-amber-700 mt-2">ขั้นสูงสุดแล้ว! 👑</div>}
         </section>
       ))}
-      <div className="text-[11px] text-slate-400 px-1">ในฉาก: สีคมดาบตอนฟัน = ขั้นอาวุธ · วงแสงใต้เท้าอัศวิน = ขั้นเกราะ · ประกายรอบตัว = ขั้นแหวน (ตั้งแต่ขั้นเงิน)</div>
+      <div className="text-[11px] text-slate-400 px-1">ชุดของคุณขึ้นตามยศ ส่วนอุปกรณ์แต่ละชิ้นขึ้นตามชีวิตจริง · ในฉาก: สีคมดาบตอนฟัน = ขั้นอาวุธ · วงแสงใต้เท้าฮีโร่ = ขั้นเกราะ · ประกายรอบตัว = ขั้นแหวน (ตั้งแต่ขั้นเงิน)</div>
     </div>
   )
 }
@@ -287,7 +292,7 @@ function SkillsTab({ rpg }) {
 /* ---------------- shop ---------------- */
 function ShopTab({ rpg }) {
   const showToast = useStore((s) => s.showToast)
-  const types = [['pet', 'สัตว์เลี้ยง'], ['skin', 'ชุดอัศวิน']]
+  const types = [['pet', 'สัตว์เลี้ยง'], ['skin', 'ชุดฮีโร่']]
   return (
     <div className="space-y-3">
       <section className="px-card p-3.5 flex items-center gap-3">
@@ -302,8 +307,11 @@ function ShopTab({ rpg }) {
               <ShopCard name="จิ้งจอกมิ้นต์" desc="สัตว์เลี้ยงตัวแรก" art={<Portrait sprite="pet_fox" size={44} />} owned equipped={rpg.pet.id === 'pet_fox'} onEquip={() => rpg.setEquip({ pet: null })} />
             )}
             {type === 'skin' && (
-              <ShopCard name="ชุดอัศวินดั้งเดิม" desc="สีเริ่มต้น ไม่มีโบนัส" art={<Portrait sprite="hero" size={48} />} owned equipped={!rpg.skin} onEquip={() => rpg.setEquip({ skin: null })} />
+              <ShopCard name="ชุดนักผจญภัยดั้งเดิม" desc="สีเริ่มต้น ไม่มีโบนัส" art={<Portrait sprite="hero" size={48} />} owned equipped={!rpg.skin} onEquip={() => rpg.setEquip({ skin: null })} />
             )}
+            {type === 'skin' && Object.keys(rpg.owned).map(bdaySkin).filter(Boolean).map((i) => (
+              <ShopCard key={i.id} name={i.name} desc={i.desc} art={<Portrait sprite="hero" size={48} hue={i.hue} />} owned equipped={rpg.skin?.id === i.id} onEquip={() => rpg.setEquip({ skin: rpg.skin?.id === i.id ? null : i.id })} />
+            ))}
             {SHOP.filter((i) => i.type === type).map((i) => {
               const owned = !!rpg.owned[i.id]
               const equipped = type === 'deco' ? !!rpg.decos[i.id] : type === 'pet' ? rpg.pet.id === i.id : rpg.skin?.id === i.id
@@ -374,6 +382,7 @@ function QuestsTab({ rpg, onAdd }) {
   const groups = ['รายวัน', 'รายสัปดาห์', 'รายเดือน', 'เควสต์หลัก']
   return (
     <div className="space-y-4">
+      <ActCard rpg={rpg} />
       <MonthBossCard rpg={rpg} />
       <RankCard rpg={rpg} />
       <Section icon={Swords} title="BOSS · หนี้และเป้าหมาย">
@@ -437,6 +446,8 @@ function StatusTab({ rpg, go }) {
   const unlocked = rpg.achievements.filter((a) => a.unlockedAt || a.ready).length
   return (
     <div className="space-y-4">
+      <BirthdayCard rpg={rpg} />
+      <AlbumCard rpg={rpg} />
       <LifeStatsCard rpg={rpg} />
       <Section icon={Backpack} title="INVENTORY · คลังสมบัติ" right={<span className="px-font text-[9px] text-slate-500">{rpg.inventory.length} ITEMS</span>}>
         <div className="grid grid-cols-4 gap-2">

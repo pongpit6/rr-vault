@@ -2,11 +2,12 @@
  * Party, gear, skills, shop and the adventure log — all read from real money data.
  * Nothing here is random: every line in the log points back to a transaction or a milestone.
  */
+import { bdaySkin } from './hero'
 import { money, round2, todayISO } from './format'
 
 /* ---------------- party ---------------- */
 export const MEMBERS = [
-  { id: 'knight', name: 'อัศวิน', role: 'อัศวิน · หัวหน้าปาร์ตี้', sprite: 'hero', color: '#10b981', area: 'วินัยการบันทึก + ชำระหนี้', join: 'อยู่กับคุณตั้งแต่วันแรก' },
+  { id: 'knight', name: 'ฮีโร่', role: 'นักผจญภัย · ตัวคุณเอง', sprite: 'hero', color: '#10b981', area: 'วินัยการบันทึก + ชำระหนี้', join: 'อยู่กับคุณตั้งแต่วันแรก' },
   { id: 'healer', name: 'ลูน่า', role: 'นักบวช', sprite: 'healer', color: '#14b8a6', area: 'เงินกันจ่ายหนี้ + เงินสำรอง', join: 'กันเงินจ่ายหนี้ให้ครบ 100%' },
   { id: 'mage', name: 'ไพร์', role: 'นักเวท', sprite: 'mage', color: '#3b82f6', area: 'การลงทุน', join: 'ส่งเงินเข้าลงทุนครั้งแรก (เช่น เติม Bitkub)' },
   { id: 'ranger', name: 'ฟิน', role: 'นักธนู', sprite: 'ranger', color: '#65a30d', area: 'วินัย + การออม', join: 'บันทึกต่อเนื่อง 7 วัน หรือมีเดือนที่ออมได้ 20%' },
@@ -31,6 +32,8 @@ export const GEAR_TIERS = [
 const GEAR = [
   { slot: 'weapon', label: 'อาวุธ', names: ['ดาบไม้ฝึกหัด', 'ดาบเหล็ก', 'ดาบเงินพิฆาตดอกเบี้ย', 'ดาบทองคำ', 'ดาบตำนาน “ปลดหนี้”'], th: [0, 3000, 15000, 50000, 150000], unit: 'money', how: 'ยอดชำระหนี้สะสม' },
   { slot: 'armor', label: 'เกราะ', names: ['เสื้อผ้าป่าน', 'เกราะเหล็ก', 'เกราะเงิน', 'เกราะทองคำ', 'เกราะตำนาน “ป้อมปราการ”'], th: [0, 1, 3, 6, 12], unit: 'months', how: 'เงินสำรองพอใช้กี่เดือน' },
+  { slot: 'boots', label: 'รองเท้า', names: ['รองเท้าผ้า', 'รองเท้าหนัง', 'รองเท้าเดินป่า', 'รองเท้าทองคำ', 'รองเท้าตำนาน “ก้าวไม่หยุด”'], th: [0, 10, 30, 60, 100], unit: 'days', how: 'วันออกกำลังกายสะสม' },
+  { slot: 'satchel', label: 'กระเป๋า', names: ['ย่ามผ้า', 'กระเป๋าหนัง', 'กระเป๋าคัมภีร์', 'กระเป๋าทองคำ', 'กระเป๋าตำนาน “ห้องสมุดพกพา”'], th: [0, 20, 60, 120, 200], unit: 'pts', how: 'คะแนนความรู้ (อ่านจบเล่มละ 20 + คำศัพท์ที่จำได้ทุก 10 คำ + วันที่อ่าน)' },
   { slot: 'ring', label: 'แหวน', names: ['แหวนเชือก', 'แหวนเหล็ก', 'แหวนเงิน', 'แหวนทองคำ', 'แหวนตำนาน “ดอกเบี้ยทบต้น”'], th: [0, 10000, 50000, 200000, 1000000], unit: 'money', how: 'มูลค่าเงินลงทุนรวม' },
 ]
 
@@ -53,15 +56,15 @@ export const SKILLS = [
 export const SHOP = [
   { id: 'pet_owl', type: 'pet', name: 'นกฮูกหิมะ', desc: 'สัตว์เลี้ยงเดินตามปาร์ตี้', price: 60, sprite: 'pet_owl' },
   { id: 'pet_drake', type: 'pet', name: 'มังกรน้อยทองคำ', desc: 'สัตว์เลี้ยงหายาก', price: 150, sprite: 'pet_drake' },
-  { id: 'skin_royal', type: 'skin', name: 'ชุดอัศวินม่วงราชา', desc: 'เกราะม่วง ผ้าคลุมแดง · รายได้เมือง +5%', price: 80, hue: 120 },
-  { id: 'skin_flame', type: 'skin', name: 'ชุดอัศวินกุหลาบ', desc: 'เกราะสีกุหลาบ ผ้าคลุมเขียวมะกอก · FIAT จากนิสัย +5%', price: 80, hue: 200 },
+  { id: 'skin_royal', type: 'skin', name: 'ชุดนักผจญภัยม่วงราชา', desc: 'เกราะม่วง ผ้าคลุมแดง · รายได้เมือง +5%', price: 80, hue: 120 },
+  { id: 'skin_flame', type: 'skin', name: 'ชุดนักผจญภัยกุหลาบ', desc: 'เกราะสีกุหลาบ ผ้าคลุมเขียวมะกอก · FIAT จากนิสัย +5%', price: 80, hue: 200 },
 ]
 export const PET_DEFAULT = { id: 'pet_fox', name: 'จิ้งจอกมิ้นต์', sprite: 'pet_fox' }
 
 /* ---------------- compute ---------------- */
 const localDay = (iso) => { if (!iso) return null; const d = new Date(iso); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}` }
 
-export function computeParty({ accounts, txns, summary, portfolio, settings, catById = {}, level, into, need, streak, bestStreak, goodMonths, months, data, privacy }) {
+export function computeParty({ growthG = {}, accounts, txns, summary, portfolio, settings, catById = {}, level, into, need, streak, bestStreak, goodMonths, months, data, privacy }) {
   const accById = Object.fromEntries(accounts.map((a) => [a.id, a]))
   const isType = (id, ...types) => types.includes(accById[id]?.type)
   const invTotal = round2((summary.byType.invest || 0) + (portfolio?.value || 0))
@@ -101,16 +104,16 @@ export function computeParty({ accounts, txns, summary, portfolio, settings, cat
   const newlyJoined = party.filter((p) => p.id !== 'knight' && p.ready && !joinedData[p.id]).map((p) => p.id)
 
   // gear
-  const metric = { weapon: debtPaid, armor: emergencyMonths, ring: invTotal }
+  const metric = { weapon: debtPaid, armor: emergencyMonths, ring: invTotal, boots: growthG.exerciseDays || 0, satchel: (growthG.books || 0) * 20 + Math.floor((growthG.learnt || 0) / 10) + (growthG.readDays || 0) }
   const gear = GEAR.map((g) => {
     const v = metric[g.slot]
     let tier = 0; while (tier + 1 < g.th.length && v >= g.th[tier + 1]) tier++
     const next = g.th[tier + 1]
-    const fmt = (x) => (g.unit === 'months' ? `${x.toFixed(1)} เดือน` : money(x, { decimals: false }))
+    const fmt = (x) => (g.unit === 'months' ? `${x.toFixed(1)} เดือน` : g.unit === 'days' ? `${x} วัน` : g.unit === 'pts' ? `${x} คะแนน` : money(x, { decimals: false }))
     return {
       ...g, tier, name: g.names[tier], tierName: GEAR_TIERS[tier].name, color: GEAR_TIERS[tier].color, value: v,
       valueText: fmt(v), nextName: next != null ? g.names[tier + 1] : null,
-      toNext: next != null ? (g.unit === 'months' ? `เงินสำรองให้พอใช้ ${next} เดือน (ตอนนี้ ${v.toFixed(1)})` : `${g.how}อีก ${money(next - v, { decimals: false })}`) : null,
+      toNext: next != null ? (g.unit === 'months' ? `เงินสำรองให้พอใช้ ${next} เดือน (ตอนนี้ ${v.toFixed(1)})` : g.unit === 'days' ? `ออกกำลังกายอีก ${next - v} วัน` : g.unit === 'pts' ? `คะแนนความรู้อีก ${next - v}` : `${g.how}อีก ${money(next - v, { decimals: false })}`) : null,
       pct: next != null ? Math.min(1, (v - g.th[tier]) / (next - g.th[tier])) : 1,
     }
   })
@@ -128,7 +131,7 @@ export function computeParty({ accounts, txns, summary, portfolio, settings, cat
   const owned = data.owned || {}
   const equip = data.equip || {}
   const pet = SHOP.find((i) => i.id === equip.pet && owned[i.id]) || PET_DEFAULT
-  const skin = SHOP.find((i) => i.id === equip.skin && owned[i.id]) || null
+  const skin = SHOP.find((i) => i.id === equip.skin && owned[i.id]) || (owned[equip.skin] ? bdaySkin(equip.skin) : null)
   // the battle scene shows the town's flowers, lamps and banner (decorations are bought in the town now)
   const tdec = { ...((data.town || {}).decor || {}) }
   if (owned.deco_flowers) tdec.flowers = 1
@@ -170,7 +173,7 @@ function buildLog({ txns, accById, catById, pm, gearBy, has, data, privacy, avgD
       push(day, { at, who: 'boss', icon: '🐉', tone: 'bad', text: `${BOSS_NAME.credit}ดูดพลังจากการรูดบัตร “${label || 'ไม่ระบุ'}”${ward ? ' — ลูน่ากางบาเรีย เงินถูกกันไว้จ่ายแล้ว' : ''}`, amount: `+${M(t.amount)} HP` })
     } else if (t.kind === 'transfer' && to?.type === 'reserve' && acc?.type !== 'reserve') {
       const h = joined('healer', day)
-      push(day, { at, who: h ? 'healer' : 'knight', icon: '🛡️', tone: 'good', text: h ? 'ลูน่าร่าย “โล่ศักดิ์สิทธิ์” กันเงินไว้จ่ายหนี้' : 'อัศวินเก็บเงินเข้าคลังกันหนี้', amount: M(t.amount) })
+      push(day, { at, who: h ? 'healer' : 'knight', icon: '🛡️', tone: 'good', text: h ? 'ลูน่าร่าย “โล่ศักดิ์สิทธิ์” กันเงินไว้จ่ายหนี้' : 'ฮีโร่เก็บเงินเข้าคลังกันหนี้', amount: M(t.amount) })
     } else if (t.kind === 'transfer' && to?.type === 'invest' && acc?.type !== 'invest') {
       const m = joined('mage', day), meteor = m && has('meteor') && t.amount >= 5000
       push(day, { at, who: m ? 'mage' : 'knight', icon: meteor ? '☄️' : '🔥', tone: 'good', text: m ? `ไพร์ร่าย “${meteor ? 'อุกกาบาตกำไร' : 'ลูกไฟทองคำ'}” ส่งเงินเข้าคลังลงทุน${t.note ? ` · ${t.note}` : ''}` : `ส่งเงินเข้าคลังลงทุนครั้งแรก${t.note ? ` · ${t.note}` : ''}`, amount: M(t.amount) })
@@ -191,7 +194,7 @@ function buildLog({ txns, accById, catById, pm, gearBy, has, data, privacy, avgD
     const r = joined('ranger', day)
     const top = Object.entries(d.cats).sort((a, b) => b[1] - a[1])[0]
     const eagle = r && has('eagle') && top ? ` · ตาเหยี่ยวเห็นว่าเงินไหลไปที่ “${catById[top[0]]?.name || 'อื่น ๆ'}” มากสุด` : ''
-    push(day, { at: `${day}T23:59`, who: r ? 'ranger' : 'knight', icon: '🏹', tone: 'info', text: `${r ? 'ฟินลาดตระเวน' : 'อัศวินออกตรวจตลาด'} บันทึก ${d.n} รายการ${d.out ? ` ใช้ไป ${M(d.out)}` : ''}${eagle}`, amount: `+${10 + Math.min(5, d.n) * 2} XP · +${Math.min(5, d.n) * 10} FIAT` })
+    push(day, { at: `${day}T23:59`, who: r ? 'ranger' : 'knight', icon: '🏹', tone: 'info', text: `${r ? 'ฟินลาดตระเวน' : 'ฮีโร่ออกตรวจตลาด'} บันทึก ${d.n} รายการ${d.out ? ` ใช้ไป ${M(d.out)}` : ''}${eagle}`, amount: `+${10 + Math.min(5, d.n) * 2} XP · +${Math.min(5, d.n) * 10} FIAT` })
   }
   // milestones kept in the rpg item
   for (const [id, at] of Object.entries(data.joined || {})) if (pm[id]) push(localDay(at), { at, who: id, icon: '✨', tone: 'gold', text: `${pm[id].name} ${pm[id].role.split(' ')[0]} เข้าร่วมปาร์ตี้แล้ว!` })
@@ -223,7 +226,7 @@ export function statusLines(rpg) {
   const today = rpg.log[0]?.day === todayISO() ? rpg.log[0] : null
   if (today) today.items.slice(0, 3).forEach((e) => L.push(`${e.icon} ${e.text}${e.amount ? ` (${e.amount})` : ''}`))
   const boss = rpg.bosses.find((b) => b.active)
-  if (boss) L.push(`🐉 ${boss.name}ยังเหลือพลัง — ชำระ${boss.accName}เพื่อให้อัศวินฟัน`)
+  if (boss) L.push(`🐉 ${boss.name}ยังเหลือพลัง — ชำระ${boss.accName}เพื่อให้ฮีโร่ฟัน`)
   else L.push('🟢 ไม่มีบอสหนี้ ปาร์ตี้กำลังฝึกซ้อมกับสไลม์')
   const waiting = rpg.party.find((p) => !p.joined)
   if (waiting) L.push(`👤 ${waiting.name} (${waiting.role}) รอเข้าปาร์ตี้: ${waiting.join}`)

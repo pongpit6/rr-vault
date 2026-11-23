@@ -52,6 +52,10 @@ export function townLines(rpg) {
   const guest = visitorFor(rpg.world)
   if (guest) out.push({ id: `visitor_${guest.id}`, sprite: guest.sprite, name: `${guest.name} (แขกเทศกาล)`, text: guest.lines[new Date().getDate() % guest.lines.length] })
 
+  // birthday week: the farmer brings a cake
+  const bd = rpg.world.birthday
+  if (bd?.week) out.unshift({ id: 'bday', sprite: 'npc_farmer', name: 'ชาวเมือง', text: bd.isToday ? `สุขสันต์วันเกิดครบ ${bd.age} ปี! ทั้งเมืองอบเค้กรอท่านอยู่ที่ลานกลาง 🎂` : `สัปดาห์นี้ทั้งเมืองยังฉลองวันเกิด ${bd.age} ปีของท่านอยู่เลย 🎉` })
+
   // merchant: money today, never scolding (the BTC cycle comes first when the market is at either end)
   const cyc = useStore.getState().ui.btcCycle
   if (cyc?.zone === 'bottom') say('merchant', `ตลาดบิตคอยน์ลดราคา! สัญญาณก้นรอบติดแล้ว ${cyc.bottomHits ?? '?'} ข้อ พ่อค้าเร่ตั้งป้าย SALE แล้ว… แต่กันเงินจ่ายหนี้ให้ครบก่อนนะ`)

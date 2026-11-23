@@ -26,6 +26,7 @@ export function TodayTraces({ rpg, className = '', compact = false }) {
       <span className="shrink-0 text-slate-500">วันนี้</span>
       {list.length ? list.map((t) => compact ? <span key={t.id} title={t.text} className="shrink-0 text-base leading-none">{t.emoji}</span> : <span key={t.id} className="shrink-0 px-inner px-1.5 py-0.5">{t.emoji} {t.text}</span>) : <span className="text-slate-400 shrink-0">ยังไม่มีร่องรอย ทำอะไรสักอย่างแล้วเมืองจะเปลี่ยน</span>}
       {form && <span className="shrink-0 text-slate-500 ml-1">{form}</span>}
+      {rpg.condition && rpg.condition.id !== 'rest' && <span className="shrink-0 text-slate-500 ml-1">· 7 วัน {rpg.condition.emoji} {rpg.condition.name}</span>}
     </div>
   )
 }
@@ -138,7 +139,7 @@ export default function TownTab({ rpg }) {
         <TodayTraces rpg={rpg} className="px-3 py-2 border-t-2 border-slate-800" />
         <TownTalk rpg={rpg} className="px-3 py-2 border-t-2 border-slate-800/10" />
         <div className="grid grid-cols-4 text-center text-[11px] border-t-2 border-slate-800">
-          <WorldStrip world={rpg.world} rank={rpg.rank} />
+          <WorldStrip world={rpg.world} rank={rpg.rank} bdayReady={rpg.bdayReady} />
           <Stat icon={<Users size={13} />} label="ประชากร" v={T.pop} />
           <Stat icon={<Smile size={13} />} label="ความสุข" v={`${T.happiness}%`} />
           <Stat icon={<Coins size={13} />} label="FIAT/วัน" v={`+${T.dailyFiat}`} />
@@ -317,7 +318,7 @@ function PlotSheet({ rpg, sel, onClose, ok }) {
 }
 
 /** One quiet line about the living world: real weather, festival, mood. Rendered only when there is something to say. */
-function WorldStrip({ world, rank }) {
+function WorldStrip({ world, rank, bdayReady }) {
   const W = { storm: '⛈️', rain: '🌧️', fog: '🌫️', cloud: '☁️', sun: '☀️', leaves: '🍂' }
   const parts = []
   if (world.wx) parts.push(`${W[world.weather] || '☀️'} ${weatherTH(world.weather)}${world.temp != null ? ` ${Math.round(world.temp)}°` : ''}`)
@@ -337,6 +338,12 @@ function WorldStrip({ world, rank }) {
         <div className="px-inner px-3 py-2 flex items-center gap-2 text-xs" style={{ background: 'linear-gradient(90deg, rgba(239,68,68,.16), rgba(251,191,36,.14))' }} data-testid="sale-banner">
           <span className="text-lg">🛍️</span>
           <div className="flex-1 min-w-0"><b>วันเลขเบิ้ล {world.sale.label} · {world.sale.name}</b> · ร้านในเมืองลด {world.sale.pct}%<div className="text-[10px] text-slate-500">ข้างนอกเขาลดราคาล่อใจ ถ้าวันนี้ไม่ใช้เงินเลย กด “วันนี้ไม่ใช้เงิน” รับ +1 GOLD</div></div>
+        </div>
+      )}
+      {world.birthday?.week && (
+        <div className="px-inner px-3 py-2 flex items-center gap-2 text-xs" style={{ background: 'linear-gradient(90deg, rgba(244,114,182,.18), rgba(167,139,250,.16))' }} data-testid="bday-banner">
+          <span className="text-lg">🎂</span>
+          <div className="flex-1 min-w-0"><b>{world.birthday.isToday ? `สุขสันต์วันเกิดอายุ ${world.birthday.age}!` : `สัปดาห์วันเกิดอายุ ${world.birthday.age}`}</b> · ชาวเมืองจัดงานฉลองให้<div className="text-[10px] text-slate-500">{bdayReady ? 'รับชุดวันเกิดประจำปี + 1 GOLD ได้ที่แท็บสถานะ' : 'รับของขวัญปีนี้แล้ว 🎁'}</div></div>
         </div>
       )}
       {parts.length > 0 && <div className="text-[11px] text-slate-500 px-1 flex flex-wrap gap-x-3 gap-y-0.5">{parts.map((p, i) => <span key={i}>{p}</span>)}</div>}
