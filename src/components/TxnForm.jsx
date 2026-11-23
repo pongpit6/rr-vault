@@ -9,7 +9,7 @@ import { learnKey } from '../lib/notify'
 import { monthKey } from '../lib/format'
 import { useVault } from '../lib/useVault'
 import { evalAmount, todayISO, round2, money } from '../lib/format'
-import { allocate, computeBalances, summarize, rebalance } from '../lib/ledger'
+import { allocate, computeBalances, summarize, rebalance, rebalanceReserve, normPct } from '../lib/ledger'
 import { isDebt } from '../lib/defaults'
 
 const KINDS = [
@@ -69,7 +69,7 @@ export default function TxnForm({ open, onClose, initial }) {
   const put = useStore((s) => s.put)
   const remove = useStore((s) => s.remove)
   const showToast = useStore((s) => s.showToast)
-  const { accounts, txns, settings, categories, balances, accById, cycles } = useVault()
+  const { accounts, txns, settings, categories, balances, rawBalances, accById, cycles, receivables } = useVault()
   const items = useStore((s) => s.items)
   const people = useMemo(() => selectList(items, 'person'), [items])
   const editing = !!initial?.id
@@ -103,7 +103,7 @@ export default function TxnForm({ open, onClose, initial }) {
       note: initial?.note || '',
       earmark: initial?.earmark !== false,
       autoSplit: kind === 'income' ? (initial?.id ? !!initial.split : true) : true,
-      pct: initial?.alloc?.pct || settings.allocation.pct,
+      pct: normPct(initial?.alloc?.pct || settings.allocation.pct),
       cap: initial?.alloc ? initial.alloc.cap : settings.allocation.capReserveAtGap,
     })
     setMore(!!(initial?.id || initial?.note || (initial?.date && initial.date !== todayISO())))
@@ -112,10 +112,9 @@ export default function TxnForm({ open, onClose, initial }) {
 
   // Summary without the transaction being edited, so the reserve gap is computed fairly.
   const baseSummary = useMemo(() => {
-    if (!editing) return summarize(accounts, balances)
-    const bal = computeBalances(accounts, txns.filter((t) => t.id !== initial.id), settings)
-    return summarize(accounts, bal)
-  }, [open, editing, balances]) // eslint-disable-line
+    const raw = editing ? computeBalances(accounts, txns.filter((t) => t.id !== initial.id), settings) : rawBalances
+    return summarize(accounts, rebalanceReserve(accounts, raw, settings, receivables).bal, receivables)
+  }, [open, editing, rawBalances]) // eslint-disable-line
 
   // budget of the chosen category, before and after this entry (expense in the current month only)
   const budgetLine = useMemo(() => {
@@ -316,7 +315,7 @@ export default function TxnForm({ open, onClose, initial }) {
               options={[{ value: 'auto', label: 'แบ่งอัตโนมัติ' }, { value: 'one', label: 'เข้าที่เดียว' }]} />
           </div>
           {f.autoSplit ? (
-            <AllocationEditor pct={f.pct} cap={f.cap} onPct={(pct) => set({ pct })} onCap={(cap) => set({ cap })} split={split} gap={baseSummary.gap} compact />
+            <AllocationEditor pct={f.pct} onPct={(pct) => set({ pct })} split={split} gap={baseSummary.gap} compact />
           ) : (
             <AccountChips accounts={accounts} balances={balances} value={f.account} onChange={(v) => set({ account: v })} filter={(a) => !isDebt(a)} />
           )}
@@ -371,28 +370,30 @@ export default function TxnForm({ open, onClose, initial }) {
   )
 }
 
+// the debt reserve is automatic (filled first, as much as it misses); presets only split what is left
 export const ALLOC_PRESETS = [
-  { id: 'default', name: 'ค่าเริ่มต้น', pct: { reserve: 30, cash: 50, invest: 20 } },
-  { id: 'debt', name: 'เน้นปลดหนี้', pct: { reserve: 50, cash: 40, invest: 10 } },
-  { id: 'balance', name: 'สมดุล', pct: { reserve: 25, cash: 50, invest: 25 } },
-  { id: 'invest', name: 'เน้นลงทุน', pct: { reserve: 15, cash: 45, invest: 40 } },
-  { id: 'saver', name: 'ออมหนัก', pct: { reserve: 25, cash: 35, invest: 40 } },
-  { id: 'nodebt', name: 'ไม่มีหนี้', pct: { reserve: 0, cash: 60, invest: 40 } },
+  { id: 'default', name: 'ค่าเริ่มต้น', pct: { reserve: 0, cash: 70, invest: 30 } },
+  { id: 'easy', name: 'ใช้จ่ายสบาย', pct: { reserve: 0, cash: 85, invest: 15 } },
+  { id: 'balance', name: 'สมดุล', pct: { reserve: 0, cash: 60, invest: 40 } },
+  { id: 'invest', name: 'เน้นลงทุน', pct: { reserve: 0, cash: 50, invest: 50 } },
+  { id: 'saver', name: 'ออมหนัก', pct: { reserve: 0, cash: 40, invest: 60 } },
 ]
-const samePct = (a, b) => BUCKETS.every((x) => (a?.[x.key] ?? 0) === (b?.[x.key] ?? 0))
+const SLIDERS = BUCKETS.filter((b) => b.key !== 'reserve')
+const samePct = (a, b) => SLIDERS.every((x) => (a?.[x.key] ?? 0) === (b?.[x.key] ?? 0))
 
 /**
  * Split editor. `confirm` (settings): edits stay a draft — type, +/-, drag or pick a style — until "ยืนยัน",
  * and values are independent (the sum must reach 100). Without it (one-off income, onboarding) changes apply
  * at once and the other buckets rebalance to keep 100%.
  */
-export function AllocationEditor({ pct, cap, onPct, onCap, split, gap, compact = false, confirm = false, suggestion = null }) {
+export function AllocationEditor({ pct: pct0, onPct, split, gap, compact = false, confirm = false, suggestion = null }) {
+  const pct = normPct(pct0)
   const [draft, setDraft] = useState(pct)
   const [saved, setSaved] = useState(false)
-  useEffect(() => { if (confirm && suggestion) { setDraft({ ...suggestion.pct }); setSaved(false) } }, [suggestion]) // eslint-disable-line
-  useEffect(() => { if (!confirm) setDraft(pct) }, [pct, confirm])
+  useEffect(() => { if (confirm && suggestion) { setDraft(normPct(suggestion.pct)); setSaved(false) } }, [suggestion]) // eslint-disable-line
+  useEffect(() => { if (!confirm) setDraft(pct) }, [JSON.stringify(pct), confirm]) // eslint-disable-line
   const cur = confirm ? draft : pct
-  const sum = BUCKETS.reduce((s, b) => s + (cur[b.key] || 0), 0)
+  const sum = SLIDERS.reduce((s, b) => s + (cur[b.key] || 0), 0)
   const dirty = confirm && !samePct(pct, draft)
   const setOne = (key, value) => {
     const v = Math.max(0, Math.min(100, Math.round(Number(String(value).replace(/[^0-9.]/g, '')) || 0)))
@@ -412,12 +413,22 @@ export function AllocationEditor({ pct, cap, onPct, onCap, split, gap, compact =
           </div>
         </div>
       )}
-      {/* stacked bar */}
+      {/* ① debt first, automatic */}
+      <div className="flex items-start gap-2 mb-4 rounded-xl bg-violet-50/70 border border-violet-200/70 px-3 py-2.5" data-testid="alloc-debt-first">
+        <span className="text-[10px] font-bold w-4 h-4 grid place-items-center rounded-full bg-slate-900/[.06] text-slate-600 shrink-0 mt-0.5">1</span>
+        <Icon name="shield" size={15} className="opacity-90 shrink-0 mt-0.5" />
+        <div className="flex-1 text-xs text-slate-600 leading-relaxed">
+          <b className="text-violet-700">กันชำระหนี้ อัตโนมัติ · ได้ก่อนเสมอ</b><br />
+          เงินเข้าจะเติมส่วนที่ยังขาดให้ครบหนี้ก่อน{gap !== undefined && <> (ตอนนี้ขาด <span className="num text-slate-900">{money(gap)}</span>)</>} หนี้ครบแล้วจะไม่หักอีก รูดบัตรเพิ่มระบบดึงจากเงินใช้ได้มากันให้ทันที ไม่แตะเงินลงทุน
+        </div>
+        {split && <span className="text-sm font-semibold num shrink-0">{money(split.reserve)}</span>}
+      </div>
+      <div className="text-xs text-slate-500 mb-2">ส่วนที่เหลือแบ่งเป็น</div>
       <div className="flex h-2.5 rounded-full overflow-hidden mb-4 bg-slate-200/60">
-        {BUCKETS.map((b) => <div key={b.key} style={{ width: `${((cur[b.key] || 0) / Math.max(100, sum)) * 100}%`, background: b.color }} className="transition-all" />)}
+        {SLIDERS.map((b) => <div key={b.key} style={{ width: `${((cur[b.key] || 0) / Math.max(100, sum)) * 100}%`, background: b.color }} className="transition-all" />)}
       </div>
       <div className="space-y-4">
-        {BUCKETS.map((b) => (
+        {SLIDERS.map((b) => (
           <div key={b.key}>
             <div className="flex items-center gap-2 mb-1.5">
               <span className="text-[10px] font-bold w-4 h-4 grid place-items-center rounded-full bg-slate-900/[.06] text-slate-600">{b.order}</span>
@@ -449,15 +460,6 @@ export function AllocationEditor({ pct, cap, onPct, onCap, split, gap, compact =
           <div className="text-[11px] text-slate-500">ลาก พิมพ์ หรือเลือกสไตล์ได้ ค่าที่เปลี่ยนเป็นแค่ร่าง จนกว่าจะกด “ยืนยัน”</div>
         </div>
       )}
-      <button onClick={() => onCap(!cap)} className="mt-4 w-full flex items-center gap-3 text-left">
-        <Sparkles size={16} className={cap ? 'text-emerald-600' : 'text-slate-500'} />
-        <div className="flex-1 text-xs text-slate-600">
-          กันหนี้เท่าที่ยังขาด {gap !== undefined && <>(ตอนนี้ขาด <span className="num text-slate-900">{money(gap)}</span>)</>} ส่วนเกินแบ่งไปกระเป๋าอื่นอัตโนมัติ
-        </div>
-        <div className={`w-10 h-[22px] rounded-full p-0.5 transition shrink-0 ${cap ? 'bg-ac' : 'bg-slate-900/10'}`}>
-          <div className={`w-[18px] h-[18px] rounded-full bg-white transition ${cap ? 'translate-x-[18px]' : ''}`} />
-        </div>
-      </button>
     </div>
   )
 }

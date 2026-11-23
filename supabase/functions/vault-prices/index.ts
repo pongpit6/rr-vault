@@ -1,4 +1,4 @@
-// Price proxy for รณกฤต เรืองชินศิริ Vault.
+// Price proxy for LifeQuest (formerly R.R. Vault).
 // GET ?symbols=AAPL,PTT.BK,GC=F,THB=X   -> latest quotes (Yahoo Finance chart API)
 // GET ?search=apple                      -> symbol search (Yahoo Finance)
 // GET ?spark=AAPL,0700.HK&range=1mo      -> quote + close series per symbol (Market rows)
@@ -6,6 +6,8 @@
 // GET ?oil=1                             -> Thai retail fuel prices (Bangchak + PTT OR)
 // GET ?bitkub=1                          -> all Bitkub THB pairs (ticker)   ?bkchart=KUB&range=1mo -> one pair's history
 // GET ?fng=1                             -> Bitcoin Fear & Greed (CoinMarketCap intraday + Alternative.me daily)
+// GET ?profile=AAPL | BTC-USD | FUND:123 -> what the asset is + market cap (Yahoo quoteSummary / CoinGecko / Finnomena)
+// GET ?top=1                             -> the 10 most valuable assets in the world (companies, crypto, gold, silver)
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
 const CORS = {
@@ -261,6 +263,122 @@ async function search(q: string) {
     .map((x: any) => ({ symbol: x.symbol, name: x.longname || x.shortname || x.symbol, type: x.quoteType, exchange: x.exchDisp || x.exchange }));
 }
 
+
+// ---------- Yahoo crumb (needed by quoteSummary and the batch quote API) ----------
+let crumb: { c: string; cookie: string; at: number } | null = null;
+async function yCrumb(force = false) {
+  if (!force && crumb && Date.now() - crumb.at < 3600_000) return crumb;
+  const r1 = await fetch("https://fc.yahoo.com/", { headers: UA, redirect: "manual" });
+  const raw = (r1.headers as any).getSetCookie ? (r1.headers as any).getSetCookie() : [r1.headers.get("set-cookie") || ""];
+  const cookie = raw.map((c: string) => c.split(";")[0]).filter(Boolean).join("; ");
+  const r2 = await fetch("https://query2.finance.yahoo.com/v1/test/getcrumb", { headers: { ...UA, Cookie: cookie } });
+  const c = (await r2.text()).trim();
+  if (!r2.ok || !c || c.includes("<")) throw new Error("crumb " + r2.status);
+  crumb = { c, cookie, at: Date.now() };
+  return crumb;
+}
+async function yGet(path: string) {
+  for (let i = 0; i < 2; i++) {
+    const k = await yCrumb(i > 0);
+    const r = await fetch(`https://query2.finance.yahoo.com${path}${path.includes("?") ? "&" : "?"}crumb=${encodeURIComponent(k.c)}`, { headers: { ...UA, Cookie: k.cookie } });
+    if (r.status === 401 || r.status === 403) continue;
+    if (!r.ok) throw new Error("yahoo " + r.status);
+    return r.json();
+  }
+  throw new Error("yahoo auth");
+}
+const raw = (v: any) => (v && typeof v === "object" ? v.raw ?? null : v ?? null);
+
+// ---------- CoinGecko (crypto profile + market cap) ----------
+const cgCache = new Map<string, any>();
+async function cg(path: string, ttl = 600_000) {
+  const hit = cgCache.get(path);
+  if (hit && Date.now() - hit.at < ttl) return hit.d;
+  const r = await fetch(`https://api.coingecko.com/api/v3${path}`, { headers: { ...UA, accept: "application/json" } });
+  if (!r.ok) { if (hit) return hit.d; throw new Error("coingecko " + r.status); }
+  const d = await r.json();
+  cgCache.set(path, { d, at: Date.now() });
+  return d;
+}
+async function coinProfile(code: string) {
+  const mk = await cg(`/coins/markets?vs_currency=usd&symbols=${code.toLowerCase()}&include_tokens=top`);
+  const m = (mk || []).sort((a: any, b: any) => (b.market_cap || 0) - (a.market_cap || 0))[0];
+  if (!m) return { kind: "crypto", error: "not_found" };
+  let info: any = {};
+  try { info = await cg(`/coins/${m.id}?localization=true&tickers=false&market_data=false&community_data=false&developer_data=false`, 86400_000); } catch (_) { /* market data is enough */ }
+  const strip = (h: string) => (h || "").replace(/<[^>]+>/g, "").replace(/\r?\n\r?\n/g, "\n").trim();
+  return {
+    kind: "crypto", name: m.name, rank: m.market_cap_rank, marketCap: m.market_cap, currency: "USD",
+    circulating: m.circulating_supply, maxSupply: m.max_supply, ath: m.ath, athDate: m.ath_date,
+    descTh: strip(info?.description?.th || ""), desc: strip(info?.description?.en || ""),
+    website: info?.links?.homepage?.[0] || null, since: info?.genesis_date || null, categories: (info?.categories || []).filter(Boolean).slice(0, 4),
+  };
+}
+async function fundProfile(symbol: string) {
+  const id = symbol.slice(5);
+  const r = await fetch(`${FN_API}/v2/public/funds/${id}`, { headers: UA });
+  if (!r.ok) return { kind: "fund", error: "not_found" };
+  const d = (await r.json())?.data || {};
+  return {
+    kind: "fund", name: d.name_th || d.name_en, nameEn: d.name_en, code: d.short_code, amc: d.amc_name_en, category: d.aimc_category_name_th || d.aimc_category_name_en,
+    broad: d.aimc_broad_category_name_th, risk: d.risk_spectrum || d.risk_level, fxRisk: d.exchange_rate_risk_spectrum, policy: d.fund_short_desc || d.investment_strategy || null,
+    expense: d.net_expense_ratio ?? null, mgmtFee: d.real_management_fee ?? null, frontFee: d.real_front_end_fee ?? null, backFee: d.real_back_end_fee ?? null,
+    minFirst: d.minimum_initial ?? null, tax: d.tax_saving_fund || d.fund_tax_type || null, dividend: d.dividend_policy || null, inception: d.inception_date || null,
+    feeder: d.main_feeder_fund || null, factSheet: d.fund_fact_sheet || null, currency: d.currency || "THB",
+  };
+}
+async function profile(symbol: string) {
+  if (symbol.startsWith("FUND:")) return fundProfile(symbol);
+  if (symbol.startsWith("BKUB:")) return coinProfile(symbol.slice(5));
+  if (/-USD$/.test(symbol)) return coinProfile(symbol.replace(/-USD$/, ""));
+  const j = await yGet(`/v10/finance/quoteSummary/${encodeURIComponent(symbol)}?modules=assetProfile,price,summaryDetail,defaultKeyStatistics,fundProfile,summaryProfile`);
+  const r = j?.quoteSummary?.result?.[0] || {};
+  const ap = r.assetProfile || r.summaryProfile || {}, pr = r.price || {}, sd = r.summaryDetail || {}, ks = r.defaultKeyStatistics || {}, fp = r.fundProfile || {};
+  return {
+    kind: pr.quoteType || "EQUITY", name: pr.longName || pr.shortName || symbol, exchange: pr.exchangeName, currency: pr.currency,
+    marketCap: raw(pr.marketCap) ?? raw(sd.marketCap), totalAssets: raw(sd.totalAssets), pe: raw(sd.trailingPE), fwdPe: raw(sd.forwardPE), dividendYield: raw(sd.dividendYield) ?? raw(sd.yield),
+    beta: raw(sd.beta), hi52: raw(sd.fiftyTwoWeekHigh), lo52: raw(sd.fiftyTwoWeekLow), shares: raw(ks.sharesOutstanding),
+    sector: ap.sector || null, industry: ap.industry || null, country: ap.country || null, city: ap.city || null, employees: ap.fullTimeEmployees || null,
+    website: ap.website || null, desc: ap.longBusinessSummary || null, family: fp.family || null, category: fp.categoryName || null, expense: raw(fp.feesExpensesInvestment?.annualReportExpenseRatio),
+  };
+}
+
+// ---------- the world's 10 most valuable assets ----------
+const TOP_CANDIDATES = "NVDA,AAPL,MSFT,GOOGL,AMZN,META,AVGO,TSM,TSLA,BRK-B,2222.SR,LLY,JPM,WMT,V,ORCL,XOM,MA,NFLX,COST,0700.HK,005930.KS,ASML,UNH,JNJ,PG,HD,BAC,ABBV,PLTR,AMD,SAP,MC.PA,1398.HK,600519.SS,NVO,KO,CSCO,ROG.SW,NESN.SW,7203.T";
+const OZ_PER_T = 32150.7466;
+const METALS = [{ sym: "GC=F", name: "ทองคำ", nameEn: "Gold", tonnes: 216265 }, { sym: "SI=F", name: "เงิน (Silver)", nameEn: "Silver", tonnes: 1751000 }];
+let topCache: any = null, topAt = 0;
+async function top10() {
+  if (topCache && Date.now() - topAt < 15 * 60_000) return topCache;
+  const j = await yGet(`/v7/finance/quote?symbols=${encodeURIComponent(TOP_CANDIDATES + ",GC=F,SI=F")}`);
+  const qs: any[] = j?.quoteResponse?.result || [];
+  // market caps of non-USD listings are converted with today's FX
+  const ccys = [...new Set(qs.map((q) => q.currency).filter((c) => c && c !== "USD"))];
+  const fx: Record<string, number> = { USD: 1 };
+  if (ccys.length) {
+    const f = await yGet(`/v7/finance/quote?symbols=${encodeURIComponent(ccys.map((c) => `${c}USD=X`).join(","))}`);
+    for (const q of f?.quoteResponse?.result || []) fx[q.symbol.slice(0, 3)] = q.regularMarketPrice;
+  }
+  const rows: any[] = [];
+  for (const q of qs) {
+    const metal = METALS.find((m) => m.sym === q.symbol);
+    if (metal) { rows.push({ symbol: q.symbol, name: metal.name, nameEn: metal.nameEn, kind: "metal", marketCap: q.regularMarketPrice * metal.tonnes * OZ_PER_T, price: q.regularMarketPrice, changePct: q.regularMarketChangePercent, currency: "USD" }); continue; }
+    if (!q.marketCap) continue;
+    const rate = q.currency === "USD" ? 1 : fx[q.currency];
+    if (!rate) continue;
+    // a few listings quote in sub-units (pence, etc.)
+    const unit = q.currency === "GBp" || q.currency === "ZAc" || q.currency === "ILA" ? 0.01 : 1;
+    rows.push({ symbol: q.symbol, name: q.longName || q.shortName, kind: "stock", marketCap: q.marketCap * rate * unit, price: q.regularMarketPrice, changePct: q.regularMarketChangePercent, currency: q.currency, country: q.region });
+  }
+  try {
+    const mk = await cg("/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=5&page=1", 300_000);
+    for (const c of mk || []) rows.push({ symbol: `${String(c.symbol).toUpperCase()}-USD`, name: c.name, kind: "crypto", marketCap: c.market_cap, price: c.current_price, changePct: c.price_change_percentage_24h, currency: "USD" });
+  } catch (_) { /* crypto optional */ }
+  rows.sort((a, b) => b.marketCap - a.marketCap);
+  topCache = { items: rows.slice(0, 10), next: rows.slice(10, 20), at: Date.now() }; topAt = Date.now();
+  return topCache;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
   const url = new URL(req.url);
@@ -268,6 +386,9 @@ Deno.serve(async (req) => {
     if (url.searchParams.get("oil")) return json(await oil());
     if (url.searchParams.get("fng")) return json(await fng());
     if (url.searchParams.get("bitkub")) return json(await bitkub());
+    if (url.searchParams.get("top")) return json(await top10());
+    const pf = url.searchParams.get("profile");
+    if (pf) return json({ symbol: pf, ...(await profile(pf)) });
     const bk = url.searchParams.get("bkchart");
     if (bk) return json(await bkChart(bk.toUpperCase(), url.searchParams.get("range") || "1mo"));
     const ch = url.searchParams.get("chart");

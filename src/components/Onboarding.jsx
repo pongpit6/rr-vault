@@ -147,7 +147,7 @@ function Wizard({ settings, accounts, balances }) {
             <>
               <h2 className="text-xl font-bold">ได้เงินมาแบ่งยังไง</h2>
               <p className="text-sm text-slate-500">ทุกครั้งที่บันทึกรายรับ แอปจะแบ่งตามนี้ให้ก่อน (ปรับเฉพาะครั้งได้) ลำดับคือ หนี้ → ใช้ได้ → ลงทุน</p>
-              <AllocationEditor pct={f.pct} cap={f.cap} onPct={(pct) => set({ pct })} onCap={(cap) => set({ cap })} split={null} />
+              <AllocationEditor pct={f.pct} onPct={(pct) => set({ pct })} split={null} />
             </>
           )}
           {step === 5 && (

@@ -49,7 +49,7 @@ export const DEFAULT_CATEGORIES = [
 export const DEFAULT_SETTINGS = {
   id: 'settings',
   allocation: {
-    pct: { reserve: 30, cash: 50, invest: 20 },
+    pct: { reserve: 0, cash: 70, invest: 30 },
     capReserveAtGap: true,
     targets: { reserve: 'acc-reserve', cash: 'acc-cash', invest: 'acc-invest' },
   },

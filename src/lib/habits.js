@@ -28,6 +28,7 @@ export const MOVES = [
   { id: 'sit', name: 'ซิทอัพ', emoji: '🔥' },
 ]
 export const SETS = 4, REPS = 25
+export const BACKFILL_DAYS = 7 // forgot to tap? you can fix the last 7 days
 export const SLEEP_TARGET = '21:30'
 export const DAILY_FIAT_CAP = 150
 
@@ -197,7 +198,35 @@ export function useHabits() {
       const b = hm(bed), onTime = b >= 18 * 60 ? b <= minsOf(SLEEP_TARGET) : false
       patchDay({ sleep: { bed, wake, hours: Math.round(hours * 10) / 10, onTime } }, isoOf(new Date(wake)))
     },
-    ateNow: (at = new Date().toISOString()) => { patchState({ lastMeal: at }); patchDay((c) => ({ meals: [...(c.meals || []), at].slice(-8) }), isoOf(new Date(at))) },
+    // a meal logged later ("กินไปตอน…") only moves the fasting clock if it is the latest one
+    ateNow: (at = new Date().toISOString()) => {
+      const last = useStore.getState().items['habit-state']?.data?.lastMeal
+      if (!last || at > last) patchState({ lastMeal: at })
+      patchDay((c) => ({ meals: [...(c.meals || []), at].sort().slice(-8) }), isoOf(new Date(at)))
+    },
+    // backfill: mark a habit done / not done on a day in the last 7 days (forgot to tap)
+    canBackfill: (d) => d <= today && d >= addDays(today, -BACKFILL_DAYS),
+    setDone: (id, d, on, v = {}) => {
+      if (!(d <= today && d >= addDays(today, -BACKFILL_DAYS))) return
+      const patch = {
+        exercise: () => ({ exercise: on ? { push: SETS, squat: SETS, sit: SETS, rest: false } : {} }),
+        meditate: () => ({ meditate: on ? Math.max(5, Math.round(v.min || 10)) : 0 }),
+        nocarb: () => ({ nocarb: !!on }),
+        read: (c) => ({ read: on ? { pages: Math.max(1, Math.round(v.pages || 10)), books: c.read?.books || [] } : null }),
+        vocab: (c) => ({ vocab: on ? { rounds: Math.max(1, c.vocab?.rounds || 0), correct: c.vocab?.correct || 0, total: c.vocab?.total || 0 } : null }),
+        sleep: () => {
+          if (!on) return { sleep: null }
+          // bed "HH:MM" the night before (or same day after midnight), wake "HH:MM" on day d
+          const [bh, bm] = (v.bed || '21:30').split(':').map(Number), [wh, wm] = (v.wake || '05:30').split(':').map(Number)
+          const wake = new Date(`${d}T${String(wh).padStart(2, '0')}:${String(wm).padStart(2, '0')}:00`)
+          const bed = new Date(wake); bed.setHours(bh, bm, 0, 0); if (bed >= wake) bed.setDate(bed.getDate() - 1)
+          const hours = Math.round(((wake - bed) / 3600000) * 10) / 10
+          const b = bh * 60 + bm, onTime = b >= 18 * 60 ? b <= minsOf(SLEEP_TARGET) : false
+          return { sleep: { bed: bed.toISOString(), wake: wake.toISOString(), hours, onTime } }
+        },
+      }[id]
+      if (patch) patchDay(patch, d)
+    },
     setFastHours: (n) => patchState({ fastHours: n }),
     // reading
     saveBook: (b) => put('book', { started: today, page: 0, ...b }),

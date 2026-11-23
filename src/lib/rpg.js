@@ -92,6 +92,8 @@ export const ACHIEVEMENTS = [
   { id: 'nw1m', name: 'ราชาแห่งเกาะ', desc: 'มูลค่าสุทธิถึง 1,000,000', icon: 'gem' },
 ]
 
+const addDaysISO = (d, n) => { const x = new Date(d + 'T12:00:00'); x.setDate(x.getDate() + n); return x.toISOString().slice(0, 10) }
+
 function computeRpg({ accounts, txns, settings, balances, summary, unlocked, portfolio, goals = [], budgets = [], catById = {}, data = {}, privacy = false, wx = null, btcPct = null, habits = null, habitDays = {}, books = [] }) {
   portfolio ||= { open: [], value: 0, pnlPct: 0, byType: {} }
   const typesHeld = Object.keys(portfolio.byType).filter((k) => portfolio.byType[k] > 0).length
@@ -474,6 +476,15 @@ export function useRpg() {
     pay(r.fiat, r.gold, { type: 'nospend', run: r.run, text: `วันนี้ไม่ใช้เงิน ✨ ติดกัน ${r.run} วัน` }, { noSpend: { ...(d.noSpend || {}), [localDate(now())]: true } })
     return r
   }
+  // backfill a no-spend day of the last 7 days, only if that day really had no spending
+  const spentOn = (d) => v.txns.some((t) => t.date === d && (t.kind === 'expense' || (t.kind === 'trade' && t.side === 'buy')))
+  const canNoSpendOn = (d) => { const t = localDate(now()); return d < t && d >= addDaysISO(t, -7) && !(fresh().noSpend || {})[d] && !spentOn(d) }
+  const markNoSpendOn = (d) => {
+    if (!canNoSpendOn(d)) return null
+    const fiat = 30
+    pay(fiat, 0, { type: 'nospend', text: `ลงย้อนหลัง: ${d} ไม่ใช้เงิน ✨` }, { noSpend: { ...(fresh().noSpend || {}), [d]: true } })
+    return { fiat }
+  }
   const openChest = () => {
     if (!chestReady) return null
     const bonus = rpg.streak >= 3 ? Math.min(10, rpg.streak) : 0
@@ -611,7 +622,7 @@ export function useRpg() {
     ...rpg, vault: v, fiat, gold, chestReady, openChest, buy, shopPrice, setEquip, toggleDeco, chestCount: data.chestCount || 0,
     inflation: inflationMult(data), afford, buildPrice, build, upgrade, demolish, hallPrice, upgradeHall, hire, dismiss, buyDecor,
     collectReady, collect, collectDays, collectAmount, claim, exchange, exchangeRate: exchangeRate(data), exchangedThisWeek, econData: data,
-    markNoSpend, noSpendReward, markStorySeen, chooseMonthBoss, markMonthSeen,
+    markNoSpend, noSpendReward, canNoSpendOn, markNoSpendOn, spentOn, markStorySeen, chooseMonthBoss, markMonthSeen,
   }
 }
 

@@ -1,3 +1,4 @@
+import { normPct } from '../lib/ledger'
 import { useEffect, useMemo, useState } from 'react'
 import { Sparkles, ChevronRight, TrendingUp, TrendingDown } from 'lucide-react'
 import { Sheet, Button, Money } from './ui'
@@ -114,7 +115,7 @@ export function StyleCard({ onSuggest }) {
       {a.suggestion && (
         <div className={`rounded-xl p-3 border ${a.suggestion.worth ? 'border-emerald-300 bg-emerald-50/60' : 'border-slate-200 bg-slate-50'}`} data-testid="style-suggestion">
           <div className="text-sm font-semibold">{a.suggestion.worth ? 'แนะนำสัดส่วนที่เหมาะกับคุณ' : 'สัดส่วนตอนนี้เหมาะกับการใช้เงินจริงแล้ว'}</div>
-          <div className="text-sm mt-1 tabular-nums">กันหนี้ <b>{a.suggestion.pct.reserve}%</b> · ใช้ได้ <b>{a.suggestion.pct.cash}%</b> · ลงทุน <b>{a.suggestion.pct.invest}%</b></div>
+          <div className="text-sm mt-1 tabular-nums">หลังกันหนี้ครบ: ใช้ได้ <b>{normPct(a.suggestion.pct).cash}%</b> · ลงทุน <b>{normPct(a.suggestion.pct).invest}%</b></div>
           {a.suggestion.reasons.length > 0 && <ul className="text-[11px] text-slate-600 mt-1 list-disc pl-4">{a.suggestion.reasons.map((r) => <li key={r}>{r}</li>)}</ul>}
           {a.suggestion.worth && <Button className="w-full mt-2 !py-2 text-sm" onClick={() => onSuggest?.(a.suggestion.pct)} data-testid="use-suggestion">ใช้คำแนะนำนี้ (ยังต้องกดยืนยัน)</Button>}
         </div>
@@ -170,7 +171,7 @@ export function ReportSheet({ open, onClose }) {
           {r.suggestion && (
             <div className="rounded-xl p-3 border border-emerald-300 bg-emerald-50/60">
               <div className="font-semibold text-sm">{r.suggestion.worth ? 'คำแนะนำสัดส่วนแบ่งเงิน' : 'สัดส่วนที่ใช้อยู่เหมาะแล้ว'}</div>
-              <div className="text-sm mt-1">กันหนี้ {r.suggestion.pct.reserve}% · ใช้ได้ {r.suggestion.pct.cash}% · ลงทุน {r.suggestion.pct.invest}%</div>
+              <div className="text-sm mt-1">หลังกันหนี้ครบ: ใช้ได้ {normPct(r.suggestion.pct).cash}% · ลงทุน {normPct(r.suggestion.pct).invest}%</div>
               {r.suggestion.reasons?.length > 0 && <ul className="text-[11px] text-slate-600 mt-1 list-disc pl-4">{r.suggestion.reasons.map((x) => <li key={x}>{x}</li>)}</ul>}
               <div className="text-[11px] text-slate-500 mt-1">ไปที่แท็บ “เงิน” เพื่อกด “ใช้คำแนะนำนี้” แล้วยืนยัน</div>
             </div>

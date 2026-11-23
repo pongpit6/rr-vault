@@ -103,8 +103,8 @@ export default function Wallets({ onEdit, go }) {
 
         <section>
           <div className="px-1 mb-2 text-sm text-slate-500">ระบบแบ่งเงินอัตโนมัติ (ค่าเริ่มต้นทุกครั้งที่มีรายรับ)</div>
-          <AllocationEditor pct={alloc.pct} cap={alloc.capReserveAtGap} gap={summary.gap}
-            onPct={(pct) => saveAlloc({ pct })} onCap={(capReserveAtGap) => saveAlloc({ capReserveAtGap })}
+          <AllocationEditor pct={alloc.pct} gap={summary.gap}
+            onPct={(pct) => saveAlloc({ pct })}
             split={null} confirm suggestion={suggest} />
           <div className="mt-3"><StyleCard onSuggest={(pct) => { setSuggest({ pct, at: Date.now() }); document.querySelector('[data-testid=alloc-editor]')?.scrollIntoView({ behavior: 'smooth', block: 'center' }) }} /></div>
           <div className="card mt-3 p-4 space-y-3">
@@ -118,13 +118,13 @@ export default function Wallets({ onEdit, go }) {
               </div>
             ))}
             <div className="flex items-center gap-3">
-              <span className="text-sm text-slate-600 w-28 shrink-0">รูดบัตรแล้วกันเงินจาก</span>
+              <span className="text-sm text-slate-600 w-28 shrink-0">ดึงเงินมากันหนี้จาก</span>
               <select className="field !py-2" value={settings.earmarkFrom} onChange={(e) => put('settings', { ...settings, earmarkFrom: e.target.value })}>
                 {accounts.filter((a) => !isDebt(a) && !a.archived).map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
               </select>
             </div>
             <div className="flex gap-2 text-xs text-slate-500 pt-1"><Info size={14} className="shrink-0 mt-0.5" />
-              ลำดับการแบ่งคือ ① หนี้ ② ใช้ได้ ③ ลงทุน และปรับเฉพาะครั้งได้ในหน้าบันทึกรายรับ</div>
+              ลำดับคือ ① กันหนี้ให้ครบก่อน (อัตโนมัติ) ② ใช้ได้ ③ ลงทุน · ยอด “กันชำระหนี้” เท่ากับหนี้ที่ต้องจ่ายเสมอ ระบบย้ายจากเงินใช้ได้ให้เอง · ปรับ % เฉพาะครั้งได้ในหน้าบันทึกรายรับ</div>
           </div>
         </section>
       </div>

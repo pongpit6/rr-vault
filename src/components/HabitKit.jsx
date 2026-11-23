@@ -3,14 +3,14 @@ import { Check, Plus, Minus, Moon, Sun, Play, Pause, RotateCcw, BookOpen, Trash2
 import { Sheet, Button, Segmented } from './ui'
 import { useStore } from '../store'
 import { useRpg } from '../lib/rpg'
-import { HABITS, HABIT_BY_ID, MOVES, SETS, REPS, SLEEP_TARGET, useHabits, fastingOf, pickRound, grade, addDays, doneOf } from '../lib/habits'
+import { HABITS, HABIT_BY_ID, MOVES, SETS, REPS, SLEEP_TARGET, BACKFILL_DAYS, useHabits, fastingOf, pickRound, grade, addDays, doneOf } from '../lib/habits'
 import { VOCAB_LEVELS, POS_TH } from '../lib/vocab'
 import { sfx, bell } from '../lib/sfx'
 import { todayISO } from '../lib/format'
 
 const tTime = (iso) => new Date(iso).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })
 const tDate = (iso) => new Date(iso + (iso.length === 10 ? 'T12:00:00' : '')).toLocaleDateString('th-TH', { day: 'numeric', month: 'short' })
-const hrs = (h) => `${Math.floor(h)} ชม. ${Math.round((h % 1) * 60)} นาที`
+const hrs = (h) => { const m = Math.max(0, Math.round(h * 60)); return `${Math.floor(m / 60)} ชม. ${m % 60} นาที` }
 
 /** Opens a habit sheet from anywhere (home grid, habits screen, FAB). */
 export const openHabit = (id) => useStore.getState().setUi({ habitOpen: id })
@@ -104,26 +104,66 @@ export function HabitsToday({ compact = false }) {
   )
 }
 
-/* ---------------- 5-week calendar strip shared by every sheet ---------------- */
+/* ---------------- 5-week calendar strip shared by every sheet (the last 7 days can be fixed) ---------------- */
 function MonthDots({ id, H }) {
   const today = todayISO()
+  const rpg = useRpg()
+  const [pick, setPick] = useState(null)
   const cells = Array.from({ length: 35 }, (_, i) => addDays(today, i - 34))
   const h = HABIT_BY_ID[id]
+  const noSpend = useStore((s) => s.items.rpg?.data?.noSpend) || {}
+  const valOf = (d) => (id === 'nospend' ? (noSpend[d] ? 1 : 0) : doneOf(id, { date: d, ...(H.days[d] || {}) }))
+  const editable = (d) => d >= addDays(today, -BACKFILL_DAYS) && d <= today
   return (
     <div>
       <div className="flex items-center justify-between text-[11px] text-slate-500 mb-1.5">
         <span>5 สัปดาห์ล่าสุด</span>
         <span>streak <b className="text-slate-800">{H.by[id].streak}</b> · ดีที่สุด <b className="text-slate-800">{H.by[id].best}</b> · รวม {H.by[id].total} วัน</span>
       </div>
-      <div className="grid grid-cols-7 gap-1 max-w-[280px]">
+      <div className="grid grid-cols-7 gap-1 max-w-[280px]" data-testid="month-dots">
         {cells.map((d) => {
-          const v = id === 'nospend' ? (H.by.nospend && useStore.getState().items.rpg?.data?.noSpend?.[d] ? 1 : 0) : doneOf(id, { date: d, ...(H.days[d] || {}) })
-          return <span key={d} title={tDate(d)} className={`aspect-square rounded-[3px] ${d === today ? 'ring-2 ring-slate-800/40' : ''}`} style={{ background: v >= 1 ? h.color : v > 0 ? `${h.color}66` : 'rgba(15,23,42,.06)' }} />
+          const v = valOf(d), ed = editable(d)
+          const style = { background: v >= 1 ? h.color : v > 0 ? `${h.color}66` : 'rgba(15,23,42,.06)' }
+          const ring = d === pick ? 'ring-2 ring-amber-500' : d === today ? 'ring-2 ring-slate-800/40' : ed ? 'ring-1 ring-slate-400/60 ring-dashed' : ''
+          return ed
+            ? <button key={d} type="button" title={`${tDate(d)} · แตะเพื่อแก้`} onClick={() => setPick(pick === d ? null : d)} className={`aspect-square rounded-[3px] ${ring}`} style={style} data-testid={`dot-${d}`} />
+            : <span key={d} title={tDate(d)} className={`aspect-square rounded-[3px] ${ring}`} style={style} />
         })}
       </div>
+      <div className="text-[10px] text-slate-500 mt-1.5">ลืมกด? แตะช่องของ {BACKFILL_DAYS} วันล่าสุด (ขอบประ) เพื่อลงย้อนหลังได้</div>
+      {pick && <DayFix id={id} d={pick} H={H} rpg={rpg} on={valOf(pick) >= 1} close={() => setPick(null)} />}
       <div className="text-[10px] text-slate-500 mt-1.5">GOLD จาก streak: 7 วัน = 1 · 30 วัน = 3 · 100 วัน = 10 (ได้ครั้งเดียวต่อขั้น) · ได้แล้ว {H.by[id].gold} 🪙</div>
     </div>
   )
+}
+
+/** fix one past day of one habit */
+function DayFix({ id, d, H, rpg, on, close }) {
+  const [pages, setPages] = useState(10)
+  const [min, setMin] = useState(10)
+  const [bed, setBed] = useState('21:30')
+  const [wake, setWake] = useState('05:30')
+  const label = d === todayISO() ? 'วันนี้' : tDate(d)
+  const done = (v) => { H.setDone(id, d, true, v); sfx('coin'); close() }
+  const undo = () => { H.setDone(id, d, false); sfx('click'); close() }
+  const box = (children) => <div className="mt-2 px-inner p-3 space-y-2 text-sm" data-testid="day-fix"><div className="flex items-center"><b className="flex-1">{label}</b><button onClick={close} aria-label="ปิด"><X size={15} /></button></div>{children}</div>
+  if (id === 'nospend') {
+    if (on) return box(<div className="text-xs text-slate-500">วันนี้บันทึกเป็นวันไม่ใช้เงินแล้ว</div>)
+    if (d === todayISO()) return box(<div className="text-xs text-slate-500">วันนี้ใช้ปุ่ม “วันนี้ไม่ใช้เงิน” ด้านบน</div>)
+    return box(rpg.canNoSpendOn(d)
+      ? <Button className="w-full !py-2" onClick={() => { rpg.markNoSpendOn(d); sfx('coin'); close() }} data-testid="fix-nospend">✨ วันนี้ไม่ได้ใช้เงินเลย (+30 FIAT)</Button>
+      : <div className="text-xs text-slate-500">{rpg.spentOn(d) ? 'วันนั้นมีรายการใช้จ่ายอยู่ จึงนับเป็นวันไม่ใช้เงินไม่ได้' : 'ลงย้อนหลังได้ไม่เกิน 7 วัน'}</div>)
+  }
+  const inp = 'field !py-1.5 !w-24 text-center num'
+  return box(<>
+    {id === 'read' && <div className="flex items-center gap-2">อ่านไป <input className={inp} inputMode="numeric" value={pages} onChange={(e) => setPages(+e.target.value.replace(/\D/g, '') || 0)} /> หน้า</div>}
+    {id === 'meditate' && <div className="flex items-center gap-2">นั่งสมาธิ <input className={inp} inputMode="numeric" value={min} onChange={(e) => setMin(+e.target.value.replace(/\D/g, '') || 0)} /> นาที</div>}
+    {id === 'sleep' && <div className="flex flex-wrap items-center gap-2">เข้านอน <input type="time" className="field !py-1.5 !w-auto" value={bed} onChange={(e) => setBed(e.target.value)} /> ตื่น <input type="time" className="field !py-1.5 !w-auto" value={wake} onChange={(e) => setWake(e.target.value)} /></div>}
+    <div className="flex gap-2">
+      <Button className="flex-1 !py-2" onClick={() => done({ pages, min, bed, wake })} data-testid="fix-done">{on ? 'บันทึกใหม่' : { exercise: '💪 ออกกำลังกายครบแล้ว', nocarb: '🥗 ไม่กินแป้งวันนั้น', vocab: '🔤 ท่องศัพท์แล้ว' }[id] || '✓ ทำแล้ว'}</Button>
+      {on && <Button variant="ghost" className="!py-2" onClick={undo} data-testid="fix-undo">ยกเลิกวันนั้น</Button>}
+    </div>
+  </>)
 }
 
 /* ---------------- sheets ---------------- */
@@ -379,15 +419,35 @@ function NoCarbSheet({ H }) {
         </div>
         {f ? (
           <>
-            <div className="text-sm">มื้อล่าสุด <b>{tTime(H.lastMeal)}</b> ({tDate(H.lastMeal.slice(0, 10))}) · อดมาแล้ว <b className="num">{hrs(f.since)}</b></div>
+            <div className="text-sm">มื้อล่าสุด <b>{tTime(H.lastMeal)}</b> ({tDate(new Date(H.lastMeal).toLocaleDateString('sv-SE'))}) · อดมาแล้ว <b className="num">{hrs(f.since)}</b></div>
             <div className="px-hp"><div style={{ width: `${f.pct * 100}%`, background: '#16a34a' }} /></div>
             <div className="text-xs text-slate-500">{f.done ? '✅ ครบช่วงอดแล้ว กินได้' : `กินมื้อถัดไปได้ตอน ${tTime(f.next.toISOString())} (อีก ${hrs((f.next - Date.now()) / 3600000)})`}</div>
           </>
         ) : <div className="text-xs text-slate-500">กด "เพิ่งกินเสร็จ" หลังมื้อสุดท้าย แอปจะนับเวลาอดให้</div>}
         <Button variant="ghost" className="w-full !py-2" onClick={() => { H.ateNow(); sfx('click') }} data-testid="ate-now"><Utensils size={15} /> เพิ่งกินเสร็จ</Button>
+        <MealLater H={H} />
         {(d.meals || []).length > 0 && <div className="text-[11px] text-slate-500">มื้อวันนี้: {(d.meals || []).map(tTime).join(' · ')}</div>}
       </div>
     </>
+  )
+}
+
+/** forgot to tap after a meal: log it with the real time (up to 7 days back) */
+function MealLater({ H }) {
+  const [open, setOpen] = useState(false)
+  const pad = (n) => String(n).padStart(2, '0')
+  const local = (dt) => `${dt.getFullYear()}-${pad(dt.getMonth() + 1)}-${pad(dt.getDate())}T${pad(dt.getHours())}:${pad(dt.getMinutes())}`
+  const [at, setAt] = useState(() => local(new Date(Date.now() - 2 * 3600000)))
+  const min = local(new Date(Date.now() - BACKFILL_DAYS * 86400000)), max = local(new Date())
+  if (!open) return <button className="w-full text-xs ui-link" onClick={() => setOpen(true)} data-testid="meal-later">ลืมกด? บันทึกมื้อย้อนหลัง</button>
+  const ok = at >= min && at <= max
+  return (
+    <div className="flex flex-wrap items-center gap-2 text-sm" data-testid="meal-later-form">
+      <span>กินไปตอน</span>
+      <input type="datetime-local" className="field !py-1.5 !w-auto" min={min} max={max} value={at} onChange={(e) => setAt(e.target.value)} />
+      <Button className="!py-1.5" disabled={!ok} onClick={() => { H.ateNow(new Date(at).toISOString()); sfx('click'); setOpen(false) }} data-testid="meal-later-save">บันทึก</Button>
+      {!ok && <span className="text-[11px] text-rose-600">ย้อนหลังได้ไม่เกิน {BACKFILL_DAYS} วัน และต้องไม่ใช่เวลาในอนาคต</span>}
+    </div>
   )
 }
 

@@ -127,7 +127,7 @@ export default function Home({ onAdd, onEdit, go }) {
       if (!logged) todos.unshift({ key: 'payday', icon: <IconBadge name="briefcase" color="#10b981" size={36} icon={17} />, title: day === pday ? 'วันนี้เงินเดือนออก 🎉' : 'เงินเดือนออกแล้ว ยังไม่ได้บันทึก', sub: `บันทึก ${pd.amount ? money(pd.amount, { decimals: false }) : 'รายรับ'} แล้วแบ่งตามแผนในครั้งเดียว`, onClick: () => onAdd({ kind: 'income', amount: pd.amount || undefined, category: 'cat-salary', note: 'เงินเดือน' }) })
     }
   }
-  if (summary.target > 0 && summary.gap > 0) todos.push({ key: 'gap', icon: <IconBadge name="shield" color="#a78bfa" size={36} icon={17} />, title: 'เงินกันจ่ายหนี้ยังไม่ครบ', sub: `ขาดอีก ${money(summary.gap, { decimals: false })} · แตะเพื่อย้ายเงินไปกันไว้`, onClick: () => onAdd({ kind: 'transfer', amount: Math.min(summary.gap, Math.max(0, cash)) || summary.gap, to: settings.allocation.targets.reserve, note: 'กันเงินจ่ายหนี้' }) })
+  if (summary.target > 0 && summary.gap > 0) todos.push({ key: 'gap', icon: <IconBadge name="shield" color="#a78bfa" size={36} icon={17} />, title: 'เงินใช้ได้ไม่พอกันจ่ายหนี้', sub: `ระบบกันเงินทั้งหมดที่มีให้หนี้แล้ว ยังขาดอีก ${money(summary.gap, { decimals: false })} · เงินเข้าครั้งหน้าจะเติมส่วนนี้ก่อน`, onClick: () => go('money', 'plan') })
 
   return (
     <div className="space-y-4">

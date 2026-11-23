@@ -109,6 +109,27 @@ export function computeReceivables(txns, accById = {}) {
   return { by, list, total: round2(list.reduce((s, p) => s + p.owed, 0)), viaCard: round2(list.reduce((s, p) => s + p.viaCard, 0)) }
 }
 
+/**
+ * Debt first, always: the reserve bucket is kept equal to what the debts need, automatically.
+ * Spendable cash and the reserve are one pool of money; the reserve takes what the debts need
+ * (minus repayments people will make for shared card spending) and the rest is spendable.
+ * New card spending moves money from spendable at once, paying a bill releases it, investments are never touched.
+ * Returns the balances as shown (pool re-split) plus the summary.
+ */
+export function rebalanceReserve(accounts, bal, settings, recv = null) {
+  const T = settings?.allocation?.targets || {}
+  const byId = Object.fromEntries(accounts.map((a) => [a.id, a]))
+  const cash = byId[T.cash], res = byId[T.reserve]
+  const target = debtTarget(accounts, bal)
+  const incoming = recv ? Math.min(recv.viaCard, target) : 0
+  const need = Math.max(0, round2(target - incoming))
+  if (!cash || !res || cash.id === res.id || cash.archived || res.archived || !ACCOUNT_TYPES[cash.type]?.asset || !ACCOUNT_TYPES[res.type]?.asset) return { bal, moved: 0, need }
+  const pool = round2((bal[cash.id] || 0) + (bal[res.id] || 0))
+  const earmark = round2(Math.min(need, Math.max(0, pool)))
+  const out = { ...bal, [res.id]: earmark, [cash.id]: round2(pool - earmark) }
+  return { bal: out, moved: round2(earmark - (bal[res.id] || 0)), need }
+}
+
 export function summarize(accounts, bal, recv = null) {
   let assets = 0, debts = 0
   const byType = {}
@@ -131,26 +152,25 @@ export function summarize(accounts, bal, recv = null) {
   }
 }
 
+/** spendable/invest split only: the debt part is automatic now. Old {reserve, cash, invest} → cash + invest = 100 */
+export function normPct(pct = {}) {
+  const c = Math.max(0, pct.cash || 0), i = Math.max(0, pct.invest || 0)
+  if (c + i <= 0) return { reserve: 0, cash: 100, invest: 0 }
+  const cash = Math.round((c / (c + i)) * 100)
+  return { reserve: 0, cash, invest: 100 - cash }
+}
+
 /**
- * Waterfall allocation for incoming money: reserve (debt) first, then spendable, then investing.
- * If capReserveAtGap is on, the reserve only takes what is still missing for debts and the
- * remainder spills over to the other buckets in proportion to their sliders.
+ * Allocation for incoming money: whatever the debt reserve still misses comes first (all of it),
+ * then the rest is split between spendable and investing by the user's percentages.
  */
 export function allocate(amount, alloc, gap) {
   const amt = round2(amount)
-  const pct = alloc.pct
-  let r = (amt * pct.reserve) / 100
-  let c = (amt * pct.cash) / 100
-  let i = (amt * pct.invest) / 100
-  if (alloc.capReserveAtGap && r > gap) {
-    const spill = r - Math.max(0, gap)
-    r = Math.max(0, gap)
-    const w = pct.cash + pct.invest
-    if (w > 0) { c += (spill * pct.cash) / w; i += (spill * pct.invest) / w } else c += spill
-  }
-  r = round2(r); i = round2(i)
-  c = round2(amt - r - i) // remainder absorbs rounding
-  return { reserve: r, cash: c, invest: i }
+  // ① the debt reserve takes everything it is still missing, ② the rest is split between spendable and investing
+  const r = round2(Math.min(amt, Math.max(0, gap || 0)))
+  const p = normPct(alloc.pct)
+  const i = round2(((amt - r) * p.invest) / 100)
+  return { reserve: r, cash: round2(amt - r - i), invest: i }
 }
 
 /** Move one slider; the others rescale proportionally so the total stays 100. */

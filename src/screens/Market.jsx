@@ -6,6 +6,7 @@ import { Sheet, Button } from '../components/ui'
 import { AssetLogo } from '../components/Logos'
 import FuelCard from '../components/FuelCard'
 import { useSyncedPref, unionBySymbol } from '../lib/prefs'
+import { thaiAbout, howToBuy, loadProfile, loadTop10, fmtCap, capShort, SECTOR_TH } from '../lib/assetInfo'
 import { loadCatalog, sortsFor, sortItems, matchLocal, searchInCat, PAGE } from '../lib/catalog'
 import { CATS, CAT_BY_ID, catOf, WATCH_MAX, bitkubPremium, loadBitkubList, coinCode, isCoin, itemFor, itemCcy, useMarket, loadSpark, loadChart, searchMarket, streamMarketCrypto, stopMarketStream, loadOil } from '../lib/market'
 import { ccyMark, ccyOfSymbol, fetchQuotes, fxSym } from '../lib/prices'
@@ -252,7 +253,7 @@ export default function Market({ onTrade }) {
             return (
               <div key={r.symbol} onClick={() => open(it)} className="flex items-center gap-3 px-2 py-2 rounded-xl hover:bg-slate-900/[.03] cursor-pointer">
                 <Badge it={it} size={34} />
-                <div className="flex-1 min-w-0"><div className="text-sm font-semibold truncate">{r.code || r.symbol}</div><div className="text-[11px] text-slate-500 truncate">{r.name} · {r.exchange}</div></div>
+                <div className="flex-1 min-w-0"><div className="flex items-center gap-1.5"><span className="text-sm font-semibold truncate">{r.code || r.symbol}</span><span className="shrink-0 text-[10px] px-1.5 py-0.5 rounded-md bg-slate-900/[.05] text-slate-600" data-testid="type-badge">{typeLabel(r)}</span></div><div className="text-[11px] text-slate-500 truncate">{r.name} · {r.exchange}</div></div>
                 <button onClick={(e) => { e.stopPropagation(); toggleWatch(it) }} className="p-1" aria-label="ติดตาม"><Star size={16} className={isWatched(it.symbol) ? 'fill-amber-400 text-amber-400' : 'text-slate-300'} /></button>
                 <ChevronRight size={16} className="text-slate-300" />
               </div>
@@ -273,6 +274,7 @@ export default function Market({ onTrade }) {
       {cat === 'fuel' ? <FuelCard /> : cat === 'all' ? (
         <div className="space-y-4">
           <FuelCard compact onOpen={() => setCat('fuel')} />
+          <TopTen onOpen={open} />
           <div className="mkt-masonry">
             {overviewCats.map((c) => {
               const { list, extra, mine } = overviewItems(c.id)
@@ -443,10 +445,102 @@ function DetailSheet({ it, onClose, starred, onStar, assets, onTrade }) {
         </>
       ) : <div className="mt-4 text-xs text-slate-500">กองทุนแสดงราคา NAV ล่าสุด (อัปเดตวันละครั้งหลังตลาดปิด)</div>}
       {existing && <div className="mt-3 text-xs rounded-xl bg-sky-50 border border-sky-200 text-sky-800 px-3 py-2">คุณถือ {existing.name} อยู่ในพอร์ตแล้ว — ดูรายละเอียดได้ที่แท็บ “ลงทุน”</div>}
-      {it.kind === 'index' && <div className="mt-3 text-[11px] text-slate-500">ดัชนีซื้อขายตรงไม่ได้ — ถ้าลงทุนผ่านกองทุน/ETF ให้ค้นหากองทุนนั้นแล้วบันทึกซื้อ</div>}
+      <AboutAsset it={it} />
     </Sheet>
   )
 }
+/** a short Thai label of what a search result is */
+function typeLabel(r) {
+  const s = r.symbol || '', t = r.type
+  if (t === 'THFUND' || s.startsWith('FUND:')) return 'กองทุนไทย'
+  if (s.startsWith('BKUB:') || t === 'CRYPTOCURRENCY') return 'คริปโต'
+  if (t === 'INDEX' || s.startsWith('^')) return 'ดัชนี'
+  if (t === 'CURRENCY' || /=X$/.test(s)) return 'ค่าเงิน'
+  if (t === 'FUTURE' || /=F$/.test(s)) return 'สินค้าโภคภัณฑ์'
+  if (t === 'ETF') return /\.BK$/.test(s) ? 'ETF ไทย' : 'ETF'
+  if (t === 'MUTUALFUND') return 'กองทุนต่างประเทศ'
+  if (/\.BK$/.test(s)) return 'หุ้นไทย'
+  if (/\.(HK)$/.test(s)) return 'หุ้นฮ่องกง'
+  if (/\.(SS|SZ)$/.test(s)) return 'หุ้นจีน'
+  if (!s.includes('.')) return 'หุ้นสหรัฐ'
+  return 'หุ้นต่างประเทศ'
+}
+
+/* ---------- "what is this?" + market cap ---------- */
+const TYPE_TH = { EQUITY: 'หุ้น', ETF: 'กองทุน ETF', MUTUALFUND: 'กองทุนรวม', INDEX: 'ดัชนี', CRYPTOCURRENCY: 'คริปโต', FUTURE: 'สัญญาล่วงหน้า', CURRENCY: 'ค่าเงิน', crypto: 'คริปโต', fund: 'กองทุนรวมไทย' }
+function AboutAsset({ it }) {
+  const [p, setP] = useState(undefined)
+  const [more, setMore] = useState(false)
+  useEffect(() => { let alive = true; setP(undefined); loadProfile(it.symbol).then((d) => alive && setP(d)).catch(() => alive && setP(null)); return () => { alive = false } }, [it.symbol])
+  const th = thaiAbout(it), buy = howToBuy(it)
+  const desc = p?.descTh || p?.desc || p?.policy
+  const facts = p ? [
+    p.marketCap ? ['มูลค่าตลาด (Market Cap)', fmtCap(p.marketCap, p.currency)] : null,
+    p.rank ? ['อันดับมูลค่าตลาดคริปโต', `#${p.rank}`] : null,
+    p.totalAssets ? ['ขนาดกองทุน', fmtCap(p.totalAssets, p.currency)] : null,
+    p.sector ? ['หมวดธุรกิจ', `${SECTOR_TH[p.sector] || p.sector}${p.industry ? ` · ${p.industry}` : ''}`] : null,
+    p.category ? ['ประเภท', `${p.category}${p.broad && p.broad !== p.category ? ` (${p.broad})` : ''}`] : null,
+    p.country ? ['ประเทศ', `${p.country}${p.city ? ` · ${p.city}` : ''}`] : null,
+    p.employees ? ['พนักงาน', `${p.employees.toLocaleString()} คน`] : null,
+    p.pe ? ['P/E', p.pe.toFixed(1)] : null,
+    p.dividendYield ? ['ปันผลต่อปี', `${(p.dividendYield * 100).toFixed(2)}%`] : null,
+    p.circulating ? ['เหรียญในระบบ', `${Math.round(p.circulating).toLocaleString()}${p.maxSupply ? ` / ${Math.round(p.maxSupply).toLocaleString()}` : ' (ไม่จำกัด)'}`] : null,
+    p.ath ? ['สูงสุดตลอดกาล', `$${p.ath.toLocaleString()}`] : null,
+    p.risk ? ['ระดับความเสี่ยง', String(p.risk)] : null,
+    p.amc ? ['บลจ.', p.amc] : null,
+    p.expense != null && p.kind === 'fund' ? ['ค่าใช้จ่ายรวมต่อปี', `${p.expense}%`] : p.expense ? ['ค่าใช้จ่ายต่อปี', `${(p.expense * 100).toFixed(2)}%`] : null,
+    p.dividend ? ['นโยบายปันผล', p.dividend] : null,
+    p.tax ? ['สิทธิลดหย่อนภาษี', p.tax] : null,
+    p.feeder ? ['กองทุนหลัก', p.feeder] : null,
+    p.since || p.inception ? ['เริ่มต้น', String(p.since || p.inception).slice(0, 10)] : null,
+  ].filter(Boolean) : []
+  if (!th && !buy && p === null) return null
+  return (
+    <div className="mt-4 pt-4 border-t border-slate-200/70" data-testid="asset-about">
+      <div className="text-sm font-semibold mb-1.5">เกี่ยวกับ{p?.kind && TYPE_TH[p.kind] ? ` · ${TYPE_TH[p.kind]}` : ''}</div>
+      {th && <p className="text-sm text-slate-700 leading-relaxed">{th}</p>}
+      {p === undefined && <div className="text-xs text-slate-400 mt-1">กำลังโหลดข้อมูล…</div>}
+      {facts.length > 0 && (
+        <div className="grid grid-cols-2 gap-2 text-sm mt-2.5">{facts.map(([l, v]) => <Stat key={l} l={l} v={v} />)}</div>
+      )}
+      {desc && (
+        <div className="mt-2.5">
+          <p className={`text-[13px] text-slate-600 leading-relaxed whitespace-pre-line ${more ? '' : 'line-clamp-4'}`}>{desc}</p>
+          <button className="text-xs ui-link mt-1" onClick={() => setMore(!more)}>{more ? 'ย่อ' : 'อ่านต่อ'}</button>
+          {!p?.descTh && p?.desc && <span className="text-[10px] text-slate-400 ml-2">คำอธิบายต้นฉบับภาษาอังกฤษ</span>}
+        </div>
+      )}
+      {(p?.website || p?.factSheet) && <div className="mt-2 flex gap-3 text-xs">{p.website && <a className="ui-link" href={p.website} target="_blank" rel="noreferrer">เว็บไซต์</a>}{p.factSheet && <a className="ui-link" href={p.factSheet} target="_blank" rel="noreferrer">หนังสือชี้ชวน (Fact Sheet)</a>}</div>}
+      {buy && <div className="mt-2.5 text-[11px] text-slate-500">{buy}</div>}
+    </div>
+  )
+}
+
+/* ---------- the world's 10 most valuable assets ---------- */
+function TopTen({ onOpen }) {
+  const [d, setD] = useState(null)
+  useEffect(() => { let alive = true; loadTop10().then((x) => alive && setD(x)).catch(() => alive && setD({ error: true })); return () => { alive = false } }, [])
+  if (d?.error || (d && !d.items?.length)) return null
+  const max = d?.items?.[0]?.marketCap || 1
+  const open = (r) => onOpen(itemFor(r.symbol, { name: r.name }))
+  return (
+    <section className="card p-3" data-testid="top10">
+      <div className="flex items-baseline gap-2 px-1 mb-2"><h2 className="font-semibold text-sm flex-1">🏆 10 อันดับสินทรัพย์มูลค่าสูงสุดในโลก</h2><span className="text-[10px] text-slate-500">Market Cap · USD</span></div>
+      {!d ? <div className="text-xs text-slate-400 px-1 py-3">กำลังโหลด…</div> : d.items.map((r, i) => (
+        <button key={r.symbol} onClick={() => open(r)} className="w-full flex items-center gap-2.5 px-1 py-1.5 text-left rounded-lg hover:bg-slate-900/[.03]" data-testid="top10-row">
+          <span className="w-5 text-right text-xs font-bold text-slate-400 num">{i + 1}</span>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-baseline gap-1.5"><span className="text-sm font-semibold truncate">{r.kind === 'metal' ? r.name : r.name}</span><span className="text-[10px] text-slate-400 shrink-0">{r.kind === 'metal' ? 'โลหะมีค่า' : r.kind === 'crypto' ? 'คริปโต' : r.symbol}</span></div>
+            <div className="h-1.5 rounded-full bg-slate-900/[.05] mt-1 overflow-hidden"><div className="h-full rounded-full" style={{ width: `${Math.max(2, (r.marketCap / max) * 100)}%`, background: r.kind === 'metal' ? '#f59e0b' : r.kind === 'crypto' ? '#f97316' : '#0d9488' }} /></div>
+          </div>
+          <div className="text-right shrink-0"><div className="text-sm font-semibold num">{capShort(r.marketCap)}</div>{r.changePct != null && <div className={`text-[11px] num ${r.changePct >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>{r.changePct >= 0 ? '+' : ''}{r.changePct.toFixed(2)}%</div>}</div>
+        </button>
+      ))}
+      <div className="text-[10px] text-slate-400 px-1 mt-1.5">ทองและเงินคิดจากปริมาณที่ขุดได้ทั้งโลก × ราคาปัจจุบัน · หุ้นนอกสหรัฐแปลงเป็นดอลลาร์ตามค่าเงินวันนี้ · อัปเดตทุก 15 นาที</div>
+    </section>
+  )
+}
+
 const KNOWN_NAME = (it) => CATS.some((c) => c.items.some((i) => i.symbol === it.symbol))
 const KNOWN_TH = (it) => /\.BK$/.test(it.symbol) || it.kind === 'gold'
 const Stat = ({ l, v }) => <div className="rounded-xl bg-slate-900/[.03] px-3 py-2"><div className="text-slate-500 text-[11px]">{l}</div><div className="num font-semibold">{v}</div></div>
