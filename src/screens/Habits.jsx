@@ -1,3 +1,4 @@
+import { Emo } from '../components/px'
 import { useEffect } from 'react'
 import { useStore } from '../store'
 import { useHabits, HABITS, addDays, doneOf } from '../lib/habits'
@@ -40,7 +41,7 @@ export default function Habits() {
         <div className="space-y-2.5">
           {HABITS.map((h) => (
             <div key={h.id} className="flex items-center gap-2">
-              <button onClick={() => h.id !== 'nospend' && openHabit(h.id)} className="w-20 shrink-0 text-left text-xs truncate">{h.emoji} {h.short}</button>
+              <button onClick={() => h.id !== 'nospend' && openHabit(h.id)} className="w-20 shrink-0 text-left text-xs truncate"><Emo k={`hb_${h.id}`} e={h.emoji} size={16} /> {h.short}</button>
               <div className="flex-1 grid gap-[2px]" style={{ gridTemplateColumns: `repeat(${weeks * 7}, minmax(0,1fr))` }}>
                 {cells.map((d) => {
                   const v = h.id === 'nospend' ? (noSpend[d] ? 1 : 0) : doneOf(h.id, { date: d, ...(H.days[d] || {}) })
@@ -54,10 +55,10 @@ export default function Habits() {
       </section>
 
       <section className="card p-4 grid grid-cols-2 md:grid-cols-4 gap-3 text-center" data-testid="habit-totals">
-        <Total emoji="📖" v={`${H.finished.length} เล่ม`} sub={`${H.pagesTotal.toLocaleString()} หน้า`} onClick={() => openHabit('read')} />
-        <Total emoji="💪" v={`${(H.reps.push + H.reps.squat + H.reps.sit).toLocaleString()} ครั้ง`} sub={`วิดพื้น ${H.reps.push.toLocaleString()}`} onClick={() => openHabit('exercise')} />
-        <Total emoji="🧘" v={`${Math.floor(H.medMin / 60)} ชม. ${H.medMin % 60} น.`} sub="สมาธิสะสม" onClick={() => openHabit('meditate')} />
-        <Total emoji="🔤" v={`${H.learnt} คำ`} sub="จำได้แล้ว" onClick={() => openHabit('vocab')} />
+        <Total emoji={<Emo k="hb_read" size={24} />} v={`${H.finished.length} เล่ม`} sub={`${H.pagesTotal.toLocaleString()} หน้า`} onClick={() => openHabit('read')} />
+        <Total emoji={<Emo k="hb_exercise" size={24} />} v={`${(H.reps.push + H.reps.squat + H.reps.sit).toLocaleString()} ครั้ง`} sub={`วิดพื้น ${H.reps.push.toLocaleString()}`} onClick={() => openHabit('exercise')} />
+        <Total emoji={<Emo k="hb_meditate" size={24} />} v={`${Math.floor(H.medMin / 60)} ชม. ${H.medMin % 60} น.`} sub="สมาธิสะสม" onClick={() => openHabit('meditate')} />
+        <Total emoji={<Emo k="hb_vocab" size={24} />} v={`${H.learnt} คำ`} sub="จำได้แล้ว" onClick={() => openHabit('vocab')} />
       </section>
     </div>
   )

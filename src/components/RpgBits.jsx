@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Flame, ChevronRight } from './px'
-import BattleScene, { skinUrl } from './BattleScene'
+import BattleScene, { skinUrl, heroSheet } from './BattleScene'
 import { SHEETS } from '../lib/spriteSheets'
 import { useStore } from '../store'
 import { diffEvents } from '../lib/rpg'
@@ -36,7 +36,7 @@ export function sceneProps(rpg) {
 
 /** A character's face/body from its idle sprite (sheet or still). */
 export function Portrait({ sprite, size = 44, dim = false, hue: skinHue = 0 }) {
-  const sheetName = SHEETS[`${sprite}_idle`] ? `${sprite}_idle` : null
+  const sheetName = SHEETS[`${sprite}_idle`] ? heroSheet(`${sprite}_idle`) : null
   const [tinted, setTinted] = useState(null)
   useEffect(() => {
     if (!skinHue || !sheetName) { setTinted(null); return }
@@ -53,7 +53,7 @@ export function Portrait({ sprite, size = 44, dim = false, hue: skinHue = 0 }) {
     <div className="shrink-0 overflow-hidden" style={{
       width: size, height: size, imageRendering: 'pixelated',
       backgroundImage: `url(${src})`, backgroundRepeat: 'no-repeat',
-      backgroundSize: sp ? `${sp.w * sp.n * k}px ${size}px` : 'contain', backgroundPosition: sp ? '0 0' : 'center',
+      backgroundSize: tinted ? `${size}px ${size}px` : sp ? `${sp.w * sp.n * k}px ${size}px` : 'contain', backgroundPosition: sp ? '0 0' : 'center',
       filter: `${dim ? 'brightness(0) opacity(.3)' : ''} ${hue ? `hue-rotate(${hue}deg)` : ''}`.trim() || undefined,
     }} />
   )

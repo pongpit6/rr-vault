@@ -1,3 +1,4 @@
+import { Emo } from './px'
 import { useState, useEffect } from 'react'
 import { useActiveTheme } from '../lib/theme'
 import { Hammer, Users, Smile, Coins, ArrowUpCircle, Trash2, Sparkles, Repeat, TrendingUp } from './px'
@@ -18,6 +19,7 @@ const Art = ({ name, size = 30, fallback }) => { const [ok, setOk] = useState(tr
 /** the living-world props every town scene gets */
 export const sceneWorld = (rpg) => ({ sale: rpg.world.sale?.label || null, cycle: useStore.getState().ui.btcCycle?.zone || null, weather: rpg.world.weather, event: rpg.world.event?.id || null, mood: rpg.world.mood.id, btc: rpg.world.btc, aurora: rpg.world.aurora, tree: rpg.world.tree, rank: rpg.rank.id, holiday: rpg.world.holiday })
 
+const TRACE_PX = { read: 'hb_read', exercise: 'hb_exercise', meditate: 'hb_meditate', vocab: 'hb_vocab', nocarb: 'hb_nocarb', nospend: 'hb_nospend', sleep: 'hb_sleep', saved: 'PiggyBank', paid: 'sk_slash', logged: 'ScrollText', rest: 'hb_rest' }
 /** "ร่องรอยวันนี้": one quiet row of what you did today */
 export function TodayTraces({ rpg, className = '', compact = false }) {
   const list = traceList(rpg.traces)
@@ -25,9 +27,9 @@ export function TodayTraces({ rpg, className = '', compact = false }) {
   return (
     <div className={`flex items-center gap-1.5 overflow-x-auto no-scrollbar text-[11px] ${className}`} data-testid="today-traces">
       <span className="shrink-0 text-slate-500">วันนี้</span>
-      {list.length ? list.map((t) => compact ? <span key={t.id} title={t.text} className="shrink-0 text-base leading-none">{t.emoji}</span> : <span key={t.id} className="shrink-0 px-inner px-1.5 py-0.5">{t.emoji} {t.text}</span>) : <span className="text-slate-400 shrink-0">ยังไม่มีร่องรอย ทำอะไรสักอย่างแล้วเมืองจะเปลี่ยน</span>}
+      {list.length ? list.map((t) => compact ? <span key={t.id} title={t.text} className="shrink-0 text-base leading-none"><Emo k={TRACE_PX[t.id]} e={t.emoji} size={18} /></span> : <span key={t.id} className="shrink-0 px-inner px-1.5 py-0.5"><Emo k={TRACE_PX[t.id]} e={t.emoji} size={14} /> {t.text}</span>) : <span className="text-slate-400 shrink-0">ยังไม่มีร่องรอย ทำอะไรสักอย่างแล้วเมืองจะเปลี่ยน</span>}
       {form && <span className="shrink-0 text-slate-500 ml-1">{form}</span>}
-      {rpg.condition && rpg.condition.id !== 'rest' && <span className="shrink-0 text-slate-500 ml-1">· 7 วัน {rpg.condition.emoji} {rpg.condition.name}</span>}
+      {rpg.condition && rpg.condition.id !== 'rest' && <span className="shrink-0 text-slate-500 ml-1">· 7 วัน <Emo k={rpg.condition.id === 'rest' ? 'hb_rest' : `cd_${rpg.condition.id}`} e={rpg.condition.emoji} size={16} /> {rpg.condition.name}</span>}
     </div>
   )
 }

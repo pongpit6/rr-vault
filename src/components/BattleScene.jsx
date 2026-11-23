@@ -1,6 +1,8 @@
 import { sfx } from '../lib/sfx'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { SHEETS } from '../lib/spriteSheets'
+import { heroSheet, setHeroStage } from '../lib/heroStage'
+export { heroSheet, setHeroStage }
 import { money } from '../lib/format'
 import { useStore } from '../store'
 import { ACHIEVEMENTS } from '../lib/rpg'
@@ -60,6 +62,7 @@ function hueRotate(data, deg) {
 }
 /** Frame `i` of an animation (index into its seq), optionally tinted white (hit) or green (regen), or recoloured (skin). */
 export function frame(name, i, mode = 'normal', hue = 0) {
+  name = heroSheet(name)
   const sp = SHEETS[name], im = sheet(name)
   if (!sp || !im.complete || !im.naturalWidth) return null
   const f = sp.seq[((i % sp.seq.length) + sp.seq.length) % sp.seq.length]

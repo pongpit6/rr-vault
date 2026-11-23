@@ -1,3 +1,4 @@
+import { Emo } from './px'
 import { useState } from 'react'
 import { Swords, ScrollText } from './px'
 import { Sheet } from './ui'
@@ -20,7 +21,7 @@ export function MonthBossCard({ rpg }) {
       </div>
       {c ? (
         <div className="flex items-center gap-3">
-          <div className={`w-16 h-16 grid place-items-center bg-rose-50 border-2 border-slate-800 text-4xl shrink-0 ${B.done ? 'grayscale opacity-60' : 'anim-bob'}`}>{c.emoji}</div>
+          <div className={`w-16 h-16 grid place-items-center bg-rose-50 border-2 border-slate-800 text-4xl shrink-0 ${B.done ? 'grayscale opacity-60' : 'anim-bob'}`}><Emo k={`mb_${c.id}`} e={c.emoji} size={44} /></div>
           <div className="flex-1 min-w-0">
             <div className="font-semibold text-sm">{c.boss}</div>
             <div className="text-xs text-slate-500">{c.name(c.target)}</div>
@@ -34,7 +35,7 @@ export function MonthBossCard({ rpg }) {
           <div className="grid sm:grid-cols-3 gap-2">
             {B.options.map((o) => (
               <button key={o.id} onClick={() => setPick(o.id)} className={`px-inner p-3 text-left ${pick === o.id ? 'ring-2 ring-rose-500 bg-rose-50' : 'hover:bg-slate-900/[.02]'}`} data-testid={`boss-opt-${o.id}`}>
-                <div className="text-2xl">{o.emoji}</div>
+                <div className="text-2xl"><Emo k={`mb_${o.id}`} e={o.emoji} size={32} /></div>
                 <div className="font-semibold text-sm mt-1">{o.boss}</div>
                 <div className="text-xs text-slate-600">{o.name(o.target)}</div>
                 {o.lastValue != null && <div className="text-[10px] text-slate-400 mt-0.5">เดือนก่อน {o.lastValue}{o.unit === '%' ? '%' : ` ${o.unit}`}</div>}

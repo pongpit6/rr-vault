@@ -1,3 +1,4 @@
+import { Emo } from './px'
 import { useMemo, useState } from 'react'
 import { Shirt, Ghost, Images, Cake, Flag, PxIcon, SLOT_ICON } from './px'
 import { Portrait } from './RpgBits'
@@ -42,7 +43,12 @@ export function HeroCard({ rpg }) {
           {rpg.skin && <div className="text-[11px] text-violet-700 mt-0.5">สวมสกิน: {rpg.skin.name}</div>}
         </div>
       </div>
-      <div className="flex gap-1 mt-3">{OUTFITS.map((x, i) => <div key={i} className="flex-1 h-2" style={{ background: i < o.stage ? '#10b981' : '#e2e8f0' }} title={`${x.name} · เลเวล ${x.lv}`} />)}</div>
+      <div className="grid grid-cols-6 gap-1 mt-3" data-testid="outfit-strip">{OUTFITS.map((x, i) => (
+        <div key={i} className={`text-center px-inner py-1 ${i + 1 === o.stage ? 'ring-2 ring-emerald-500' : ''}`} title={`${x.name} · เลเวล ${x.lv}`}>
+          <div className="mx-auto w-fit"><Portrait sprite={`hero${i + 1}`} size={36} dim={i + 1 > o.stage} /></div>
+          <div className="text-[9px] text-slate-500">Lv.{x.lv}</div>
+        </div>
+      ))}</div>
       <div className="grid grid-cols-5 gap-1.5 mt-3">
         {rpg.gear.map((g) => (
           <div key={g.slot} className="px-inner p-1.5 text-center" title={`${g.name} · ${g.how}: ${g.valueText}`}>
@@ -54,7 +60,7 @@ export function HeroCard({ rpg }) {
       </div>
       {c && (
         <div className="mt-3 px-inner p-2.5 text-xs flex items-start gap-2" data-testid="hero-condition">
-          <span className="text-xl leading-none">{c.emoji}</span>
+          <Emo k={c.id === 'rest' ? 'hb_rest' : `cd_${c.id}`} e={c.emoji} size={28} />
           <div className="flex-1">
             <div><b>สภาพร่างกาย 7 วัน: {c.name}</b>{c.score != null && <span className="text-slate-500"> · {Math.round(c.score * 100)}%</span>}</div>
             <div className="text-slate-500">นอนตรงเวลา {c.ontime} คืน · ออกกำลังกาย {c.ex} วัน · สมาธิ {c.med} วัน — {c.tip}</div>
@@ -140,7 +146,7 @@ export function AlbumCard({ rpg }) {
         {keys.filter((k) => k !== mkNow).map((k) => <button key={k} onClick={() => setFrom(k)} className={`px-tab shrink-0 !py-1 ${k === fk ? 'on' : ''}`}>{mkLabel(k)}</button>)}
       </div>
       <div className="grid grid-cols-[1fr_auto_1fr] gap-2 items-end mt-3 text-center">
-        <div><div className="mx-auto w-fit opacity-70"><Portrait sprite="hero" size={56} /></div><div className="text-xs font-semibold mt-1">{mkLabel(fk)}</div>{a.outfit && <div className="text-[10px] text-slate-500">{OUTFITS[a.outfit - 1]?.name}</div>}</div>
+        <div><div className="mx-auto w-fit"><Portrait sprite={`hero${a.outfit || 1}`} size={56} /></div><div className="text-xs font-semibold mt-1">{mkLabel(fk)}</div>{a.outfit && <div className="text-[10px] text-slate-500">{OUTFITS[a.outfit - 1]?.name}</div>}</div>
         <div className="text-2xl pb-6">➜</div>
         <div><div className="mx-auto w-fit"><Portrait sprite="hero" size={64} hue={rpg.skin?.hue || 0} /></div><div className="text-xs font-semibold mt-1">ตอนนี้</div><div className="text-[10px] text-slate-500">{rpg.outfit.name}</div></div>
       </div>

@@ -1,7 +1,8 @@
 import { useEffect, useRef } from 'react'
 import { useActiveTheme } from '../lib/theme'
 import { useStore } from '../store'
-import { frame, drawStill, drawRealm, skyFor, mix, GROUND } from './BattleScene'
+import { frame, drawStill, drawRealm, skyFor, mix, GROUND, still, setHeroStage } from './BattleScene'
+import { outfitOf } from '../lib/hero'
 import { drawTown, plotX } from './TownScene'
 import { computeTown } from '../lib/town'
 
@@ -155,6 +156,14 @@ const SCENES = {
       if (Math.sin(now / 260) > 0.6) R(g, '#fde047', 120 + (now / 40) % 30, 40, 3, 3)
     }
   },
+  habits(g, now, o) {
+    return () => {
+      const x = 170 + Math.sin(now / 2600) * 50
+      const im = frame('hero_idle', Math.floor(now / 180) % 5, 'normal', o.hue || 0)
+      if (im) { g.save(); if (Math.cos(now / 2600) < 0) { g.translate(x + 48, 0); g.scale(-1, 1); g.drawImage(im, 0, GY - 62 + bob(now, 3)) } else g.drawImage(im, x, GY - 62 + bob(now, 3)); g.restore() }
+      drawStill(g, o.pet || 'pet_fox', x - 40, GY, 26)
+    }
+  },
   settings(g, now) {
     const s = skyFor(18)
     sky(g, s.top, s.bottom); hills(g, ...s.hill)
@@ -192,6 +201,12 @@ export default function PageBackdrop({ tab, tier = 1, party = [], pet = 'pet_fox
         const now = performance.now()
         g.setTransform(2, 0, 0, 2, 0, 0)
         const fg = scene(g, now, O.current)
+        // PixelLab art for the page (the home page keeps your own town once something is built)
+        const art = !(tab === 'home' && O.current.town?.built?.length) && still(`pg_${tab}`)
+        if (art) {
+          g.drawImage(art, 0, 0, 200, 120)
+          if (O.current.dark && ['home', 'market', 'habits'].includes(tab)) { g.fillStyle = 'rgba(15,23,42,.45)'; g.fillRect(0, 0, 200, 120) }
+        }
         g.setTransform(1, 0, 0, 1, 0, 0)
         fg?.()
       }
@@ -209,6 +224,7 @@ export function BackdropHost({ tab }) {
   const net = useStore((s) => s.ui._netCache)
   const data = useStore((s) => s.items.rpg?.data) || {}
   const party = Object.keys(data.joined || {})
+  setHeroStage(outfitOf(data.maxLevel || 1).stage)
   const pet = (data.owned || {})[data.equip?.pet] ? data.equip.pet : 'pet_fox'
   const hue = (data.owned || {})[data.equip?.skin] ? ({ skin_royal: 120, skin_flame: 200 }[data.equip.skin] || 0) : 0
   const tier = data.tier ?? (net == null ? 1 : net < 0 ? 0 : net < 10000 ? 1 : net < 100000 ? 2 : net < 1000000 ? 3 : 4)

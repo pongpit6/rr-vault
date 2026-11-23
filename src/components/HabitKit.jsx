@@ -1,3 +1,4 @@
+import { Emo } from './px'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Check, Plus, Minus, Moon, Sun, Play, Pause, RotateCcw, BookOpen, Trash2, Utensils, X } from './px'
 import { Sheet, Button, Segmented } from './ui'
@@ -65,7 +66,7 @@ export function HabitRow({ h, H, rpg, big = false }) {
     <div role={tappable ? 'button' : undefined} tabIndex={tappable ? 0 : undefined} onClick={tappable ? () => openHabit(h.id) : undefined}
       className={`habit-row flex items-center gap-3 ${big ? 'py-3' : 'py-2.5'} px-3 ${tappable ? 'cursor-pointer hover:bg-slate-900/[.025]' : ''}`} data-testid={`habit-${h.id}`}>
       <span className={`habit-ico grid place-items-center shrink-0 ${big ? 'w-11 h-11 text-xl' : 'w-9 h-9 text-lg'}`} style={{ background: `${h.color}1a`, color: h.color }}>
-        {done ? <Check size={big ? 20 : 17} strokeWidth={3} /> : h.emoji}
+        {done ? <Check size={big ? 20 : 17} strokeWidth={3} /> : <Emo k={`hb_${h.id}`} e={h.emoji} size={big ? 26 : 22} />}
       </span>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 text-sm font-semibold">
@@ -288,7 +289,7 @@ function ExerciseSheet({ H }) {
       <div className="text-xs text-slate-500">กดทีละเซ็ตเมื่อทำเสร็จ ({SETS} เซ็ต × {REPS} ครั้ง) ทำบางส่วนได้รางวัลบางส่วน ทำครบได้เต็ม · ไม่จำกัดเวลา</div>
       {MOVES.map((m) => (
         <div key={m.id} className="px-inner p-3 flex items-center gap-3" data-testid={`move-${m.id}`}>
-          <span className="text-2xl w-9 text-center">{m.emoji}</span>
+          <span className="text-2xl w-9 text-center grid place-items-center"><Emo k={{ push: 'hb_exercise', squat: 'hb_squat', sit: 'sk_streak3' }[m.id]} e={m.emoji} size={28} /></span>
           <div className="flex-1">
             <div className="text-sm font-semibold">{m.name} <span className="text-[11px] font-normal text-slate-500">{(Math.min(SETS, ex[m.id] || 0)) * REPS}/{SETS * REPS} ครั้ง · สะสม {H.reps[m.id].toLocaleString()}</span></div>
             <div className="flex gap-1.5 mt-1.5">

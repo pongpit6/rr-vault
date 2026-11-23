@@ -9,6 +9,7 @@ import { computeHabits } from './habits'
 import { selectList } from '../store'
 import { useWeather, loadWeather, sceneWeather, thaiEvent, isThaiHoliday, moneyMood } from './world'
 import { doubleDay, decorOnSale } from './festivals'
+import { setHeroStage } from './heroStage'
 import { outfitOf, condition7, shadowRace, birthdayInfo, bdaySkin, storyAct, albumSnap, FREEDOM_STEPS } from './hero'
 import { usePrices } from './prices'
 import { budgetStatus } from './plan'
@@ -424,6 +425,7 @@ function computeRpg({ accounts, txns, settings, balances, summary, unlocked, por
   }
 
   const outfit = outfitOf(lv.level)
+  setHeroStage(outfit.stage)
   const condition = condition7(habitDays, today)
   world.birthday = birthday
 

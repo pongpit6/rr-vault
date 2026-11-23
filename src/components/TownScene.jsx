@@ -43,6 +43,9 @@ export function drawTown(g, t, now, o = {}) {
   const stars = (x, y, lv) => { for (let i = 0; i < lv; i++) R('#facc15', x + i * 3, y, 2, 2) }
   const G = GYH
 
+  // PixelLab backdrop + road, tiled (every other tile mirrored so the seams meet)
+  const bgA = still('town_bg'), grA = still('town_ground')
+  const tile = (im, y, h) => { for (let x = 0, k = 0; x < w; x += im.width, k++) { if (k % 2) { g.save(); g.translate(x + im.width, 0); g.scale(-1, 1); g.drawImage(im, 0, y, im.width, h); g.restore() } else g.drawImage(im, x, y, im.width, h) } }
   // sky + hills + ground
   sky(g, S.top, S.bottom, w)
   if (night) { for (let i = 0; i < 40; i++) { const x = (i * 73) % w, y = (i * 37) % 60; if (Math.sin(now / 500 + i) > -0.2) R('#e0f2fe', x, y, 1, 1) } R('#fef9c3', w - 40, 10, 7, 7) }
@@ -56,6 +59,13 @@ export function drawTown(g, t, now, o = {}) {
   R(GR.dirt, 0, G + 2, w, 30)
   // cobble street
   g.fillStyle = GR.speck; for (let y = G + 5, r = 0; y < 118; y += 4, r++) for (let x = (r % 2) * 4; x < w; x += 8) g.fillRect(x, y, 6, 1)
+  if (bgA && grA) {
+    tile(bgA, G - bgA.height + 4, bgA.height)
+    if (night) { g.fillStyle = 'rgba(15,23,42,.55)'; g.fillRect(0, 0, w, G + 4); for (let i = 0; i < 40; i++) { const x = (i * 73) % w, y = (i * 37) % 50; if (Math.sin(now / 500 + i) > -0.2) R('#e0f2fe', x, y, 1, 1) } R('#fef9c3', w - 40, 10, 7, 7) }
+    else if (S.night > 0) { g.fillStyle = `rgba(251,146,60,${0.25 * Math.min(1, S.night * 4)})`; g.fillRect(0, 0, w, G + 4) }
+    worldBack(g, now, { w, G, night, world: o.world })
+    tile(grA, G, grA.height)
+  }
 
   // gate / sign at the left
   R(C.wood, 4, G - 22, 2, 22); R(C.wood, 13, G - 22, 2, 22); R(C.wood2, 2, G - 24, 15, 3)

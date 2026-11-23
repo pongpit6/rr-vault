@@ -1,3 +1,4 @@
+import { Emo } from '../components/px'
 import { useState } from 'react'
 import { Flame, Swords, Check, Lock, Trophy, ScrollText, Sparkles, MapPin, Backpack, Users, Shield, Store, Map as MapIcon, BookOpen, Eye, Castle } from '../components/px'
 import { ItemSprite, AssetLogo } from '../components/Logos'
@@ -215,7 +216,7 @@ function PartyTab({ rpg }) {
             <GrowthLine rpg={rpg} id={m.id} />
             <div className="flex flex-wrap gap-1.5 mt-2.5">
               {skills.map((k) => (
-                <span key={k.id} className={`text-[11px] px-2 py-1 border ${k.unlocked ? 'border-slate-800 bg-white' : 'border-slate-200 text-slate-400'}`}>{k.icon} {k.name}{!k.unlocked && ` · ${k.lockText}`}</span>
+                <span key={k.id} className={`text-[11px] px-2 py-1 border ${k.unlocked ? 'border-slate-800 bg-white' : 'border-slate-200 text-slate-400'}`}><Emo k={`sk_${k.id}`} e={k.icon} size={16} /> {k.name}{!k.unlocked && ` · ${k.lockText}`}</span>
               ))}
             </div>
           </section>
@@ -275,7 +276,7 @@ function SkillsTab({ rpg }) {
           <div className="space-y-2">
             {rpg.skills.filter((k) => k.member === gp.key).map((k) => (
               <div key={k.id} className={`px-inner p-2.5 flex gap-3 ${k.unlocked ? '' : 'opacity-60'}`}>
-                <div className={`w-10 h-10 grid place-items-center text-xl shrink-0 ${k.unlocked ? 'bg-amber-50' : 'bg-slate-100 grayscale'}`}>{k.unlocked ? k.icon : <Lock size={16} className="text-slate-400" />}</div>
+                <div className={`w-10 h-10 grid place-items-center text-xl shrink-0 ${k.unlocked ? 'bg-amber-50' : 'bg-slate-100 grayscale'}`}>{k.unlocked ? <Emo k={`sk_${k.id}`} e={k.icon} size={28} /> : <Lock size={16} className="text-slate-400" />}</div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2"><span className="font-semibold text-sm">{k.name}</span>{!k.unlocked && <span className="text-[10px] text-amber-700">ปลดล็อก: {k.lockText}</span>}</div>
                   <div className="text-xs text-slate-600 mt-0.5">เมื่อคุณ <b>{k.how}</b> → {k.does}</div>
