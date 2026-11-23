@@ -1,3 +1,4 @@
+import { useStore } from '../store'
 /**
  * Villagers who remember: every line is built from your real data (no AI, just templates).
  * Lines are friendly only, never a scolding: on a quiet day villagers talk about the weather or past wins.
@@ -46,8 +47,12 @@ export function townLines(rpg) {
   else if (tr.logged) say('farmer', 'เห็นท่านจดบัญชีวันนี้แล้ว ข้าก็ไปรดน้ำแปลงผักต่อละ')
   else say('farmer', 'ฟ้าวันนี้ดี เหมาะจะเริ่มอะไรใหม่ ๆ สักอย่าง')
 
-  // merchant: money today, never scolding
-  if (tr.nospend && rpg.noSpendStreak >= 2) say('merchant', `${rpg.noSpendStreak} วันแล้วที่ท่านไม่ซื้ออะไรจากแผงข้าเลย… ข้าเสียลูกค้า แต่ท่านได้เงินเก็บ ยอมรับเลย`)
+  // merchant: money today, never scolding (the BTC cycle comes first when the market is at either end)
+  const cyc = useStore.getState().ui.btcCycle
+  if (cyc?.zone === 'bottom') say('merchant', `ตลาดบิตคอยน์ลดราคา! สัญญาณก้นรอบติดแล้ว ${cyc.bottomHits ?? '?'} ข้อ พ่อค้าเร่ตั้งป้าย SALE แล้ว… แต่กันเงินจ่ายหนี้ให้ครบก่อนนะ`)
+  else if (cyc?.zone === 'top') say('merchant', `หอเตือนภัยชักธงแดง สัญญาณยอดรอบติด ${cyc.peakHits ?? '?'} ข้อแล้ว ช่วงนี้ของแพง ระวังใจตัวเองดี ๆ`)
+  else if (cyc?.zone === 'warm') say('merchant', 'ตลาดเริ่มร้อน หอเตือนภัยชักธงส้มแล้ว ค่อย ๆ ทำตามแผนเดิมไว้นะ')
+  else if (tr.nospend && rpg.noSpendStreak >= 2) say('merchant', `${rpg.noSpendStreak} วันแล้วที่ท่านไม่ซื้ออะไรจากแผงข้าเลย… ข้าเสียลูกค้า แต่ท่านได้เงินเก็บ ยอมรับเลย`)
   else if (tr.nospend) say('merchant', 'วันนี้ท่านเดินผ่านแผงข้าไปเฉย ๆ เก่งมาก กระเป๋าตังค์คงยิ้มอยู่')
   else if (rpg.world.mood?.line) say('merchant', rpg.world.mood.line)
 

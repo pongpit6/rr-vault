@@ -6,13 +6,14 @@ import { Portrait } from './RpgBits'
 import { Sheet } from './ui'
 import { useStore } from '../store'
 import { weatherTH } from '../lib/world'
+import { loadCycle, shareWithTown } from '../lib/btcCycle'
 import { traceList } from './TownTraces'
 import { townLines, storyOf, APPRENTICE } from '../lib/townTalk'
 import { MessageCircle, BookOpen } from 'lucide-react'
 import { LEVEL_REQ, BUILDINGS, HALL, NPCS, DECOR, priceOf, EXCHANGE_WEEKLY, RESIDENTS } from '../lib/town'
 
 /** the living-world props every town scene gets */
-export const sceneWorld = (rpg) => ({ weather: rpg.world.weather, event: rpg.world.event?.id || null, mood: rpg.world.mood.id, btc: rpg.world.btc, aurora: rpg.world.aurora, tree: rpg.world.tree, rank: rpg.rank.id, holiday: rpg.world.holiday })
+export const sceneWorld = (rpg) => ({ cycle: useStore.getState().ui.btcCycle?.zone || null, weather: rpg.world.weather, event: rpg.world.event?.id || null, mood: rpg.world.mood.id, btc: rpg.world.btc, aurora: rpg.world.aurora, tree: rpg.world.tree, rank: rpg.rank.id, holiday: rpg.world.holiday })
 
 /** "ร่องรอยวันนี้": one quiet row of what you did today */
 export function TodayTraces({ rpg, className = '', compact = false }) {
@@ -111,6 +112,8 @@ function Section({ icon: I, title, right, children }) {
 const btn = 'px-3 py-1.5 text-xs font-semibold border-2 border-slate-800 disabled:bg-slate-200 disabled:text-slate-400 disabled:border-slate-300'
 
 export default function TownTab({ rpg }) {
+  const cycleZone = useStore((s) => s.ui.btcCycle?.zone)
+  useEffect(() => { loadCycle().then(shareWithTown).catch(() => {}) }, [])
   const T = rpg.town
   const showToast = useStore((s) => s.showToast)
   const theme = useActiveTheme()

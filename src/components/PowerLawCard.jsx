@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { ChevronRight } from 'lucide-react'
 import { Sheet } from './ui'
 import FearGreedCard, { Gauge, useFngLive } from './FearGreedCard'
+import { CycleTile, CycleDetail } from './CycleKit'
 import { usePrices, fxUSDTHB } from '../lib/prices'
 import { useStore } from '../store'
 import { useVault } from '../lib/useVault'
@@ -193,9 +194,11 @@ export default function PowerLawCard() {
             {net && <div className="h-1.5 rounded-full bg-white/10 mt-2.5 overflow-hidden"><div className="h-full rounded-full" style={{ width: `${Math.max(0, Math.min(1, net.epochPct)) * 100}%`, background: 'linear-gradient(90deg,#8b5cf6,#c4b5fd)' }} /></div>}
             {net && <div className="text-[10px] text-slate-400 mt-1.5">รอบนี้ผ่านไป {(net.epochPct * 100).toFixed(1)}% · รางวัล {net.reward} BTC</div>}
           </Tile>
+          <CycleTile onClick={() => setOpen('cycle')} />
         </div>
       </div>
 
+      <Sheet open={open === 'cycle'} onClose={() => setOpen(null)} title="สัญญาณวัฏจักร Bitcoin" wide><CycleDetail M={M} myAvg={avg || 0} /></Sheet>
       <Sheet open={open === 'price'} onClose={() => setOpen(null)} title="ราคา BTC เทียบ Floor" wide>{detailPanels}</Sheet>
       <Sheet open={open === 'fng'} onClose={() => setOpen(null)} title="Fear & Greed Index · BTC" wide><FearGreedCard bare /></Sheet>
       <Sheet open={open === 'net'} onClose={() => setOpen(null)} title="เครือข่าย Bitcoin วันนี้" wide><NetworkCard net={net} err={netErr} /></Sheet>

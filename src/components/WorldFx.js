@@ -60,6 +60,21 @@ export function worldFront(g, now, { w, G, TH, night, world, hx, hallTop }) {
     const on = Math.floor(now / 350) % 2 === 0
     if (on) { g.fillStyle = world.btc === 'crash' ? 'rgba(244,63,94,.35)' : 'rgba(74,222,128,.35)'; g.fillRect(hx - 2, hallTop - 6, 54, 4) }
   }
+  // BTC cycle: a travelling merchant with a SALE sign near the bottom of the cycle, a watchtower flag near the top
+  if (world.cycle === 'bottom') {
+    const x = 4, bob = Math.floor(now / 400) % 2
+    R(g, '#92400e', x, G - 10, 22, 7); R(g, '#b45309', x, G - 12, 22, 2)            // cart
+    R(g, '#1e293b', x + 3, G - 3, 4, 3); R(g, '#1e293b', x + 15, G - 3, 4, 3)          // wheels
+    R(g, '#fbbf24', x + 4, G - 14, 3, 2); R(g, '#fbbf24', x + 10, G - 15, 3, 3); R(g, '#f97316', x + 16, G - 14, 3, 2) // coins on the cart
+    R(g, '#78350f', x + 24, G - 26, 1, 16)                                              // sign pole
+    R(g, '#dc2626', x + 19, G - 31 + bob, 13, 7); g.fillStyle = '#fff'; g.font = 'bold 5px monospace'; g.fillText('SALE', x + 20, G - 26 + bob)
+  } else if (world.cycle === 'top' || world.cycle === 'warm') {
+    const x = w - 16, wave = Math.floor(now / 220) % 2, c = world.cycle === 'top' ? '#dc2626' : '#f59e0b'
+    R(g, '#57534e', x, G - 30, 8, 30); R(g, '#78716c', x - 2, G - 32, 12, 3)            // tower
+    R(g, '#1c1917', x + 3, G - 24, 2, 3); R(g, '#1c1917', x + 3, G - 14, 2, 3)          // windows
+    R(g, '#1e293b', x + 4, G - 44, 1, 12); R(g, c, x + 5, G - 44 + wave, 7, 4); R(g, c, x + 5, G - 43 + wave, 5, 1) // flag
+    if (world.cycle === 'top' && Math.floor(now / 500) % 2) { g.fillStyle = 'rgba(220,38,38,.25)'; g.fillRect(x - 4, G - 48, 16, 6) }
+  }
   // bloom: flowers along the street when saving is on track
   if (world.mood === 'bloom') for (let i = 0; i < w / 9; i++) { const x = 6 + i * 9 + hash(i) * 4, c = ['#f472b6', '#fde047', '#fb7185', '#c084fc'][i % 4]; R(g, '#16a34a', x, G + 1, 1, 2); R(g, c, x, G + (Math.sin(now / 600 + i) > 0.5 ? -1 : 0), 2, 2) }
   // butterflies by day in calm/bloom weather, fireflies at night
