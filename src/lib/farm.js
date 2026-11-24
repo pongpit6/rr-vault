@@ -214,6 +214,9 @@ export function huntMaps(f, { level, realmTier, power, fx }) {
   return ok.length ? ok : [open[0] || MAPS[0]]
 }
 /** loot odds per win (tuned for idle hunting: daily stamina + 1 an hour, see claude/game-economy.md) */
+/** the two items a map's rare slot can give (half and half) */
+export const rareOf = (map) => (map.id === 'meadow' || map.id === 'forest' ? ['crystal', 'ink'] : ['page', 'ink'])
+export const RARE_ODDS = { normal: 0.02, elite: 0.08, boss: 0.3 }
 export const LOOT = { trophy: 0.36, mat: 0.3, shard: { normal: 0.0045, elite: 0.009, boss: 0.015 }, mcrystal: { normal: 0.02, elite: 0.065, boss: 0.2 } }
 /** one fight. f = data.farm (mutated copy), day = today's usage (mana is spent here). returns a log entry */
 export function fight(f, day, ctx, mapId = f.map) {
@@ -248,8 +251,8 @@ export function fight(f, day, ctx, mapId = f.map) {
     if (rnd() < matChance) { add(mat(), big); if (rnd() < 0.15 + (fx.rl_bag || 0) / 100) add(mat(), 1) }
     if (proc('hawk')) add(mat(), 1)
     // slot 3: something rare
-    const rare = (mon.kind === 'boss' ? 0.3 : mon.kind === 'elite' ? 0.08 : 0.02) + ((fx.rl_map || 0) + (fx.enh?.ring || 0) + (fx.shadowRare || 0)) / 100
-    if (rnd() < rare) add(map.id === 'meadow' || map.id === 'forest' ? (rnd() < 0.5 ? 'crystal' : 'ink') : rnd() < 0.5 ? 'page' : 'ink', 1)
+    const rare = RARE_ODDS[mon.kind] + ((fx.rl_map || 0) + (fx.enh?.ring || 0) + (fx.shadowRare || 0)) / 100
+    if (rnd() < rare) add(rnd() < 0.5 ? rareOf(map)[0] : rareOf(map)[1], 1)
     // gold shards (very rare) and magic crystals for enhancing gear
     if (rnd() < LOOT.shard[mon.kind]) add('shard', 1)
     if (rnd() < LOOT.mcrystal[mon.kind]) add('mcrystal', 1)
@@ -281,6 +284,17 @@ export function defendRaid(f, raid, ctx) {
     if (rnd() < LOOT.mcrystal[mon.kind]) add('mcrystal', 1)
   }
   return res
+}
+
+/** what a material is really used for, read from the current relics, recipes, skills and enhancing (so the text never goes stale) */
+export function matUse(k) {
+  const out = []
+  for (const r of RELICS) if (r.need.some((n) => n[k])) out.push(r.name)
+  for (const r of RECIPES) if (r.need[k]) out.push(r.name)
+  if (k === 'page' || k === 'ink' || k === 'star') out.push('อัปสกิลขั้น 4–5')
+  if (k === 'mcrystal') out.push('ตีบวกอุปกรณ์ +1 ถึง +10')
+  if (k === 'shard') return `รวม ${SHARDS_PER_GOLD} เศษเป็น 1 GOLD (ขายไม่ได้)`
+  return out.length ? `ใช้ทำ: ${[...new Set(out)].join(', ')}` : 'ขายร้านได้'
 }
 
 /* ---------------- selling ---------------- */

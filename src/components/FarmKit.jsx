@@ -4,8 +4,8 @@ import { Emo, PxIcon, hasPx } from './px'
 import { Portrait } from './RpgBits'
 import FarmScene from './FarmScene'
 import { useStore } from '../store'
-import { MAPS, MAP_BY_ID, MON_BY_ID, MATS, TREE, rankCost, RECIPES, mapUnlocked, itemName, itemPrice, itemIcon, RELICS, RELIC_BY_ID, NPC_INFO, SHADOWS, SHADOW_SLOT_LV, enhStep, ENH_FX, SHARDS_PER_GOLD, MAP_MODES, huntMaps, mapWinRate } from '../lib/farm'
-import { monPower, BOSS_AFTER, trophyPrice, bossOf, eliteOf } from '../lib/farmData'
+import { MAPS, MAP_BY_ID, MON_BY_ID, MATS, TREE, rankCost, RECIPES, mapUnlocked, itemName, itemPrice, itemIcon, RELICS, RELIC_BY_ID, NPC_INFO, SHADOWS, SHADOW_SLOT_LV, enhStep, ENH_FX, SHARDS_PER_GOLD, MAP_MODES, huntMaps, mapWinRate, LOOT, RARE_ODDS, rareOf, matUse } from '../lib/farm'
+import { monPower, BOSS_AFTER, trophyPrice, bossOf, eliteOf, normalsOf } from '../lib/farmData'
 import { MAP_LORE, MON_LORE, STORY, STORY_STEPS } from '../lib/farmLore'
 import { Sheet } from './ui'
 
@@ -178,7 +178,7 @@ function Bag({ rpg }) {
       <Card icon={Hammer} title="MATERIALS · วัสดุ" testid="farm-mats">
         <div className="text-[11px] text-slate-500 mb-2">ส่งให้ชาวเมืองทำของติดตัว หรือขายก็ได้</div>
         {mats.length ? <div className="space-y-1.5">{mats.map(([k, v]) => (
-          <div key={k} className="px-inner p-1.5 flex items-center gap-2 text-xs"><ItemIcon k={k} /><div className="flex-1 min-w-0"><div className="font-semibold">{MATS[k]?.name} ×{v}</div><div className="text-slate-500 truncate">{MATS[k]?.use}</div></div>{k === 'shard' ? <button className="px-btn !py-1 text-xs shrink-0" disabled={v < SHARDS_PER_GOLD} onClick={() => { const n = rpg.combineShards(); if (n) showToast(`หลอมได้ ${n} GOLD`) }} data-testid="combine-shards">หลอม {Math.floor(v / SHARDS_PER_GOLD)} GOLD</button> : MATS[k]?.noSell ? null : <button className="text-[11px] ui-link shrink-0" onClick={() => sell([k])}>ขาย {(itemPrice(k) * v).toLocaleString()}</button>}</div>
+          <div key={k} className="px-inner p-1.5 flex items-center gap-2 text-xs"><ItemIcon k={k} /><div className="flex-1 min-w-0"><div className="font-semibold">{MATS[k]?.name} ×{v}</div><div className="text-slate-500 truncate">{k.startsWith("t:") ? "ขายร้านได้อย่างเดียว" : matUse(k)}</div></div>{k === 'shard' ? <button className="px-btn !py-1 text-xs shrink-0" disabled={v < SHARDS_PER_GOLD} onClick={() => { const n = rpg.combineShards(); if (n) showToast(`หลอมได้ ${n} GOLD`) }} data-testid="combine-shards">หลอม {Math.floor(v / SHARDS_PER_GOLD)} GOLD</button> : MATS[k]?.noSell ? null : <button className="text-[11px] ui-link shrink-0" onClick={() => sell([k])}>ขาย {(itemPrice(k) * v).toLocaleString()}</button>}</div>
         ))}</div> : <div className="text-sm text-slate-400">ยังไม่มีวัสดุ</div>}
       </Card>
     </div>
@@ -265,6 +265,7 @@ function Dex({ rpg }) {
   )
 }
 
+const pct = (x) => `${+(x * 100).toFixed(2)}%`
 const KIND_TH = { normal: 'มอนสเตอร์ทั่วไป', elite: 'หัวหน้า', boss: 'บอสประจำแผนที่' }
 /** one monster: lore of its land and of itself, power, drops (shown even before you meet it, its name stays hidden) */
 function MonSheet({ mon, seen, onClose }) {
@@ -286,9 +287,11 @@ function MonSheet({ mon, seen, onClose }) {
         <div>
           <div className="text-[11px] text-slate-500 mb-1">ของที่ดรอป</div>
           <div className="space-y-1.5">
-            <div className="px-inner p-2 flex items-center gap-2 text-xs"><ItemIcon k={`t:${mon.id}`} /><div className="flex-1"><b>{mon.trophy}</b> · ของประจำตัว (ขายร้านได้อย่างเดียว)<div className="text-slate-500">{mon.kind === 'normal' ? 'โอกาส 55%' : 'ดรอปทุกครั้ง'} · {trophyPrice(mon)} FIAT</div></div></div>
-            {map.mats.map((k) => <div key={k} className="px-inner p-2 flex items-center gap-2 text-xs"><ItemIcon k={k} /><div className="flex-1"><b>{MATS[k].name}</b> · วัสดุ{mon.kind === 'boss' ? ' ×4' : mon.kind === 'elite' ? ' ×2' : ''}<div className="text-slate-500">{MATS[k].use}</div></div></div>)}
-            {mon.kind === 'boss' && <div className="px-inner p-2 flex items-center gap-2 text-xs"><ItemIcon k="page" /><div className="flex-1"><b>{MATS.page.name}</b> · โอกาส 30%<div className="text-slate-500">{MATS.page.use}</div></div></div>}
+            <div className="px-inner p-2 flex items-center gap-2 text-xs"><ItemIcon k={`t:${mon.id}`} /><div className="flex-1"><b>{mon.trophy}</b> · ของประจำตัว (ขายร้านได้อย่างเดียว)<div className="text-slate-500">{mon.kind === 'normal' ? `โอกาส ${pct(LOOT.trophy)}` : 'ดรอปทุกครั้ง'} · {trophyPrice(mon)} FIAT</div></div></div>
+            {map.mats.map((k) => <div key={k} className="px-inner p-2 flex items-center gap-2 text-xs"><ItemIcon k={k} /><div className="flex-1"><b>{MATS[k].name}</b> · วัสดุ{mon.kind === 'boss' ? ' ×4' : mon.kind === 'elite' ? ' ×2' : ''}<div className="text-slate-500">โอกาส {pct(LOOT.mat)}+ (สุ่ม 1 ใน {map.mats.length} ชนิด) · {matUse(k)}</div></div></div>)}
+            {rareOf(map).map((k) => <div key={k} className="px-inner p-2 flex items-center gap-2 text-xs"><ItemIcon k={k} /><div className="flex-1"><b>{MATS[k].name}</b> · ของหายาก<div className="text-slate-500">โอกาส {pct(RARE_ODDS[mon.kind] / 2)} · {matUse(k)}</div></div></div>)}
+            <div className="px-inner p-2 flex items-center gap-2 text-xs"><ItemIcon k="mcrystal" /><div className="flex-1"><b>{MATS.mcrystal.name}</b> · ใช้ตีบวก<div className="text-slate-500">โอกาส {pct(LOOT.mcrystal[mon.kind])} · {matUse('mcrystal')}</div></div></div>
+            <div className="px-inner p-2 flex items-center gap-2 text-xs bg-amber-50"><ItemIcon k="shard" /><div className="flex-1"><b>{MATS.shard.name}</b> · หายากมาก<div className="text-slate-500">โอกาส {pct(LOOT.shard[mon.kind])} · {matUse('shard')}</div></div></div>
           </div>
         </div>
       </div>
@@ -305,7 +308,8 @@ function Story({ rpg }) {
         const u = mapUnlocked(m, { level: rpg.level, realmTier: rpg.realm.tier }).ok
         const kills = f.kills?.[m.id] || 0, boss = f.bossKills?.[m.id] || 0
         const open = [u, u && kills >= 15, u && boss > 0]
-        const cast = (i) => (i === 0 ? m.mons.slice(0, 6) : i === 1 ? [...m.mons.slice(6, 12), eliteOf(m)] : [bossOf(m)])
+        const nm = normalsOf(m), half = Math.ceil(nm.length / 2)
+        const cast = (i) => (i === 0 ? nm.slice(0, half) : i === 1 ? [...nm.slice(half), eliteOf(m)] : [bossOf(m)])
         return (
           <section key={m.id} className="px-card overflow-hidden">
             <div className="h-20 relative" style={{ backgroundImage: `url(./sprites/map_${m.id}.png)`, backgroundSize: 'cover', backgroundPosition: 'center 70%', imageRendering: 'pixelated', filter: u ? 'none' : 'grayscale(1) brightness(.6)' }}>
@@ -318,7 +322,7 @@ function Story({ rpg }) {
                 <div key={i} className={`px-inner p-2.5 ${open[i] ? '' : 'opacity-60'}`}>
                   <div className="text-[11px] font-bold mb-1">บทที่ {i + 1} {open[i] ? '' : <>· <PxIcon name="Lock" size={11} /> {i === 0 ? 'ปลดล็อกแผนที่ก่อน' : STORY_STEPS[i]}</>}</div>
                   {open[i] ? <div className="text-sm">{text}</div> : <div className="text-sm text-slate-400">…</div>}
-                  <div className="flex gap-1 mt-1.5">{cast(i).map((x) => <div key={x.id} title={x.name}><Portrait sprite={`mon_${x.id}`} size={i === 2 ? 48 : 30} dim={!open[i] || !f.dex?.[x.id]} /></div>)}</div>
+                  <div className="flex flex-wrap gap-1 mt-1.5">{cast(i).map((x) => <div key={x.id} title={x.name}><Portrait sprite={`mon_${x.id}`} size={i === 2 ? 48 : 30} dim={!open[i] || !f.dex?.[x.id]} /></div>)}</div>
                 </div>
               ))}
             </div>
