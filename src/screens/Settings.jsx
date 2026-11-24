@@ -71,7 +71,9 @@ export default function Settings({ opt }) {
 
   return (
     <div className="space-y-5 max-w-2xl">
-      <h1 className="text-2xl font-bold pt-2">ตั้งค่า <span className="text-[11px] font-normal text-slate-400 align-middle" data-testid="build-stamp">เวอร์ชัน {__BUILD__}</span></h1>
+      <h1 className="text-2xl font-bold pt-2">ตั้งค่า <span className="text-[11px] font-normal text-slate-400 align-middle" data-testid="build-stamp">เวอร์ชัน {__BUILD__}</span>
+        <button className="ml-2 align-middle text-[11px] font-normal px-2 py-0.5 rounded border border-slate-300 text-slate-500" data-testid="force-update"
+          onClick={async () => { try { for (const r of await navigator.serviceWorker?.getRegistrations?.() || []) await r.unregister(); for (const k of await caches.keys()) if (k !== 'vault-share') await caches.delete(k) } catch { /* offline or unsupported */ } location.reload() }}>อัปเดตแอปเดี๋ยวนี้</button></h1>
 
       <section className="hero p-5 flex items-center gap-4">
         <button onClick={() => setAvatarOpen(true)} className="relative">

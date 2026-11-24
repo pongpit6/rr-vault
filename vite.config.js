@@ -36,10 +36,18 @@ export default defineConfig({
         ],
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,png,jpg,svg,woff2}'],
+        // precache only the app shell so a new version installs fast and reliably on phones;
+        // sprites and the icon atlas are cached at runtime the first time they are shown
+        globPatterns: ['**/*.{js,css,html,woff2}', '*.{png,jpg,svg}'],
+        globIgnores: ['icons-px.png'],
         navigateFallback: 'index.html',
         importScripts: ['share-target.js'],
         runtimeCaching: [
+          {
+            urlPattern: ({ url }) => /\/(sprites\/.*|icons-px)\.png$/.test(url.pathname),
+            handler: 'StaleWhileRevalidate',
+            options: { cacheName: 'art', expiration: { maxEntries: 2000 } },
+          },
           {
             urlPattern: /^https:\/\/fonts\.(googleapis|gstatic)\.com\/.*/i,
             handler: 'CacheFirst',
