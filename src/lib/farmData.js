@@ -102,22 +102,22 @@ export const MAP_BY_ID = Object.fromEntries(MAPS.map((m) => [m.id, m]))
 
 /** shared materials: every one has a use at the workshop, and can be sold */
 export const MATS = {
-  herb: { name: 'สมุนไพร', price: 1, use: 'ปรุงยาฟื้นพลัง · ของติดตัว · สวนสมุนไพร' },
-  fruit: { name: 'ผลไม้ป่า', price: 1, use: 'ของติดตัว (ชาวนา) · สวนสมุนไพร' },
-  wood: { name: 'ไม้', price: 2, use: 'ชุดวัสดุก่อสร้าง · ของตกแต่ง' },
-  fiber: { name: 'ใยพืช', price: 1, use: 'ด้าย (ย้อมชุด)' },
-  stone: { name: 'หิน', price: 2, use: 'ชุดวัสดุก่อสร้าง · ของตกแต่ง' },
-  iron: { name: 'แร่เหล็ก', price: 3, use: 'ชุดวัสดุก่อสร้าง' },
-  crystal: { name: 'ผลึกใส', price: 4, use: 'ของตกแต่งพิเศษ · ยาชั้นสูง' },
-  hide: { name: 'หนังสัตว์', price: 2, use: 'ของตกแต่ง' },
-  feather: { name: 'ขนนก', price: 2, use: 'ของตกแต่ง' },
-  cloth: { name: 'ผ้า', price: 3, use: 'ของตกแต่ง · ย้อมชุด' },
-  dye: { name: 'สีย้อม', price: 3, use: 'ย้อมสีชุด' },
-  ink: { name: 'หมึกเวท', price: 4, use: 'อัปสกิลขั้นสูง' },
-  page: { name: 'หน้าคัมภีร์', price: 10, use: 'อัปสกิลขั้นสูง (ได้จากหีบวินัยและบอส)', rare: true },
-  mcrystal: { name: 'คริสตัลเวท', price: 8, use: 'ตีบวกอุปกรณ์ (+1 ถึง +10)', rare: true },
-  shard: { name: 'เศษทองคำ', price: 0, use: 'รวม 10 เศษเป็น 1 GOLD (ขายไม่ได้)', rare: true, noSell: true },
-  star: { name: 'ดาวแห่งวินัย', price: 30, use: 'สกิลขั้นสูงสุด · ของตกแต่งตำนาน (ได้จากหีบวินัยเท่านั้น)', rare: true },
+  herb: { name: 'สมุนไพร', price: 1 },
+  fruit: { name: 'ผลไม้ป่า', price: 1 },
+  wood: { name: 'ไม้', price: 2 },
+  fiber: { name: 'ใยพืช', price: 1 },
+  stone: { name: 'หิน', price: 2 },
+  iron: { name: 'แร่เหล็ก', price: 3 },
+  crystal: { name: 'ผลึกใส', price: 4 },
+  hide: { name: 'หนังสัตว์', price: 2 },
+  feather: { name: 'ขนนก', price: 2 },
+  cloth: { name: 'ผ้า', price: 3 },
+  dye: { name: 'สีย้อม', price: 3 },
+  ink: { name: 'หมึกเวท', price: 4 },
+  page: { name: 'หน้าคัมภีร์', price: 10, rare: true },
+  mcrystal: { name: 'คริสตัลเวท', price: 8, rare: true },
+  shard: { name: 'เศษทองคำ', price: 0, rare: true, noSell: true },
+  star: { name: 'ดาวแห่งวินัย', price: 30, rare: true },
 }
 
 /** trophy sell price (FIAT): grows with the map; elites ×2, bosses ×5 */

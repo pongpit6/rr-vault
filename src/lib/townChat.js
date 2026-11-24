@@ -12,6 +12,7 @@ import { APPRENTICE, storyOf } from './townTalk'
 
 const PARTY = { healer: { name: 'ลูน่า', sprite: 'healer' }, mage: { name: 'ไพร์', sprite: 'mage' }, ranger: { name: 'ฟิน', sprite: 'ranger' } }
 const fmt = (n) => Math.round(n).toLocaleString('th-TH')
+const privacyless = (n) => (useStore.getState().ui.privacy ? '฿•••' : `฿${fmt(n)}`)
 const pick = (arr, seed) => arr[Math.abs(seed) % arr.length]
 
 /** who can talk right now: id → { name, sprite } */
@@ -111,6 +112,68 @@ export function townChats(rpg) {
   const cyc = useStore.getState().ui.btcCycle
   if (cyc?.zone === 'bottom' && S.mage) add(2, ['mage', 'merchant'], [['merchant', 'บิตคอยน์ลดราคาแล้ว! ซื้อเลยไหม'], ['mage', 'ใจเย็น ทยอยซื้อตามแผนดีกว่า'], ['hero', 'เห็นด้วยกับไพร์ ไม่ทุ่มหมดหน้าตัก']])
   if (cyc?.zone === 'top') add(2, ['merchant'], [['merchant', 'ตลาดร้อนมาก ใคร ๆ ก็พูดถึงแต่บิตคอยน์'], ['hero', 'ตอนคนตื่นเต้นที่สุด คือตอนที่ต้องระวังที่สุด'], ['merchant', 'คำพูดนี้ข้าขอจดไว้!']])
+
+  // ---------- every other part of the game and your money ----------
+  const by = (...ids) => ids.find((id) => S[id]) // first speaker who lives in town
+  const f2 = rpg.farm || {}, bag = f2.bag || {}, v = rpg.vault || {}, sum = v.summary || {}
+  const cur = rpg.chronicle?.cur, prevS = rpg.chronicle?.prevSame
+  // level, skills, chests and quests
+  if ((rpg.skillPts || 0) > 0) add(2, [by('banker', 'merchant')], [[by('banker', 'merchant'), `ท่านมีแต้มสกิลค้างอยู่ ${rpg.skillPts} แต้มนะ`], ['hero', 'ลืมไปเลย เดี๋ยวไปลงที่แท็บสกิล'], [by('banker', 'merchant'), 'แต้มที่ไม่ได้ใช้ ก็เหมือนเงินที่จอดนิ่ง ไม่งอกเงยหรอก']])
+  if (S.mage && (rpg.skillPts || 0) > 0) add(2, ['mage'], [['mage', 'ข้าอยากได้อุกกาบาตขั้นต่อไปจัง แต้มสกิลยังเหลือไหม'], ['hero', `เหลือ ${rpg.skillPts} แต้ม เดี๋ยวลงให้`]])
+  if ((rpg.chests || []).length) add(3, ['farmer'], [['farmer', `มีหีบวินัยรอท่านอยู่ ${rpg.chests.length} ใบนะ อยู่ในแท็บชาวเมืองของหน้าล่า`], ['hero', 'ของรางวัลจากวินัยจริง ๆ ต้องรีบไปเปิด'], ['farmer', 'หีบนี้เงินซื้อไม่ได้ ได้จากความอดทนเท่านั้น']])
+  if (rpg.chestReady) add(2, ['merchant'], [['merchant', 'หีบรายวันของท่านยังไม่ได้เปิดเลยนะ'], ['hero', 'จริงด้วย เดี๋ยวไปเปิด'], ['merchant', 'เปิดฟรีทุกวัน ไม่เปิดก็เสียของ']])
+  if (rpg.collectReady) add(2, [by('farmer')], [['farmer', `รายได้เมืองสะสมไว้ ${rpg.collectDays} วันแล้ว (+${fmt(rpg.collectAmount || 0)} FIAT)`], ['hero', 'เก็บได้ที่ไหนนะ'], ['farmer', 'กดเก็บใต้ฉากเมืองเลย เก็บไว้ได้สูงสุด 7 วัน']])
+  const claimable = (rpg.quests || []).filter((q) => q.done && !q.claimedAt)
+  if (claimable.length) add(3, [by('guard', 'merchant')], [[by('guard', 'merchant'), `เควสต์ “${claimable[0].name}” ทำสำเร็จแล้ว รอรับรางวัลอยู่นะ`], ['hero', 'ไปรับที่แท็บบอสและเควสต์ใช่ไหม'], [by('guard', 'merchant'), 'ใช่แล้ว อย่าปล่อยให้รางวัลรอนาน']])
+  if (rpg.monthBoss && !rpg.monthBoss.chosen && (rpg.monthBoss.options || []).length) add(2, [by('guard', 'farmer')], [[by('guard', 'farmer'), 'เดือนนี้ท่านยังไม่ได้เลือกบอสประจำเดือนเลย'], ['hero', 'มีให้เลือกอะไรบ้างนะ'], [by('guard', 'farmer'), 'ทุกตัวสูงกว่าเดือนก่อนแค่ก้าวเดียว เลือกตัวที่ท้าทายแต่ทำได้']])
+  if (rpg.monthBoss?.chosen && !rpg.monthBoss.done) add(2, [by('guard', 'farmer')], [[by('guard', 'farmer'), `บอสประจำเดือน “${rpg.monthBoss.chosen.name}” ทำไปแล้ว ${fmt(rpg.monthBoss.progress)}/${fmt(rpg.monthBoss.chosen.target)}`], ['hero', 'อีกนิดเดียว จะไม่ยอมแพ้']])
+  if (rpg.monthBoss?.done) add(3, [by('bard', 'merchant')], [[by('bard', 'merchant'), `ท่านปราบบอสประจำเดือน “${rpg.monthBoss.chosen.name}” แล้ว!`], ['hero', 'เดือนหน้าจะท้าตัวที่ยากกว่านี้']])
+  // debt bosses, goals and the story act
+  const debt = (rpg.bosses || []).filter((b) => b.active && !b.isGoal).sort((a, b) => b.hp - a.hp)[0]
+  if (debt && debt.maxHp) {
+    const pctLeft = Math.round((debt.hp / debt.maxHp) * 100)
+    add(2, [by('guard', 'farmer')], [[by('guard', 'farmer'), `${debt.name} เหลือพลังอีก ${pctLeft}% แล้ว`], ['hero', pctLeft > 50 ? 'ยังอีกไกล แต่ทุกงวดที่จ่ายคือแผลใหม่' : 'เหลือไม่ถึงครึ่ง ใกล้ชนะแล้ว!'], [by('guard', 'farmer'), 'ข้าเห็นท่านไม่ยอมแพ้มาตลอด']])
+  }
+  if (rpg.act?.free) add(2, ['farmer'], [['farmer', 'ตั้งแต่ปราบหนี้หมด เมืองเราดูสว่างขึ้นเยอะเลย'], ['hero', 'ภาคใหม่คือให้เงินลงทุนทำงานแทนบ้าง'], ['farmer', `ตอนนี้อิสรภาพทางการเงิน ${(rpg.act.freedom * 100).toFixed(1)}% แล้วนะ`]])
+  const goal = (rpg.goalBosses || rpg.bosses || []).find((b) => b.isGoal && b.active)
+  if (goal) add(2, [by('fisher', 'farmer')], [[by('fisher', 'farmer'), `เป้าหมาย “${goal.name}” เหลืออีก ${privacyless(goal.hp)}`], ['hero', 'ค่อย ๆ เติมทุกเดือน'], [by('fisher', 'farmer'), 'เป้าหมายที่มีตัวเลข ไปถึงง่ายกว่าความฝันลอย ๆ']])
+  // realm and net worth
+  if (rpg.nextRealm && rpg.realmNet != null) add(1, ['merchant'], [['merchant', `ได้ยินว่าอีกไม่ไกลท่านจะย้ายไป${rpg.nextRealm.name}`], ['hero', 'ยังต้องเพิ่มมูลค่าสุทธิอีกหน่อย'], ['merchant', 'ข้าจะย้ายแผงตามไปด้วย ฮ่า ๆ']])
+  // money this month
+  if (cur && prevS && cur.exp < prevS.exp && cur.exp > 0) add(3, ['merchant', 'farmer'], [['merchant', 'เดือนนี้ท่านใช้เงินน้อยกว่าเดือนก่อน ณ วันเดียวกันนะ'], ['farmer', 'ข้าบอกแล้วว่าเขาทำได้'], ['hero', 'ตัดของที่ไม่จำเป็นออกไปหลายอย่าง']])
+  if (cur && cur.saveRate != null && cur.saveRate >= 0.2) add(3, [by('banker', 'fisher', 'farmer')], [[by('banker', 'fisher', 'farmer'), `เดือนนี้ท่านเก็บได้ ${Math.round(cur.saveRate * 100)}% ของรายรับแล้ว`], ['hero', 'แบ่งเก็บก่อนใช้ทุกครั้งที่เงินเข้า'], [by('banker', 'fisher', 'farmer'), 'สูตรนี้แหละที่คนรวยใช้กัน']])
+  if (cur && cur.noSpendDays >= 3) add(2, ['merchant'], [['merchant', `เดือนนี้ท่านมีวันไม่ใช้เงินแล้ว ${cur.noSpendDays} วัน`], ['hero', 'ตั้งใจว่าจะให้ได้มากกว่าเดือนก่อน']])
+  const dleft = (iso) => Math.round((new Date(iso) - new Date(new Date().toDateString())) / 864e5)
+  const due = Object.entries(v.cycles || {}).map(([id, c]) => ({ c: c && { ...c, daysLeft: dleft(c.dueDate) }, a: v.accById?.[id] })).find(({ c }) => c && !c.overdue && c.billDue > 0 && c.daysLeft >= 0 && c.daysLeft <= 3)
+  if (due) add(3, [by('guard', 'merchant')], [[by('guard', 'merchant'), `บิล${due.a?.name || 'บัตรเครดิต'}ครบกำหนดในอีก ${due.c.daysLeft} วันนะ`], ['hero', 'กันเงินไว้แล้ว จ่ายเต็มจำนวนแน่นอน'], [by('guard', 'merchant'), 'ดี! จ่ายทันเวลา มังกรดอกเบี้ยก็ไม่ตื่น']])
+  if ((rpg.portfolioValue || 0) > 0 && S.mage) add(1, ['mage'], [['mage', 'ข้าแอบดูคลังลงทุนมา ของในนั้นค่อย ๆ โตอยู่นะ'], ['hero', 'ไม่ต้องดูทุกวันก็ได้ไพร์ ปล่อยให้มันทำงาน']])
+  if (sum.coverage != null && sum.coverage >= 1 && S.healer) add(2, ['healer'], [['healer', 'เงินกันจ่ายหนี้ครบแล้ว ข้ากางบาเรียไว้ให้ตลอด'], ['hero', 'ขอบคุณลูน่า อุ่นใจขึ้นเยอะ']])
+  if (w.sale) add(3, ['merchant'], [['merchant', `วันนี้วันเลขเบิ้ล ${w.sale.label || ''} ลดกระหน่ำ! สนใจอะไรไหม`], ['hero', 'ผ่านไปก่อน ของลดราคาที่ไม่ได้ใช้ก็ยังแพงอยู่ดี'], ['merchant', 'ถ้าวันนี้ท่านไม่ใช้เงินเลย ข้ายอมแพ้ให้ 1 GOLD!']])
+  // your body and habits
+  const hb = h?.by || {}
+  if (rpg.condition?.id === 'fit') add(2, [by('smith', 'farmer')], [[by('smith', 'farmer'), 'เจ็ดวันมานี้ท่านนอนตรง ออกกำลัง ทำสมาธิครบ ร่างกายฟิตเต็มที่'], ['hero', 'พลังกายได้เพิ่มอีก 5 ด้วย']])
+  if (rpg.condition?.id === 'worn') add(2, ['farmer'], [['farmer', 'ท่านดูล้า ๆ ช่วงนี้ อย่าหักโหมนะ'], ['hero', 'จะนอนให้ตรงเวลามากขึ้น'], ['farmer', 'ร่างกายพักดี ทุกอย่างก็ดีตาม']])
+  if ((hb.exercise?.streak || 0) >= 3) add(2, [by('smith', 'guard', 'farmer')], [[by('smith', 'guard', 'farmer'), `ออกกำลังกายติดกัน ${hb.exercise.streak} วันแล้ว!`], ['hero', 'ถึง 14 วันจะสร้างโรงฝึกได้']])
+  if ((hb.read?.streak || 0) >= 3) add(2, [by('apprentice', 'farmer')], [[by('apprentice', 'farmer'), `ท่านอ่านหนังสือติดกัน ${hb.read.streak} วันแล้วนะ`], ['hero', 'ก่อนนอนวันละนิด ติดเป็นนิสัยแล้ว']])
+  if ((hb.meditate?.streak || 0) >= 3) add(2, [by('bard', 'merchant')], [[by('bard', 'merchant'), `สมาธิติดกัน ${hb.meditate.streak} วัน ท่านดูนิ่งขึ้นจริง ๆ`], ['hero', 'ใจนิ่ง ก็ไม่ซื้อของตามอารมณ์']])
+  if ((hb.nocarb?.streak || 0) >= 3) add(2, [by('baker', 'merchant')], [[by('baker', 'merchant'), `${hb.nocarb.streak} วันแล้วที่ไม่แตะแป้งกับน้ำตาล`], ['hero', 'ร่างกายเบาขึ้นเยอะเลย']])
+  if ((h?.finished?.length || 0) > 0) add(1, [by('apprentice', 'banker', 'farmer')], [[by('apprentice', 'banker', 'farmer'), `ท่านอ่านจบไปแล้ว ${h.finished.length} เล่ม`], ['hero', `เล่มล่าสุดคือ “${h.finished[0]?.title || 'หนังสือดี ๆ'}”`]])
+  if ((h?.learnt || 0) >= 50 && S.visitor == null) add(1, [by('banker', 'farmer')], [[by('banker', 'farmer'), `จำศัพท์ได้ ${fmt(h.learnt)} คำแล้ว ไปเที่ยวต่างประเทศได้สบาย`], ['hero', 'ตอนนี้กำลังหัดเขียนตัวอักษรด้วย']])
+  // hunting, gear, relics and shadows
+  if ((bag.shard || 0) >= 7) add(2, [by('banker', 'merchant')], [[by('banker', 'merchant'), `ท่านมีเศษทองคำ ${bag.shard} เศษแล้ว อีกนิดก็หลอมเป็น GOLD ได้`], ['hero', 'ครบ 10 เศษเมื่อไหร่จะหลอมทันที']])
+  if ((bag.mcrystal || 0) >= 3 && S.smith) add(2, ['smith'], [['smith', `คริสตัลเวท ${bag.mcrystal} ก้อนนั่น เอามาตีบวกอุปกรณ์ได้นะ`], ['hero', 'ถ้าเกิน +5 แล้วพลาด จะลดขั้นใช่ไหม'], ['smith', 'ใช่ แต่ไม่มีวันแตก ข้ารับประกัน']])
+  if ((rpg.staminaLeft || 0) === 0) add(1, ['farmer'], [['farmer', 'ทีมกลับมาพักแล้ว พลังกายหมดเกลี้ยง'], ['hero', 'ทุกชั่วโมงได้คืน 1 แต้ม หรือไปทำวินัยเพิ่มก็ได้'], ['farmer', 'งั้นข้าว่าไปออกกำลังกายดีกว่า ได้ทั้งสุขภาพทั้งพลัง']])
+  if (f2.mapMode === 'safe' || f2.mapMode === 'all') add(1, [by('guard', 'farmer')], [[by('guard', 'farmer'), 'ทีมวนล่าหลายแผนที่เลยนะช่วงนี้'], ['hero', `ตั้งให้ล่า${f2.mapMode === 'safe' ? 'เฉพาะที่ชนะ 70% ขึ้นไป' : 'ทุกแผนที่ที่สู้ไหว'}ไว้`]])
+  if (Object.keys(f2.relics || {}).length && S.smith) add(1, ['smith'], [['smith', 'ของติดตัวที่ชาวเมืองทำให้ ใช้ดีไหม'], ['hero', 'ดีมาก อัปขั้นต่อได้ถ้ามีวัสดุครบ']])
+  if ((rpg.shadowSlots || 0) > (f2.shadowWorn || []).length && Object.keys(f2.shadows || {}).length) add(1, ['merchant'], [['merchant', 'ช่องทหารเงายังว่างอยู่นะ ไม่ส่งออกรบเหรอ'], ['hero', 'จริงด้วย ไปจัดทีมที่แท็บปาร์ตี้ก่อน']])
+  // the town itself
+  const T = rpg.town || {}
+  const empty = (T.plots || []).filter((b) => !b).length
+  if (empty > 0) add(1, ['farmer'], [['farmer', `ที่ดินว่างอีก ${empty} แปลงนะ จะสร้างอะไรดี`], ['hero', 'ฟาร์มหรือบ้านพักน่าจะคุ้มก่อน'], ['farmer', 'ฟาร์มสร้างได้ถึง 3 แปลง ข้าช่วยดูแลให้']])
+  if ((T.npcSlots || 0) > (T.npcs || []).length) add(1, ['merchant'], [['merchant', 'โรงเตี๊ยมยังมีห้องว่าง จ้างคนมาช่วยงานเมืองไหม'], ['hero', 'ขอดูก่อนว่าใครให้โบนัสอะไร']])
+  if (T.happiness != null && T.happiness < 40) add(2, [by('bard', 'farmer')], [[by('bard', 'farmer'), 'ชาวเมืองดูเหงา ๆ นะช่วงนี้'], ['hero', 'เดี๋ยวหาของตกแต่งกับนักกวีมาเพิ่มความสุข']])
+  if (rpg.world?.birthday?.week) add(3, ['farmer', 'merchant'], [['farmer', `สัปดาห์นี้ทั้งเมืองฉลองวันเกิดท่าน${me}!`], ['merchant', 'ข้าลดราคาให้วันเดียว ฮ่า ๆ'], ['hero', 'ขอบคุณทุกคนมาก ปีนี้จะดีกว่าปีที่แล้ว']])
+  if ((rpg.gold || 0) >= 1 && rpg.exchangeRate) add(1, [by('banker', 'merchant')], [[by('banker', 'merchant'), `ตอนนี้เรตแลก GOLD อยู่ที่ ${fmt(rpg.exchangeRate)} FIAT`], ['hero', 'ทองหายาก เก็บไว้ใช้กับของสำคัญ']])
 
   // ---------- villagers among themselves ----------
   add(1, ['merchant', 'farmer'], [['merchant', 'ลุง ซื้อจอบใหม่ไหม รุ่นล่าสุดเลย'], ['farmer', 'จอบเก่ายังใช้ได้ดี ซ่อมนิดหน่อยก็พอ'], ['merchant', 'ลุงไม่เคยซื้ออะไรจากข้าเลย!'], ['farmer', 'ก็เพราะงั้นข้าถึงมีเงินเก็บไง']])
