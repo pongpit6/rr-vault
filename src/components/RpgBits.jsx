@@ -1,3 +1,4 @@
+import { sceneCheers } from '../lib/townChat'
 import { useEffect, useMemo, useState } from 'react'
 import { Flame, ChevronRight, PxIcon } from './px'
 import BattleScene, { skinUrl, heroSheet, petSprite } from './BattleScene'
@@ -30,7 +31,7 @@ export function sceneProps(rpg) {
   return {
     bosses: rpg.bosses, tier: rpg.realm.tier, fog: rpg.debtFog, level: rpg.level, weather: rpg.weather, chest: rpg.chestReady,
     party: rpg.party, gear: rpg.gearBy, pet: rpg.pet.sprite, skinHue: rpg.skin?.hue || 0, decos: rpg.decos,
-    storm: rpg.skills.find((k) => k.id === 'storm')?.unlocked, captions: statusLines(rpg),
+    storm: rpg.skills.find((k) => k.id === 'storm')?.unlocked, captions: statusLines(rpg), cheers: sceneCheers(rpg),
   }
 }
 

@@ -124,3 +124,28 @@ export function townChats(rpg) {
   add(1, ['farmer'], [['hero', 'ลุงว่าการเก็บเงินที่ยากที่สุดคืออะไร'], ['farmer', 'คือการเริ่ม พอเริ่มแล้ว ที่เหลือก็แค่ทำซ้ำ'], ['hero', 'งั้นผมผ่านด่านยากที่สุดมาแล้วสินะ']])
   return C
 }
+
+/** villagers who walk into the battle scene to cheer you on: [{ sprite, name, lines: [[who, text]] }], from today's town chat
+ *  (only conversations between one villager and the hero; party members are already on stage) plus a few plain cheers */
+export function sceneCheers(rpg) {
+  const S = speakers(rpg), out = []
+  const stage = new Set(['hero', 'healer', 'mage', 'ranger'])
+  for (const c of townChats(rpg).sort((a, b) => b.w - a.w)) {
+    const npcs = [...new Set(c.lines.map(([w]) => w).filter((w) => !stage.has(w)))]
+    if (npcs.length !== 1 || !S[npcs[0]]) continue
+    out.push({ id: npcs[0], sprite: S[npcs[0]].sprite, name: S[npcs[0]].name, w: c.w, lines: c.lines.slice(0, 3) })
+  }
+  const me = S.hero.name, tr = rpg.traces || {}
+  const plain = [
+    ['farmer', [['farmer', `สู้ ๆ นะท่าน${me}! ทั้งหมู่บ้านเชียร์อยู่`], ['hero', 'ขอบคุณครับลุง!']]],
+    ['merchant', [['merchant', 'ปราบบอสได้เมื่อไหร่ ข้าจะลดราคาให้ฉลอง!'], ['hero', 'จำไว้นะ ห้ามเบี้ยว']]],
+    ['guard', [['guard', 'ข้าคุมหลังให้ ท่านลุยหน้าได้เต็มที่!']]],
+    ['bard', [['bard', '♪ ทีละก้าว ทีละบาท สักวันหนี้จะหมดไป ♪'], ['hero', 'เพลงนี้ให้กำลังใจดีนะ']]],
+    ['fisher', [['fisher', 'ใจเย็น ๆ เหมือนตกปลา เดี๋ยวบอสก็อ่อนแรงเอง']]],
+    ['apprentice', [['apprentice', `ข้าจดเรื่องของท่าน${me}ไว้ในจดหมายเหตุทุกวันเลยนะ!`]]],
+    ['visitor', [['visitor', 'ขอให้ผ่านทุกด่านไปได้ด้วยดี!'], ['hero', 'ขอบคุณที่แวะมานะ']]],
+  ]
+  if (tr.paid) plain.unshift(['guard', [['guard', 'วันนี้ท่านจ่ายหนี้แล้ว! บอสเจ็บหนักเลย'], ['hero', 'อีกนิดเดียว!']]])
+  for (const [id, lines] of plain) if (S[id]) out.push({ id, sprite: S[id].sprite, name: S[id].name, w: 1, lines })
+  return out
+}

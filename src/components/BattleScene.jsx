@@ -200,7 +200,7 @@ const BT_GROUND = [95, 93, 97, 92, 93]
 /* ---------------- component ---------------- */
 export default function BattleScene({
   bosses, events = [], onConsumed, tier = 1, fog = 0, big = false, level = 1, hud = true, weather = 'sun', chest = false, onChest,
-  party = [], gear = null, pet = 'pet_fox', skinHue = 0, decos = {}, storm = false, captions = [], previewTier = null, previewName = '',
+  party = [], gear = null, pet = 'pet_fox', skinHue = 0, decos = {}, storm = false, captions = [], previewTier = null, previewName = '', cheers = [],
 }) {
   const W = 400, H = big ? 220 : 176
   const canvasRef = useRef(null)
@@ -216,7 +216,7 @@ export default function BattleScene({
   const backRow = useMemo(() => ['healer', 'mage', 'ranger'].filter((id) => party.some((p) => p.id === id && p.joined)), [party])
   const S = useRef({ queue: [], fx: [], hpShown: {}, focus: null, focusUntil: 0, cycleStart: 0, cycle: 0, current: null, dying: 0, heal: 0, shake: 0, flash: 0, heroFlash: 0, levelGlow: 0, petX: 40, petHop: 0, heroJump: 0, poke: 0, nextTalk: 0, smoke: [], drops: [], bolt: 0, act: null, proj: [], dome: 0, glow: 0 })
   const P = useRef({})
-  P.current = { bosses, alive, tier: previewTier ?? tier, fog: previewTier != null ? (previewTier === 0 ? 0.4 : 0) : fog, privacy, weather, chest, backRow, gear, pet, skinHue, decos, storm }
+  P.current = { bosses, alive, tier: previewTier ?? tier, fog: previewTier != null ? (previewTier === 0 ? 0.4 : 0) : fog, privacy, weather, chest, backRow, gear, pet, skinHue, decos, storm, cheers }
 
   // ingest real events: rewind displayed HP to the pre-event value, then replay them as attacks
   useEffect(() => {
@@ -226,6 +226,7 @@ export default function BattleScene({
       for (const e of events) if (e.boss) delta[e.boss] = (delta[e.boss] || 0) + (e.type === 'hit' ? e.amount : -e.amount)
       for (const b of bosses) if (delta[b.id] !== undefined) s.hpShown[b.id] = Math.max(0, b.hp + delta[b.id])
       s.queue.push(...events)
+      if (s.visit && s.visit.st === 'idle') s.visit.next = Math.min(s.visit.next, performance.now() + 2500)
       onConsumed?.()
     }
     for (const b of bosses) if (!s.queue.some((e) => e.boss === b.id && !e._done)) s.hpShown[b.id] = b.hp
@@ -292,10 +293,8 @@ export default function BattleScene({
     const clouds = [[10, 10, 14], [80, 18, 10], [140, 8, 16]]
     const stars = Array.from({ length: 26 }, () => [Math.random() * BW, Math.random() * (BH * 0.45), Math.random() * 6])
     const gy = H - 30 // feet line (full res)
-    const npcs = [
-      { name: 'npc_merchant', x: 230, dir: 1, sp: 0.018, nat: 1, minTier: 1, pause: 0 },
-      { name: 'npc_farmer', x: 280, dir: -1, sp: 0.014, nat: -1, minTier: 2, pause: 0 },
-    ]
+    // a villager from your town walks in now and then, cheers you on (the hero may answer), then walks off
+    s.visit = s.visit || { st: 'idle', next: last + 4000, x: -48, li: 0, until: 0, n: 0, c: null }
     const drops = Array.from({ length: 70 }, () => [Math.random() * W, Math.random() * H, 0.5 + Math.random()])
     const birds = [[-20, 30, 0.03], [-60, 22, 0.026]]
     s.nextTalk = performance.now() + 3500
@@ -496,18 +495,23 @@ export default function BattleScene({
       // ---- sprites (full res) ----
       g.setTransform(1, 0, 0, 1, shx, shy)
       const wet = P.current.weather === 'rain' || P.current.weather === 'storm'
-      for (const n of npcs) {
-        if (tier < n.minTier) continue
-        if (n.pause > 0) n.pause -= dt
-        else {
-          n.x += n.dir * n.sp * dt * (wet ? 2.2 : 1)
-          if (n.x > W - 30 || n.x < 200) { n.dir *= -1; n.pause = 800 + Math.random() * 2500 }
-          if (Math.random() < dt / 9000) n.pause = 1200 + Math.random() * 1800
+      {
+        const V = s.visit, list = P.current.cheers || []
+        const { heroBaseX } = layout()
+        const target = Math.max(6, heroBaseX - 34 * (P.current.backRow.length + 1) - 22)
+        if (V.st === 'idle' && now >= V.next && list.length && previewTier == null) { V.c = list[V.n++ % list.length]; V.st = 'in'; V.x = -48 }
+        if (V.st === 'in') { V.x += dt * 0.07; if (V.x >= target) { V.x = target; V.st = 'talk'; V.li = -1; V.until = 0 } }
+        if (V.st === 'talk' && now >= V.until) {
+          V.li++
+          const ln = V.c.lines[V.li]
+          if (!ln) V.st = 'out'
+          else { const hero = ln[0] === 'hero'; say(hero ? 'hero' : 'npc', ln[1], hero ? heroBaseX + 27 : V.x + 22, gy - (hero ? 70 : 50), 2600); V.until = now + 2800 }
         }
-        const step = n.pause > 0 ? 0 : (Math.floor(now / 160) % 2)
-        g.globalAlpha = 0.85
-        drawStill(g, n.name, n.x - 12, gy - 24 - step, 24, n.dir !== n.nat)
-        g.globalAlpha = 1
+        if (V.st === 'out') { V.x -= dt * 0.08; if (V.x < -50) { V.st = 'idle'; V.next = now + 45000 + Math.random() * 15000 } }
+        if (V.st !== 'idle' && V.c) {
+          const walking = V.st === 'in' || V.st === 'out'
+          drawStill(g, V.c.sprite, V.x, gy - (walking && Math.floor(now / 160) % 2 ? 1 : 0), 44, V.st === 'out')
+        }
       }
       if (P.current.chest) {
         const cb = Math.sin(now / 250) > 0.6 ? 1 : 0
