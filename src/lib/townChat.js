@@ -3,6 +3,7 @@
  * Every conversation is a few lines back and forth, picked from what really happened today
  * (habits, money, hunting, raids, festivals, weather, time of day). Friendly only, never a scolding.
  */
+import { CARD_BY_ID as TAROT } from './fortune/tarot'
 import { useStore } from '../store'
 import { NPC_BY_ID, RESIDENTS } from './town'
 import { visitorFor } from './festivals'
@@ -37,6 +38,18 @@ export function townChats(rpg) {
   const me = S.hero.name
   const C = []
   const add = (w8, need, lines) => { if (need.every((id) => S[id])) C.push({ w: w8, lines }) }
+
+  // ---------- the fortune room: today's tarot card ----------
+  const pick = (...ids) => ids.find((id) => S[id])
+  if (rpg.tarot) {
+    const nm = TAROT[rpg.tarot.id]?.th || 'ไพ่', good = rpg.tarot.luck >= 4, sp = pick('bard', 'merchant', 'baker', 'farmer')
+    if (sp) add(1.2, [sp], good
+      ? [[sp, `ได้ข่าวว่าเช้านี้${me}จั่วได้ไพ่ “${nm}” ดวงดีเลยนี่!`], ['hero', 'ไพ่บอกให้ลงมือทำเลยวันนี้'], [sp, 'งั้นไปล่าให้ได้ของดี ๆ มาฝากด้วยนะ']]
+      : [[sp, `ไพ่วันนี้ของ${me}คือ “${nm}” ใช่ไหม`], ['hero', 'ใช่ ไพ่บอกให้ระวังตัวหน่อย'], [sp, 'ไม่เป็นไร ค่อย ๆ ทำทีละเรื่อง พรุ่งนี้ค่อยจั่วใหม่']])
+  } else {
+    const sp = pick('bard', 'merchant')
+    if (sp && tod === 'morning') add(0.6, [sp], [[sp, 'ห้องหมอดูเปิดแล้วนะ ไปจั่วไพ่ประจำวันหรือยัง'], ['hero', 'ยังเลย เดี๋ยวไปจั่ว'], [sp, 'ไพ่ดีวันนั้นล่ามอนได้ของเพิ่ม บางทีก็ได้พลังกายฟรีด้วย!']])
+  }
 
   // ---------- greetings by the time of day ----------
   if (tod === 'morning') {

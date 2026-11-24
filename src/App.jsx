@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from 'react'
-import { LayoutDashboard, Plus, Wallet, Settings as Cog, Swords, LineChart, Sprout } from './components/px'
+import { useEffect, useRef, useState, lazy, Suspense } from 'react'
+import { LayoutDashboard, Plus, Wallet, Settings as Cog, Swords, LineChart, Sprout, PxIcon } from './components/px'
 import { applyAccent, DEFAULT_ACCENT } from './lib/accent'
 import Reminders from './components/Reminders'
 import { HabitHost } from './components/HabitKit'
@@ -10,6 +10,7 @@ import Money from './screens/Money'
 import Settings from './screens/Settings'
 import VaultRpg from './screens/VaultRpg'
 import Invest from './screens/Invest'
+const Fortune = lazy(() => import('./screens/Fortune'))
 import Habits from './screens/Habits'
 import Onboarding from './components/Onboarding'
 import ErrorBoundary from './components/ErrorBoundary'
@@ -31,12 +32,15 @@ import { processDueSubs } from './lib/subs'
 import { processInstallments } from './lib/installments'
 import { useSlipReminder } from './lib/slipSummary'
 
+/** ดวงชะตา uses the PixelLab crystal ball from the icon atlas */
+function CrystalBall({ size = 18, className = '' }) { return <PxIcon name="ft_ball" size={size} className={className} /> }
 const NAV = [
   { id: 'home', label: 'หน้าแรก', icon: LayoutDashboard },
   { id: 'money', label: 'เงิน', icon: Wallet },
   { id: 'habits', label: 'นิสัย', icon: Sprout },
   { id: 'portfolio', label: 'ลงทุน', icon: LineChart },
   { id: 'vault', label: 'เมือง', icon: Swords },
+  { id: 'fortune', label: 'ดวงชะตา', icon: CrystalBall },
   { id: 'settings', label: 'ตั้งค่า', icon: Cog },
 ]
 const ALL_TABS = NAV.map((n) => n.id)
@@ -190,7 +194,7 @@ export default function App() {
       if (e.target.closest('input,textarea,select') || e.metaKey || e.ctrlKey || document.querySelector('.fixed.inset-0.z-50')) return
       if (e.key === 'n' || e.key === 'N') { e.preventDefault(); setForm({}) }
       if (e.key === 't' || e.key === 'T') { e.preventDefault(); setTrade({}) }
-      if (e.key >= '1' && e.key <= '6') setTab(NAV[Number(e.key) - 1].id)
+      if (e.key >= '1' && e.key <= '7') setTab(NAV[Number(e.key) - 1].id)
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
@@ -215,6 +219,7 @@ export default function App() {
     habits: <Habits go={go} opt={tabOpt} />,
     portfolio: <Invest onTrade={setTrade} opt={tabOpt} />,
     vault: <VaultRpg onAdd={onAdd} go={go} />,
+    fortune: <Suspense fallback={<div className="py-10 text-center text-sm text-slate-500">กำลังเปิดห้องหมอดู…</div>}><Fortune opt={tabOpt} /></Suspense>,
     settings: <Settings opt={tabOpt} />,
   }[tab] || null
 
@@ -239,11 +244,15 @@ export default function App() {
             <n.icon size={18} className={tab === n.id ? 'text-ac' : ''} /> {n.label}
           </button>
         ))}
-        <div className="text-[11px] text-slate-400 px-2">คีย์ลัด: N บันทึก · T ซื้อขาย · 1-6 สลับหน้า</div>
+        <div className="text-[11px] text-slate-400 px-2">คีย์ลัด: N บันทึก · T ซื้อขาย · 1-7 สลับหน้า</div>
       </aside>
 
       <main className="relative flex-1 min-w-0 px-4 md:px-8 pt-safe pb-28 md:pb-10">
         {tab !== 'vault' && <BackdropHost tab={tab} />}
+        {/* mobile: settings moved from the bottom bar to a gear at the top right */}
+        {tab !== 'home' && <button onClick={() => go('settings')} aria-label="ตั้งค่า" data-testid="gear" className={`md:hidden absolute right-3 z-30 w-10 h-10 grid place-items-center rounded-full border ${tab === 'settings' ? 'bg-slate-900/[.08] border-slate-300' : 'bg-white/85 border-slate-200'} backdrop-blur shadow-sm`} style={{ top: 'calc(env(safe-area-inset-top, 0px) + 8px)' }}>
+          <Cog size={22} />
+        </button>}
         <div className={`relative z-10 max-w-6xl mx-auto pt-3 md:pt-6 ${tab !== 'vault' && backdrop ? 'has-backdrop' : ''}`} key={tab}><ErrorBoundary>{screen}</ErrorBoundary></div>
       </main>
 
@@ -257,7 +266,7 @@ export default function App() {
               <Plus size={24} strokeWidth={2.6} />
             </button>
           </div>
-          {NAV.slice(3).map((n) => <NavBtn key={n.id} n={n} active={tab === n.id} onClick={() => go(n.id)} />)}
+          {NAV.slice(3, 6).map((n) => <NavBtn key={n.id} n={n} active={tab === n.id} onClick={() => go(n.id)} />)}
         </div>
       </nav>
 

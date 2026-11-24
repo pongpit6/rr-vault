@@ -191,18 +191,21 @@ export const HOUR_MS = 3600e3
 export const happyBonusChance = (happiness = 0) => Math.max(0, Math.min(100, happiness)) / 200
 const hourRoll = (hourIdx) => { let x = Math.imul(hourIdx ^ 0x9e3779b9, 2654435761) >>> 0; x = Math.imul(x ^ (x >>> 15), 2246822507) >>> 0; return (x % 10000) / 10000 }
 /** the hourly bank right now: what's banked + whole hours since it was last counted (+ the happiness bonus for those hours) */
-export function hourlyOf(f, now = Date.now(), happiness = 0) {
+export function hourlyOf(f, now = Date.now(), happiness = 0, tarot = null) {
   const h = f.hourly
-  if (!h?.at) return { bank: 0, at: new Date(now).toISOString(), nextIn: HOUR_MS, bonus: 0, bonusToday: 0 }
+  if (!h?.at) return { bank: 0, at: new Date(now).toISOString(), nextIn: HOUR_MS, bonus: 0, bonusToday: 0, tarot: 0 }
   const start = new Date(h.at).getTime(), since = Math.max(0, now - start), gained = Math.floor(since / HOUR_MS)
   const chance = happyBonusChance(happiness), today = new Date(now).toDateString()
-  let bonus = 0, bonusNewToday = 0
+  let bonus = 0, bonusNewToday = 0, tb = 0
   for (let i = 1; i <= gained; i++) {
-    const t = start + i * HOUR_MS
-    if (hourRoll(Math.floor(t / HOUR_MS)) < chance) { bonus++; if (new Date(t).toDateString() === today) bonusNewToday++ }
+    const t = start + i * HOUR_MS, hi = Math.floor(t / HOUR_MS)
+    if (hourRoll(hi) < chance) { bonus++; if (new Date(t).toDateString() === today) bonusNewToday++ }
+    // today's tarot card: a chance every hour (after the draw) for 1–3 free stamina
+    const ts = tarot && tarot[new Date(t + 7 * HOUR_MS).toISOString().slice(0, 10)]
+    if (ts && t >= ts.from && hourRoll(hi + 7777) < ts.chance / 100) tb += ts.min + Math.floor(hourRoll(hi + 9191) * (ts.max - ts.min + 1))
   }
   const prevToday = h.bonusDay === today ? h.bonusN || 0 : 0
-  return { bank: (h.bank || 0) + gained + bonus, at: new Date(start + gained * HOUR_MS).toISOString(), nextIn: HOUR_MS - (since % HOUR_MS), bonus, bonusToday: prevToday + bonusNewToday, bonusDay: today }
+  return { bank: (h.bank || 0) + gained + bonus + tb, at: new Date(start + gained * HOUR_MS).toISOString(), nextIn: HOUR_MS - (since % HOUR_MS), bonus, bonusToday: prevToday + bonusNewToday, bonusDay: today, tarot: tb }
 }
 /** hunting gives a little XP too: 1 per win, at most this many a day (real life stays the main source) */
 export const HUNT_XP_PER_WIN = 1, HUNT_XP_DAY = 30

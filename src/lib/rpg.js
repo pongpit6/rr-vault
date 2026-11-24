@@ -10,6 +10,9 @@ import { selectList } from '../store'
 import { useWeather, loadWeather, sceneWeather, thaiEvent, isThaiHoliday, moneyMood } from './world'
 import { doubleDay, decorOnSale } from './festivals'
 import { setHeroStage, setHeroSkin, setPetStage } from './heroStage'
+import { tarotBuff, tarotStam } from './fortune/tarot'
+/** today's tarot card adds its buff on top of the card album (outside the album caps) */
+const withTarot = (card, t) => { if (!t) return card; const o = { ...card }; for (const [k, v] of Object.entries(t.fx)) o[k] = Math.round(((o[k] || 0) + v) * 100) / 100; return o }
 import { cardFx, addCard, shopCards, sundayOf, sellPrice, cardPrice } from './cards'
 import { mapUnlocked, MAPS, MON_BY_ID, energyOf, partyPower, fight, emptyFarm, chestsDue, chestLoot, rankCost, RECIPES, CRAFT_DECOR, itemPrice, SKILLS_V, RELIC_BY_ID, relicFx, relicSlots, shadowFx, shadowSlots, SHADOW_BY_ID, enhStep, SHARDS_PER_GOLD, raidsOf, defendRaid, hourlyOf, huntMaps, IDLE_AWAY_MS, IDLE_LIVE_MS, HUNT_XP_PER_WIN, HUNT_XP_DAY } from './farm'
 import { outfitOf, condition7, shadowRace, birthdayInfo, bdaySkin, storyAct, albumSnap, FREEDOM_STEPS } from './hero'
@@ -449,17 +452,19 @@ function computeRpg({ accounts, txns, settings, balances, summary, unlocked, por
 
   const farm = { ...emptyFarm(), ...(data.farm || {}) }
   if (farm.skillsV !== SKILLS_V) farm.skills = {} // skills were rebalanced: every point comes back
-  const fxR = { ...relicFx(farm), ...shadowFx(farm), enh: farm.enh || {}, card: cardFx(farm) }
+  const fortune = useStore.getState().items.fortune?.data || null
+  const tarot = tarotBuff(fortune)
+  const fxR = { ...relicFx(farm), ...shadowFx(farm), enh: farm.enh || {}, card: withTarot(cardFx(farm), tarot) }
   const energy0 = energyOf({ traces, habitDays, condition, today })
   const energy = { ...energy0, stamina: energy0.stamina + (fxR.shadowStamina || 0), mana: energy0.mana + (fxR.rl_dust || 0) + (fxR.shadowMana || 0) }
   const skillPts = lv.level + (farm.bonusPts || 0) - Object.values(farm.skills || {}).reduce((s, r) => s + [0, 1, 2, 3, 4, 6][r], 0)
   const power = partyPower({ level: lv.level, gear: party.gear, party: party.party, skills: farm.skills, traces, fx: fxR })
   const used = farm.day?.date === today ? farm.day : { date: today, runs: 0, mana: 0 }
-  const hourly = hourlyOf(farm, Date.now(), town.happiness)
+  const hourly = hourlyOf(farm, Date.now(), town.happiness, tarotStam(fortune))
   const chests = chestsDue({ habits: h, rpg: { noSpendStreak, monthBoss, quests, bosses, budgetMonth: budgetMonthOk ? lmKey : null }, today }).filter((c) => !(farm.chests || {})[c.key])
 
   return {
-    outfit, condition, shadow, act, birthday, energy, farm, skillPts, power, chests, relicFx: fxR, relicSlots: relicSlots(lv.level), shadowSlots: shadowSlots(lv.level),
+    outfit, condition, shadow, act, birthday, energy, farm, skillPts, power, chests, relicFx: fxR, tarot, relicSlots: relicSlots(lv.level), shadowSlots: shadowSlots(lv.level),
     staminaDaily: Math.max(0, energy.stamina - used.runs), staminaBank: hourly.bank, nextHourIn: hourly.nextIn, happyBonusToday: hourly.bonusToday, huntXpToday: farm.huntXp?.date === today ? farm.huntXp.day || 0 : 0,
     staminaLeft: Math.max(0, energy.stamina - used.runs) + hourly.bank, manaLeft: Math.max(0, energy.mana - used.mana),
     inventory: portfolio.open, portfolioValue: portfolio.value,
@@ -482,7 +487,8 @@ export function useRpg() {
   const rpgItem = useStore((s) => s.items.rpg)
   const data = (rpgItem && !rpgItem.deleted && rpgItem.data) || {}
   const unlocked = data.unlocked || {}
-  const key = JSON.stringify([v.balances, v.txns.length, v.txns[0]?.id, v.txns[0]?.amount, rpgItem?.rev, todayISO(), Math.round(v.portfolio.value / 10), privacy])
+  const fortuneRev = useStore((s) => s.items.fortune?.rev)
+  const key = JSON.stringify([v.balances, v.txns.length, v.txns[0]?.id, v.txns[0]?.amount, rpgItem?.rev, fortuneRev, todayISO(), Math.round(v.portfolio.value / 10), privacy])
   const items = useStore((s) => s.items)
   const goals = useMemo(() => Object.values(items).filter((i) => i.kind === 'goal' && !i.deleted).map((i) => i.data), [items])
   const budgets = useMemo(() => Object.values(items).filter((i) => i.kind === 'budget' && !i.deleted).map((i) => i.data), [items])
@@ -703,9 +709,10 @@ export function useRpg() {
   const farmFight = (n = 1, away = null) => {
     const f = F(); f.bag = { ...f.bag }; f.kills = { ...f.kills }; f.dex = { ...f.dex }
     const day = dayOf(f), logs = [], nowMs = Date.now()
-    const hr = hourlyOf(f, nowMs, rpg.town.happiness)
+    const fortune = useStore.getState().items.fortune?.data || null
+    const hr = hourlyOf(f, nowMs, rpg.town.happiness, tarotStam(fortune))
     let bank = hr.bank
-    const fx = { ...relicFx(f), ...shadowFx(f), enh: f.enh || {}, card: cardFx(f) }
+    const fx = { ...relicFx(f), ...shadowFx(f), enh: f.enh || {}, card: cardFx(f) }, baseCard = fx.card
     const ctx = { power: rpg.power, skills: f.skills || {}, joined: rpg.party.filter((p) => p.joined).map((p) => p.id), hard: rpg.energy.hard, traces: rpg.traces, mana: rpg.energy.mana, fx }
     const maps = huntMaps(f, { level: rpg.level, realmTier: rpg.realm.tier, power: rpg.power, fx })
     for (let i = 0; i < n; i++) {
@@ -715,7 +722,7 @@ export function useRpg() {
       const m = maps[(f.runs || 0) % maps.length]
       // a catch-up replays the fights at the times they happened (one every IDLE_AWAY_MS), so night hunts count as night
       const atMs = away ? Math.min(nowMs, new Date(away).getTime() + (i + 1) * IDLE_AWAY_MS) : nowMs
-      const l = fight(f, day, { ...ctx, at: new Date(atMs) }, m.id)
+      const l = fight(f, day, { ...ctx, fx: { ...fx, card: withTarot(baseCard, tarotBuff(fortune, atMs)) }, at: new Date(atMs) }, m.id)
       logs.push({ ...l, seq: f.runs, at: new Date(atMs).toISOString() })
     }
     if (!logs.length) return []

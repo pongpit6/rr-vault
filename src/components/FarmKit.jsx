@@ -1,3 +1,4 @@
+import { CARD_BY_ID, cardArt, effectLines, LUCK_TEXT } from '../lib/fortune/tarot'
 import { useEffect, useState } from 'react'
 import { Swords, Backpack, Hammer, BookOpen, Zap, Lock, Gift, Sparkles, ScrollText, Castle as Castle2, Ghost, Gem } from './px'
 import { Emo, PxIcon, hasPx } from './px'
@@ -137,6 +138,7 @@ function Hunt({ rpg }) {
         <div className="p-3 space-y-2">
           <div className="text-[11px] text-slate-500">{map.name}: บอส “{bossOf(map).name}” จะออกมาเมื่อล่าครบ {bossNext} ตัว (ตอนนี้ {kills})</div>
           <Bar pct={kills / bossNext} color="#ef4444" />
+          <TarotStrip t={rpg.tarot} />
           <div className="flex gap-1 flex-wrap text-[10px]" data-testid="farm-passives">
             {TREE.filter((t) => (f.skills?.[t.id] || 0) > 0).map((t) => <span key={t.id} className="px-inner px-1.5 py-0.5 flex items-center gap-1"><Emo k={t.icon} size={14} />{t.name} {t.kind === 'chance' ? `${Math.round(t.chance(f.skills[t.id]) * 100)}%` : `ขั้น ${f.skills[t.id]}`}</span>)}
             {(f.worn || []).map((id) => <span key={id} className="px-inner px-1.5 py-0.5 flex items-center gap-1 bg-amber-50"><Emo k={id} size={14} />{RELIC_BY_ID[id]?.name}</span>)}
@@ -322,6 +324,17 @@ function FacingCheck({ onClose }) {
 const KIND_TH = { normal: 'มอนสเตอร์ทั่วไป', elite: 'หัวหน้า', boss: 'บอสประจำแผนที่' }
 /** one monster: lore of its land and of itself, power, drops (shown even before you meet it, its name stays hidden) */
 /** time of day on the hunt scene: what the night gives (ล่ายามราตรี) */
+/** today's tarot card (drawn in ดวงชะตา) and what it does to the hunt */
+function TarotStrip({ t }) {
+  if (!t) return <div className="text-[10px] text-slate-500 flex items-center gap-1" data-testid="tarot-strip"><Emo k="tr_back" size={14} />ยังไม่ได้จั่วไพ่วันนี้ · จั่วที่เมนูดวงชะตา › ไพ่ยิปซี แล้วไพ่จะเพิ่มพลังให้การล่าทั้งวัน</div>
+  return (
+    <div className="flex items-center gap-2 text-[10px] px-inner p-1.5" data-testid="tarot-strip">
+      <img src={cardArt(t.id)} alt="" className="w-6 h-9" style={{ imageRendering: 'pixelated', transform: t.rev ? 'rotate(180deg)' : undefined }} />
+      <div className="flex-1"><b>ไพ่วันนี้: {CARD_BY_ID[t.id].en}{t.rev ? ' (กลับหัว)' : ''}</b> · {LUCK_TEXT[t.luck]}<div className="text-slate-500">{effectLines(t).map((l) => l.text).join(' · ')}</div></div>
+    </div>
+  )
+}
+
 function PhaseBadge() {
   const [, tick] = useState(0)
   useEffect(() => { const iv = setInterval(() => tick((x) => x + 1), 60000); return () => clearInterval(iv) }, [])

@@ -165,6 +165,7 @@ const SCENES = {
       drawStill(g, o.pet || 'pet_fox', x - 40, GY, 26)
     }
   },
+  fortune(g) { sky(g, '#1e1b4b', '#4c1d95') }, // PixelLab art pg_fortune covers it
   settings(g, now) {
     const s = skyFor(18)
     sky(g, s.top, s.bottom); hills(g, ...s.hill)

@@ -176,3 +176,16 @@ html[data-theme^="pixel"] .ui-fab-notch { background: var(--px-card); border: 2p
 /* collector cards: 8-frame PixelLab idle strip (frames 0-4-1 ping-pong) */
 .card-anim { animation: cardAnim 1.2s steps(8) infinite; }
 @keyframes cardAnim { from { background-position: 0 0; } to { background-position: 114.2857% 0; } }
+
+/* fortune: tarot shuffle / flip / reveal */
+.tarot-card { display: block; padding: 0; background: none; border: 0; }
+.tarot-card img { filter: drop-shadow(2px 3px 0 rgba(15, 23, 42, .25)); }
+.tarot-sh0 { animation: tarotSh 0.45s ease-in-out 3; }
+.tarot-sh1 { animation: tarotSh 0.45s ease-in-out 0.15s 3 reverse; }
+.tarot-sh2 { animation: tarotSh2 0.45s ease-in-out 0.3s 3; }
+@keyframes tarotSh { 0%, 100% { transform: translateX(0) rotate(0) } 50% { transform: translateX(-46px) rotate(-8deg) } }
+@keyframes tarotSh2 { 0%, 100% { transform: translateX(0) rotate(0) } 50% { transform: translateX(46px) rotate(8deg) } }
+.tarot-flip { animation: tarotBob 1.6s ease-in-out infinite; }
+@keyframes tarotBob { 0%, 100% { transform: translateY(0) } 50% { transform: translateY(-6px) } }
+.tarot-in { animation: tarotIn 0.6s ease-out; transform-origin: center; }
+@keyframes tarotIn { 0% { transform: perspective(600px) rotateY(90deg) scale(.9) } 100% { transform: perspective(600px) rotateY(0) scale(1) } }
