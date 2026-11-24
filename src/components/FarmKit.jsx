@@ -8,7 +8,7 @@ import HuntFull from './HuntFull'
 import { GLOW_CARD_MULT, GLOW_CARD, CARD_DROP, abilityOf, cardPct } from '../lib/cards'
 import { useStore } from '../store'
 import { MAPS, MAP_BY_ID, MON_BY_ID, MATS, TREE, rankCost, RECIPES, mapUnlocked, itemName, itemPrice, itemIcon, RELICS, RELIC_BY_ID, NPC_INFO, SHADOWS, SHADOW_SLOT_LV, enhStep, ENH_FX, SHARDS_PER_GOLD, MAP_MODES, huntMaps, mapWinRate, LOOT, RARE_ODDS, rareOf, matUse, happyBonusChance, HUNT_XP_PER_WIN, HUNT_XP_DAY } from '../lib/farm'
-import { monPower, BOSS_AFTER, trophyPrice, bossOf, eliteOf, normalsOf } from '../lib/farmData'
+import { monPower, BOSS_AFTER, trophyPrice, bossOf, eliteOf, normalsOf, mirrorMon, toggleFaceFix, faceFixes, clearFaceFixes } from '../lib/farmData'
 import { MAP_LORE, MON_LORE, STORY, STORY_STEPS } from '../lib/farmLore'
 import { Sheet } from './ui'
 import { todOf, isFullMoon, NIGHT } from '../lib/timeOfDay'
@@ -265,9 +265,11 @@ function Craft({ rpg }) {
 function Dex({ rpg }) {
   const dex = rpg.farm.dex || {}, gdex = rpg.farm.glowDex || {}
   const glowAll = Object.values(gdex).filter((v) => v > 0).length
-  const [open, setOpen] = useState(null)
+  const [open, setOpen] = useState(null), [face, setFace] = useState(false)
   return (
     <div className="space-y-3">
+      <button onClick={() => setFace(true)} className="px-btn w-full text-[12px]" data-testid="face-open">ตรวจทิศหน้ามอนสเตอร์ (แตะตัวที่หันผิด)</button>
+      {face && <FacingCheck onClose={() => setFace(false)} />}
       <div className="px-inner p-3 text-[12px] text-indigo-100" style={{ background: '#1e1b4b' }} data-testid="glow-dex"><div className="flex items-center gap-1.5 font-semibold text-amber-200 mb-1"><Emo k="em_glowbook" size={18} /> สมุดตัวเรืองแสง {glowAll}/{MAPS.reduce((n, m) => n + m.mons.length, 0)}</div>{MOON_LEGEND}<div className="mt-1 text-indigo-300 flex items-center gap-1"><Emo k="em_nighthunt" size={14} /> ออก 19:00–05:00 โอกาส {pct(NIGHT.glow)} · <Emo k="em_fullmoon" size={14} /> คืนเพ็ญ {pct(NIGHT.glow * NIGHT.moonMult)}</div></div>
       <MonSheet mon={open} seen={open ? dex[open.id] || 0 : 0} glow={open ? rpg.farm.glowDex?.[open.id] || 0 : 0} onClose={() => setOpen(null)} />
       {MAPS.map((m) => {
@@ -285,6 +287,38 @@ function Dex({ rpg }) {
 }
 
 const pct = (x) => `${+(x * 100).toFixed(2)}%`
+
+/** every monster form exactly as the hunt draws it; tap one to flip it (saved on this device and used in the hunt right away) */
+function FacingCheck({ onClose }) {
+  const [fix, setFix] = useState(faceFixes()), [copied, setCopied] = useState(false)
+  const list = Object.keys(fix).sort().join(', ')
+  const tile = (mon, glow) => {
+    const flip = mirrorMon(mon.id, glow), k = glow ? mon.id + '*' : mon.id
+    return (
+      <button key={k} onClick={() => setFix({ ...toggleFaceFix(mon.id, glow) })} className="px-inner p-0.5 text-center relative" style={fix[k] ? { outline: '2px solid #f59e0b' } : undefined} data-testid={`face-${k}`}>
+        <div style={{ width: 56, height: 56, margin: '0 auto', imageRendering: 'pixelated', transform: flip ? 'scaleX(-1)' : undefined, background: `url(./sprites/mon_${mon.id}${glow ? '_glow' : ''}_anim.png) -112px 0 / 448px 56px no-repeat` }} />
+        <div className="text-[9px] text-slate-500 truncate">{mon.name}{glow ? ' ✦' : ''}</div>
+        {fix[k] && <span className="absolute top-0 right-0.5 text-[9px] text-amber-600">แก้</span>}
+      </button>
+    )
+  }
+  return (
+    <Sheet open wide onClose={onClose} title="ตรวจทิศหน้ามอนสเตอร์">
+      <div className="text-[12px] text-slate-600 mb-2">ทีมของเราอยู่ทาง <b className="text-amber-600">ซ้าย ◀</b> มอนสเตอร์ทุกตัวต้องมองมาทางซ้าย แตะตัวที่หันผิดเพื่อกลับด้าน (กรอบส้ม = แก้แล้ว) ใช้ในหน้าล่าทันที แล้วกดคัดลอกรายการส่งให้ Claude เพื่อบันทึกถาวร</div>
+      <div className="flex gap-2 mb-2">
+        <button className="px-btn flex-1 text-[12px]" onClick={() => { try { navigator.clipboard.writeText(list || '(ไม่มี)'); setCopied(true) } catch { setCopied(false) } }}>{copied ? 'คัดลอกแล้ว' : `คัดลอกรายการ (${Object.keys(fix).length})`}</button>
+        <button className="px-btn text-[12px]" onClick={() => { clearFaceFixes(); setFix({}) }}>ล้าง</button>
+      </div>
+      {list && <div className="px-inner p-2 text-[11px] text-amber-700 mb-2 break-words select-all" data-testid="face-list">{list}</div>}
+      {MAPS.map((m) => (
+        <div key={m.id} className="mb-2">
+          <div className="text-[12px] font-semibold text-slate-700 mb-1">{m.name}</div>
+          <div className="grid grid-cols-6 gap-1">{m.mons.flatMap((x) => [tile(x, false), tile(x, true)])}</div>
+        </div>
+      ))}
+    </Sheet>
+  )
+}
 const KIND_TH = { normal: 'มอนสเตอร์ทั่วไป', elite: 'หัวหน้า', boss: 'บอสประจำแผนที่' }
 /** one monster: lore of its land and of itself, power, drops (shown even before you meet it, its name stays hidden) */
 /** time of day on the hunt scene: what the night gives (ล่ายามราตรี) */

@@ -128,6 +128,7 @@ export const BOSS_AFTER = 30 // kills in a map before its boss shows up
 
 /** monsters whose PixelLab art faces right; the hunt scene mirrors them so every monster faces the party (left) */
 export const FACES_RIGHT = new Set([
+  'slime_g', 'spider', 'sand_golem', 'ice_golem', 'wraith', 'tumble',
   'rabbit', 'bee', 'boar', 'crow', 'snail', 'goblin', 'fox_fire', 'beetle', 'deer', 'raccoon', 'pixie', 'bandit',
   'mole', 'skeleton', 'worm', 'kobold', 'drill', 'dwarf', 'crystal_wyrm', 'leech', 'croc', 'lizard', 'turtle_s', 'bog_zombie',
   'dragonfly', 'scorpion', 'mummy', 'vulture', 'jackal', 'camel', 'lizard_d', 'frost_bird', 'seal', 'owl_s', 'walrus', 'salamander',
@@ -137,5 +138,14 @@ export const FACES_RIGHT = new Set([
 ])
 /** glowing forms whose art faces the other way from the normal form (flip toggled for the glowing one) */
 export const GLOW_FACES_OTHER = new Set(['fire_snake'])
+/** player's own facing fixes (from the in-game checker), XOR on top of the defaults. key 'id' = normal form, 'id*' = glowing form */
+const FACE_KEY = 'lq_face_fix'
+export const faceFixes = () => { try { return JSON.parse(localStorage.getItem(FACE_KEY) || '{}') } catch { return {} } }
+export const toggleFaceFix = (id, glow = false) => { const f = faceFixes(), k = glow ? id + '*' : id; if (f[k]) delete f[k]; else f[k] = 1; try { localStorage.setItem(FACE_KEY, JSON.stringify(f)) } catch { /* storage off */ } return f }
+export const clearFaceFixes = () => { try { localStorage.removeItem(FACE_KEY) } catch { /* storage off */ } }
+let ffCache = null, ffAt = 0
 /** true when a monster must be mirrored to face the party */
-export const mirrorMon = (id, glow = false) => FACES_RIGHT.has(id) !== (glow && GLOW_FACES_OTHER.has(id))
+export const mirrorMon = (id, glow = false) => {
+  const now = Date.now(); if (!ffCache || now - ffAt > 1000) { ffCache = faceFixes(); ffAt = now }
+  return (FACES_RIGHT.has(id) !== (glow && GLOW_FACES_OTHER.has(id))) !== !!ffCache[glow ? id + '*' : id]
+}
