@@ -32,7 +32,7 @@ export function nextDoubleDay(iso = todayISO()) {
 /* ---------- limited decorations: sold only while their festival is on, kept forever after ---------- */
 // event: a festival id from world.js, or 'sale' for any double date. art = PixelLab job still to do.
 export const EVENT_DECOR = [
-  { id: 'ev_krathong', name: 'กระทงใบตอง', emoji: '🪷', cost: [180, 0], happy: 7, event: 'loy', art: 'krathong floating on water, candle and incense' },
+  { id: 'ev_krathong', name: 'แท่นกระทงดาวเรือง', emoji: '🪷', cost: [180, 0], happy: 7, event: 'loy', art: 'banana-leaf krathong with candle on a stone plinth with marigold garland' },
   { id: 'ev_angpao', name: 'โคมอั่งเปาแดง', emoji: '🧧', cost: [220, 0], happy: 8, event: 'cny', art: 'string of red chinese lanterns with gold tassels' },
   { id: 'ev_songkran', name: 'ขันน้ำสงกรานต์', emoji: '💦', cost: [150, 0], happy: 6, event: 'songkran', art: 'silver water bowl with jasmine flowers, splash' },
   { id: 'ev_candle', name: 'เทียนพรรษา', emoji: '🕯️', cost: [200, 0], happy: 8, event: 'phansa', art: 'large carved buddhist lent candle on a stand' },
@@ -49,7 +49,7 @@ export const VISITORS = {
   cny: { name: 'เถ้าแก่ใจดี', sprite: 'visitor_cny', art: 'chinese merchant uncle in red, holding red envelopes', lines: ['ซินเจียยู่อี่ ซินนี้ฮวดไช้! เปิดหีบวันนี้อาจเจออั่งเปาทอง', 'เงินแต๊ะเอียเก็บเข้าบัญชีออมก่อนนะ อาตี๋'] },
   songkran: { name: 'เด็กสาดน้ำ', sprite: 'visitor_songkran', art: 'kid with a water gun and floral shirt', lines: ['สาดน้ำไม่ต้องใช้เงิน! วันไม่ใช้เงินช่วงนี้ได้ FIAT สองเท่า', 'เย็นฉ่ำ ๆ สบายกระเป๋าด้วย'] },
   phansa: { name: 'ชาวบ้านแห่เทียน', sprite: 'visitor_phansa', art: 'villager carrying a lent candle', lines: ['เข้าพรรษาแล้ว ลองงดของฟุ่มเฟือยสักเดือน', 'สัปดาห์ไหนไม่เกินงบ ได้ GOLD 1 เหรียญนะ'] },
-  loy: { name: 'นางนพมาศ', sprite: 'visitor_loy', art: 'thai lady in traditional dress holding a krathong', lines: ['ลอยความฟุ่มเฟือยไปกับสายน้ำ เหลือไว้แต่เงินออม', 'กระทงใบตองมีขายเฉพาะช่วงนี้นะ'] },
+  loy: { name: 'นางนพมาศ', sprite: 'visitor_loy', art: 'thai lady in traditional dress holding a krathong', lines: ['ลอยความฟุ่มเฟือยไปกับสายน้ำ เหลือไว้แต่เงินออม', 'แท่นกระทงดาวเรืองมีขายเฉพาะช่วงนี้นะ ตั้งไว้หน้าบ้านสวยทั้งปี'] },
   xmas: { name: 'พ่อค้าตลาดฤดูหนาว', sprite: 'visitor_xmas', art: 'winter market seller with a scarf and cocoa', lines: ['สรุปปีนี้ของท่านเป็นยังไงบ้าง ไปดูบันทึกเดือนได้เลย', 'ช่วงนี้รายได้เมืองเก็บได้ 1.5 เท่า'] },
   payday: { name: 'พ่อค้าตลาดนัด', sprite: 'visitor_payday', art: 'cheerful market vendor', lines: ['เงินเดือนออกแล้ว! แบ่งเข้ากันหนี้และลงทุนก่อนค่อยมาเดินตลาดนะ', 'ร้านในเมืองลด 10% วันนี้วันเดียว'] },
   sale: { name: 'เซลส์แมนเสียงดัง', sprite: 'visitor_sale', art: 'loud salesman with a megaphone and sale tags', lines: ['ลดกระหน่ำ! …แต่ถ้าท่านเดินผ่านไปเฉย ๆ วันนี้ ข้าจะยอมแพ้ให้ 1 GOLD', 'ของลดราคาที่ไม่ได้ใช้ ก็ยังแพงอยู่ดีนะ'] },
