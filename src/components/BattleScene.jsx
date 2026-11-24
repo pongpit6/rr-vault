@@ -194,6 +194,9 @@ export function drawRealm(g, tier, gy, night, now, decos) {
   if (decos.deco_flowers && still('dc_flowers')) { for (let x = 2; x < 200; x += 16) g.drawImage(still('dc_flowers'), x, gy - 14, 12, 12) } else if (decos.deco_flowers) for (let x = 3; x < 200; x += 11) { const c = ['#f472b6', '#fde047', '#a78bfa', '#fb7185'][x % 4]; R('#16a34a', x, gy - 11, 1, 2); R(c, x - 1, gy - 12, 3, 1); R(c, x, gy - 13, 1, 1) }
 }
 
+/** the row of each PixelLab battle backdrop (200×120) where feet stand: the grass / road / wall top */
+const BT_GROUND = [98, 93, 106, 92, 93]
+
 /* ---------------- component ---------------- */
 export default function BattleScene({
   bosses, events = [], onConsumed, tier = 1, fog = 0, big = false, level = 1, hud = true, weather = 'sun', chest = false, onChest,
@@ -487,7 +490,7 @@ export default function BattleScene({
       g.fillStyle = GR.speck
       if (GR.cobble) { for (let y = bgy + 5, r = 0; y < BH; y += 4, r++) for (let x = (r % 2) * 4; x < BW; x += 8) g.fillRect(x, y, 6, 1) }
       else for (let x = 2; x < BW; x += 9) g.fillRect(x, bgy + 6 + (x % 3), 2, 1)
-      } else { g.drawImage(btArt, 0, bgy - 82, BW, 120); if (sky.night > 0.2) { g.fillStyle = 'rgba(15,23,42,.5)'; g.fillRect(0, 0, BW, BH) } }
+      } else { const top = bgy - BT_GROUND[tier]; if (top > 0) { g.drawImage(btArt, 0, 0, BW, 1, 0, 0, BW, top + 1) } g.drawImage(btArt, 0, top, BW, 120); if (sky.night > 0.2) { g.fillStyle = 'rgba(15,23,42,.5)'; g.fillRect(0, 0, BW, BH) } }
       if (decos.deco_banner) { const bx = Math.round((heroBaseX - 34 * backRow.length - 14) / 2); g.fillStyle = '#334155'; g.fillRect(bx, bgy - 28, 1, 30); const wv = Math.floor(now / 250) % 2; g.fillStyle = '#10b981'; g.fillRect(bx + 1, bgy - 28 + wv, 9, 3); g.fillStyle = '#38bdf8'; g.fillRect(bx + 1, bgy - 25 + wv, 9, 3) }
 
       // ---- sprites (full res) ----
