@@ -4,7 +4,23 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import webpush from "web-push";
-import { morningDigest } from "https://pongpit6.github.io/rr-vault/push/fortune.js";
+import Lunar from "npm:lunar-javascript@1.7.8";
+
+// The fortune engine is the app's own code (src/lib/fortune), bundled by sync.sh into the site at push/fortune.js.
+// Remote static imports are not allowed when bundling, so it is fetched once per instance and evaluated here.
+const ENGINE_URL = "https://pongpit6.github.io/rr-vault/push/fortune.js";
+let engine: any = null;
+async function loadEngine() {
+  if (engine) return engine;
+  const src = await (await fetch(ENGINE_URL)).text();
+  let lib = "";
+  const body = src
+    .replace(/^import\s*(\w+)\s*from\s*"npm:lunar-javascript@[^"]*";/, (_m, v) => { lib = v; return ""; })
+    .replace(/export\s*\{([^}]*)\};?\s*$/, (_m, list) => "return {" + list.split(",").map((x: string) => { const [a, b] = x.trim().split(/\s+as\s+/); return `${b || a}:${a}`; }).join(",") + "};");
+  if (!lib || !body.includes("morningDigest")) throw new Error("engine bundle format changed");
+  engine = new Function(lib, body)(Lunar);
+  return engine;
+}
 
 const CORS = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-cron-key", "Access-Control-Allow-Methods": "POST, GET, OPTIONS" };
 const json = (d: unknown, status = 200) => new Response(JSON.stringify(d), { status, headers: { ...CORS, "Content-Type": "application/json" } });
@@ -37,6 +53,7 @@ async function digestFor(userId: string) {
   const { data } = await sb.from("vault_items").select("data").eq("user_id", userId).eq("id", "fortune").eq("deleted", false).maybeSingle();
   const f = data?.data || null;
   if (f && f.alerts === false) return null;
+  const { morningDigest } = await loadEngine();
   const d = morningDigest(f);
   return { ...d, tag: "fortune-morning", url: "./#fortune" };
 }
@@ -47,6 +64,7 @@ Deno.serve(async (req) => {
   try {
     const cfg = await config();
     if (req.method === "GET" && url.searchParams.get("pub")) return json({ key: cfg.vapid_public });
+    if (req.method === "GET" && url.searchParams.get("health")) return json((await loadEngine()).morningDigest(null)); // engine check, no user data
     const body = await req.json().catch(() => ({}));
     if (body.action === "morning") {
       if (req.headers.get("x-cron-key") !== cfg.cron_key) return json({ error: "forbidden" }, 403);
