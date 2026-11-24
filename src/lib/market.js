@@ -45,6 +45,9 @@ export const CATS = [
   ] },
   { id: 'fund', label: 'กองทุนไทย', emoji: '🏦', items: [] },
 ]
+/** PixelLab icons for items that have no logo of their own (metals, energy) */
+export const MARKET_ICON = { 'TH-GOLD': 'mk_thgold', 'GC=F': 'mk_goldspot', 'MGC=F': 'mk_goldmicro', 'SI=F': 'mk_silver', 'PL=F': 'mk_platinum', 'PA=F': 'mk_palladium', 'HG=F': 'mk_copper',
+  'BZ=F': 'mk_brent', 'CL=F': 'mk_wti', 'NG=F': 'mk_gas', 'RB=F': 'mk_gasoline', 'HO=F': 'mk_diesel' }
 export const CAT_BY_ID = Object.fromEntries(CATS.map((c) => [c.id, c]))
 const KNOWN = Object.fromEntries(CATS.flatMap((c) => c.items.map((i) => [i.symbol, { ...i, cat: c.id }])))
 

@@ -9,7 +9,12 @@ import { todayISO } from '../lib/format'
 export default function Habits() {
   const H = useHabits()
   const quick = useStore((s) => s.ui.habitQuick)
-  useEffect(() => { if (quick) openHabit(H.by.exercise.today >= 1 ? 'read' : 'exercise') }, [quick]) // eslint-disable-line
+  // the + button on this tab opens a quick log; it must not reopen every time the page is visited (ui is persisted)
+  useEffect(() => {
+    if (!quick) return
+    if (Date.now() - quick < 3000) openHabit(H.by.exercise.today >= 1 ? 'read' : 'exercise')
+    useStore.getState().setUi({ habitQuick: null })
+  }, [quick]) // eslint-disable-line
   const today = todayISO()
   const weeks = typeof window !== 'undefined' && window.innerWidth < 640 ? 6 : 12
   const cells = Array.from({ length: weeks * 7 }, (_, i) => addDays(today, i - (weeks * 7 - 1)))

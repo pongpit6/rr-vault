@@ -9,7 +9,7 @@ import FuelCard from '../components/FuelCard'
 import { useSyncedPref, unionBySymbol } from '../lib/prefs'
 import { thaiAbout, howToBuy, loadProfile, loadTop10, fmtCap, capShort, SECTOR_TH } from '../lib/assetInfo'
 import { loadCatalog, sortsFor, sortItems, matchLocal, searchInCat, PAGE, RANK_SORTS, loadRank } from '../lib/catalog'
-import { CATS, CAT_BY_ID, catOf, WATCH_MAX, bitkubPremium, loadBitkubList, coinCode, isCoin, itemFor, itemCcy, useMarket, loadSpark, loadChart, searchMarket, streamMarketCrypto, stopMarketStream, loadOil } from '../lib/market'
+import { MARKET_ICON, CATS, CAT_BY_ID, catOf, WATCH_MAX, bitkubPremium, loadBitkubList, coinCode, isCoin, itemFor, itemCcy, useMarket, loadSpark, loadChart, searchMarket, streamMarketCrypto, stopMarketStream, loadOil } from '../lib/market'
 import { ccyMark, ccyOfSymbol, fetchQuotes, fxSym } from '../lib/prices'
 import { GOLD_PRESETS, COMMODITY_PRESETS } from '../lib/portfolio'
 import { sfx } from '../lib/sfx'
@@ -43,6 +43,8 @@ function Spark({ c, up, w = 72, h = 26 }) {
 }
 
 function Badge({ it, size = 38 }) {
+  const mk = MARKET_ICON[it.symbol] || (it.kind === 'metal' ? (/silver/i.test(it.name || '') ? 'mk_silver' : 'mk_goldspot') : null)
+  if (mk) return <div className="shrink-0 grid place-items-center rounded-2xl bg-white border border-slate-200" style={{ width: size, height: size }}><img src={`./sprites/${mk}.png`} alt="" width={Math.round(size * 0.8)} height={Math.round(size * 0.8)} style={{ imageRendering: 'pixelated' }} /></div>
   if (it.kind === 'fx') return <div className="shrink-0 grid place-items-center rounded-2xl bg-white border border-slate-200" style={{ width: size, height: size, fontSize: size * 0.5 }}>{it.flag || '💱'}</div>
   if (it.kind === 'index') {
     const flag = /\.BK$/.test(it.symbol) ? '🇹🇭' : /HSI|\.SS|\.SZ/.test(it.symbol) ? '🇨🇳' : '🇺🇸'
@@ -571,8 +573,8 @@ function TopTen({ onOpen }) {
       <div className="flex items-baseline gap-2 px-1 mb-2"><h2 className="font-semibold text-sm flex-1"><Emo e="🏆" size={15} /> 10 อันดับสินทรัพย์มูลค่าสูงสุดในโลก</h2><span className="text-[10px] text-slate-500">Market Cap · USD</span></div>
       {!d ? <div className="text-xs text-slate-400 px-1 py-3">กำลังโหลด…</div> : d.items.map((r, i) => (
         <button key={r.symbol} onClick={() => open(r)} className="w-full flex items-center gap-2.5 px-1 py-1.5 text-left rounded-lg hover:bg-slate-900/[.03]" data-testid="top10-row">
-          <span className={`w-5 text-center text-xs font-bold num ${i < 3 ? ['text-amber-500', 'text-slate-400', 'text-orange-700'][i] : 'text-slate-400'}`}>{i < 3 ? <Emo e="🥇" size={14} /> : i + 1}</span>
-          <Badge it={itemFor(r.symbol, { name: r.name })} size={32} />
+          <span className={`w-5 text-center text-xs font-bold num ${i < 3 ? ['text-amber-500', 'text-slate-400', 'text-orange-700'][i] : 'text-slate-400'}`}>{i < 3 ? <img src={`./sprites/mk_medal${i + 1}.png`} alt={`อันดับ ${i + 1}`} width={18} height={18} style={{ imageRendering: 'pixelated' }} className="inline-block" /> : i + 1}</span>
+          <Badge it={itemFor(r.symbol, { name: r.name, ...(r.kind === 'metal' && !MARKET_ICON[r.symbol] ? { kind: 'metal' } : {}) })} size={32} />
           <div className="flex-1 min-w-0">
             <div className="flex items-baseline gap-1.5"><span className="text-sm font-semibold truncate">{r.kind === 'metal' ? r.name : r.name}</span><span className="text-[10px] text-slate-400 shrink-0">{r.kind === 'metal' ? 'โลหะมีค่า' : r.kind === 'crypto' ? 'คริปโต' : r.symbol}</span></div>
             <div className="h-1.5 rounded-full bg-slate-900/[.05] mt-1 overflow-hidden"><div className="h-full rounded-full" style={{ width: `${Math.max(2, (r.marketCap / max) * 100)}%`, background: r.kind === 'metal' ? '#f59e0b' : r.kind === 'crypto' ? '#f97316' : '#0d9488' }} /></div>

@@ -24,19 +24,53 @@ function flashOf(im, key) {
 }
 /** row of each map backdrop (200×120) where feet stand: the sand, grass, cave floor… */
 const MAP_GROUND = { meadow: 93, forest: 82, mine: 88, swamp: 95, desert: 95, snow: 112, volcano: 100, shadow: 102 }
+/* ambient life on each map (PixelLab sprites am_*): [sprite, count, size, motion, layer] — drawn from time, no state */
+const AMBIENT = {
+  meadow: [['am_cloud', 2, 58, 'drift', 'back'], ['am_bird', 2, 23, 'fly', 'back'], ['am_butterfly', 3, 19, 'flutter', 'back'], ['am_bunny', 1, 23, 'hop', 'back']],
+  forest: [['am_leaf', 7, 14, 'fall', 'front'], ['am_firefly', 5, 13, 'flutter', 'back'], ['am_bird', 1, 20, 'fly', 'back']],
+  mine: [['am_glint', 6, 14, 'twinkle', 'back'], ['am_drop', 4, 12, 'drip', 'front'], ['am_bat', 2, 23, 'fly', 'back']],
+  swamp: [['am_firefly', 7, 13, 'flutter', 'back'], ['am_bubble', 4, 14, 'rise', 'front'], ['am_dragonfly', 2, 23, 'fly', 'back']],
+  desert: [['am_vulture', 2, 32, 'soar', 'back'], ['am_tumble', 1, 32, 'roll', 'back'], ['am_cloud', 1, 49, 'drift', 'back']],
+  snow: [['am_snow', 14, 12, 'fall', 'front'], ['am_bird', 1, 20, 'fly', 'back']],
+  volcano: [['am_ember', 10, 14, 'rise', 'front'], ['am_bat', 1, 23, 'fly', 'back']],
+  shadow: [['am_wisp', 4, 23, 'flutter', 'back'], ['am_bat', 3, 23, 'fly', 'back'], ['am_glint', 3, 12, 'twinkle', 'back']],
+}
+const hsh = (i, k = 0) => { const x = Math.sin(i * 127.1 + k * 311.7) * 43758.5453; return x - Math.floor(x) }
+function drawAmbient(g, mapId, layer, now) {
+  for (const [sp, n, sz, mo, ly] of AMBIENT[mapId] || []) {
+    if (ly !== layer) continue
+    const im = still(sp); if (!im) continue
+    for (let i = 0; i < n; i++) {
+      const r1 = hsh(i, sp.length), r2 = hsh(i + 7, sp.length), t = now / 1000
+      let x = 0, y = 0, a = 1, flip = false, sy = 1, rot = 0
+      if (mo === 'drift') { x = ((t * 6 + r1 * W) % (W + 80)) - 60; y = 10 + r2 * 30 }
+      else if (mo === 'fly') { const sp2 = 40 + r1 * 30, dir = r2 > 0.5 ? 1 : -1, p = ((t * sp2 + r1 * 900) % (W + 140)) - 70; x = dir > 0 ? p : W - p; flip = dir < 0; y = 18 + r2 * 45 + Math.sin(t * 3 + i) * 5; sy = 0.75 + Math.abs(Math.sin(t * 9 + i)) * 0.25 }
+      else if (mo === 'soar') { x = W / 2 + Math.cos(t * 0.4 + i * 3) * (90 + r1 * 60); y = 22 + i * 12 + Math.sin(t * 0.8 + i) * 6; flip = Math.sin(t * 0.4 + i * 3) > 0 }
+      else if (mo === 'flutter') { x = (r1 * W + Math.sin(t * 0.7 + i * 2) * 40 + W) % W; y = 40 + r2 * (GY - 70) + Math.sin(t * 1.6 + i) * 10; flip = Math.cos(t * 0.7 + i * 2) < 0; if (sp === 'am_firefly' || sp === 'am_wisp') a = 0.55 + 0.45 * Math.sin(t * 3 + i * 1.7); else sy = 0.6 + Math.abs(Math.sin(t * 10 + i)) * 0.4 }
+      else if (mo === 'fall') { const per = 5 + r1 * 4, k = ((t + r2 * per) % per) / per; x = (r1 * W + Math.sin(t * 1.5 + i) * 14 + k * 30) % W; y = -10 + k * (GY + 10); rot = Math.sin(t * 2 + i) * 0.6; a = k > 0.9 ? (1 - k) * 10 : 1 }
+      else if (mo === 'rise') { const per = 3 + r1 * 3, k = ((t + r2 * per) % per) / per; x = r1 * W + Math.sin(t * 2 + i) * 6; y = GY - 6 - k * (sp === 'am_bubble' ? 40 : 120); a = 1 - k }
+      else if (mo === 'twinkle') { x = 20 + r1 * (W - 40); y = 20 + r2 * (GY - 60); a = Math.max(0, Math.sin(t * 2.2 + i * 2.3)); if (a < 0.05) continue }
+      else if (mo === 'drip') { const per = 2.5 + r1 * 2, k = ((t + r2 * per) % per) / per; x = 30 + r1 * (W - 60); y = 4 + k * k * (GY - 4); a = k > 0.92 ? (1 - k) * 12 : 1 }
+      else if (mo === 'roll') { const p = ((t * 26 + r1 * 400) % (W + 60)) - 30; x = p; y = GY - sz + 2 - Math.abs(Math.sin(t * 4)) * 4; rot = t * 4 }
+      else if (mo === 'hop') { x = 120 + r1 * 40 + Math.sin(t * 0.3) * 30; y = GY - 46 - Math.max(0, Math.sin(t * 2.4)) * 8; flip = Math.cos(t * 0.3) < 0; a = 0.9 }
+      g.save(); g.globalAlpha = Math.max(0, Math.min(1, a)); g.translate(Math.round(x + sz / 2), Math.round(y + sz / 2)); if (rot) g.rotate(rot); g.scale(flip ? -1 : 1, sy)
+      g.drawImage(im, -sz / 2, -sz / 2, sz, sz); g.restore()
+    }
+  }
+}
 const MON_H = { normal: 64, elite: 80, boss: 100 }
-const SLOT = { knight: 0, healer: 1, mage: 2, ranger: 3 }
+const SLOT = { ranger: 0, mage: 1, healer: 2, knight: 3 } // the hero stands at the front, facing the monster
 
 /**
  * Animated hunt: the party idles; each fight result plays out — one member steps in and attacks
  * (sword, staff light, fireball, arrow), the monster flashes and shakes, damage pops up,
  * then it falls and its drops float up (or it strikes back when the party loses).
  */
-export default function FarmScene({ mapId, party = [], shadows = [], recent = [], live = false, hue = 0, idleMon }) {
+export default function FarmScene({ mapId, party = [], shadows = [], recent = [], live = false, hue = 0, idleMon, onMon }) {
   const cv = useRef(null)
   // fights already on record when the scene opens are not replayed as new; they feed the replay loop
   const S = useRef({ queue: [], cur: null, seen: recent.length ? recent[recent.length - 1].seq : -1, fx: [], monId: idleMon, idleSince: 0, rp: 0, bg: null })
-  const P = useRef({}); P.current = { mapId, party, hue, shadows, recent, live }
+  const P = useRef({}); P.current = { mapId, party, hue, shadows, recent, live, onMon }
   // new fight results join the queue (newest last)
   useEffect(() => {
     const s = S.current
@@ -75,6 +109,7 @@ export default function FarmScene({ mapId, party = [], shadows = [], recent = []
       const members = party.filter((p) => p.joined).map((p) => p.id)
       s.cur = { ...e, shadow: shadows.length && Math.random() < 0.35 ? Math.floor(Math.random() * shadows.length) : -1, t: 0, dur: s.queue.length > 2 ? 650 : 1100, who: members[Math.floor(Math.random() * members.length)] || 'knight', dmg: 0, hitDone: false }
       s.monId = e.mon; s.bg = e.map || s.bg
+      P.current.onMon?.(e.mon)
     }
     const c = s.cur
     if (c) c.t += dt
@@ -85,6 +120,7 @@ export default function FarmScene({ mapId, party = [], shadows = [], recent = []
     const bgId = s.bg || mapId, bg = still(`map_${bgId}`)
     if (bg) { const top = GY - 2 * (MAP_GROUND[bgId] || 114); if (top > 0) g.drawImage(bg, 0, 0, 200, 1, 0, 0, 400, top + 2); g.drawImage(bg, 0, top, 400, 240) } else { g.fillStyle = '#bae6fd'; g.fillRect(0, 0, W, H) }
 
+    drawAmbient(g, bgId, 'back', now)
     // shadow soldiers stand behind the party in a dark aura; one lunges in now and then
     shadows.forEach((id, i) => {
       const lunge = c && c.shadow === i && k > 0.2 && k < 0.6
@@ -94,7 +130,7 @@ export default function FarmScene({ mapId, party = [], shadows = [], recent = []
       if (im) { g.globalAlpha = 0.75; g.drawImage(shadowOf(im, `${id}:${lunge ? 'a' : 'i'}:${fi}`), x - 3, y - 3, 62, 62); g.globalAlpha = 1 }
     })
     // party
-    const members = party.filter((p) => p.joined)
+    const members = party.filter((p) => p.joined).sort((a, b) => (SLOT[a.id] ?? 0) - (SLOT[b.id] ?? 0)) // back row first, the hero drawn last (in front)
     members.forEach((p, i) => {
       const slot = SLOT[p.id] ?? i
       let x = 18 + slot * 46, sheet = `${p.sprite}_idle`, f = Math.floor(now / 160 + i)
@@ -147,6 +183,7 @@ export default function FarmScene({ mapId, party = [], shadows = [], recent = []
       }
     }
 
+    drawAmbient(g, bgId, 'front', now)
     // effects
     s.fx = s.fx.filter((p) => (p.life -= dt) > 0)
     for (const p of s.fx) {

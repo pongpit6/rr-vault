@@ -85,7 +85,8 @@ function Hunt({ rpg }) {
   const recent = f.recent || []
   const lastL = recent[recent.length - 1]
   const map = MAP_BY_ID[lastL?.map] || maps[0]
-  const last = lastL ? MON_BY_ID[lastL.mon] : map.mons[0]
+  const [shown, setShown] = useState(null)
+  const last = MON_BY_ID[shown] || (lastL ? MON_BY_ID[lastL.mon] : map.mons[0])
   const kills = f.kills[map.id] || 0, bossNext = BOSS_AFTER * ((f.bossKills?.[map.id] || 0) + 1)
   const mode = f.mapMode || 'pick'
   return (
@@ -113,7 +114,7 @@ function Hunt({ rpg }) {
       </Card>
       <section className="px-card overflow-hidden" data-testid="farm-battle">
         <div className="relative">
-          <FarmScene mapId={map.id} party={rpg.party} shadows={f.shadowWorn || []} recent={recent} live={rpg.staminaLeft > 0} hue={rpg.skin?.hue || 0} idleMon={map.mons[0].id} />
+          <FarmScene mapId={map.id} party={rpg.party} shadows={f.shadowWorn || []} recent={recent} live={rpg.staminaLeft > 0} onMon={setShown} hue={rpg.skin?.hue || 0} idleMon={map.mons[0].id} />
           <div className="absolute left-2 top-2 px-font text-[10px] bg-white/85 px-1.5 py-0.5">พลังทีม {rpg.power}</div>
           <div className="absolute right-2 top-2 text-[11px] bg-white/85 px-1.5 py-0.5"><b>{last.name}</b> · พลัง {monPower(last)}{last.kind !== 'normal' && <span className="text-rose-600"> · {last.kind === 'boss' ? 'บอส' : 'หัวหน้า'}</span>}</div>
           {!rpg.staminaLeft && <div className="absolute left-1/2 -translate-x-1/2 top-9 whitespace-nowrap text-[10px] bg-slate-900/80 text-white px-1.5 py-0.5" data-testid="replay-badge">{recent.length ? '▶ รีเพลย์การล่าล่าสุด' : 'ซ้อมกับหุ่นฝึก'} · พลังกายหมด +1 ในอีก {Math.ceil(rpg.nextHourIn / 60000)} นาที</div>}
