@@ -109,7 +109,7 @@ export function worldFront(g, now, { w, G, TH, night, world, hx, hallTop }) {
   if (ev === 'newyear' || ev === 'xmas' || ev === 'cny' || ev === 'loy') {
     // lantern string across the street
     const lan = ev === 'cny' ? 'pr_lantern_r' : ev === 'loy' ? 'pr_lantern_y' : 'pr_lights', step = lan === 'pr_lights' ? 24 : 26
-    for (let x = 6; x < w - 6; x += step) { const sw = lan === 'pr_lights' ? 0 : Math.round(Math.sin(now / 700 + x) * 1); if (night) { g.fillStyle = 'rgba(253,224,71,.15)'; g.fillRect(x + 2, G - 66, step - 4, 14) } if (!prop(g, lan, x + sw, G - (lan === 'pr_lights' ? 52 : 50), lan === 'pr_lights' ? 22 : 14)) { R(g, '#334155', x, G - 44, 14, 1) } }
+    for (let x = 6; x < w - 6; x += step) { const sw = lan === 'pr_lights' ? 0 : Math.round(Math.sin(now / 700 + x) * 1); if (night) { g.fillStyle = 'rgba(253,224,71,.16)'; g.beginPath(); g.arc(x + step / 2 - 4, G - 58, 6, 0, 7); g.fill() } /* soft round glow, not a box */ if (!prop(g, lan, x + sw, G - (lan === 'pr_lights' ? 52 : 50), lan === 'pr_lights' ? 22 : 14)) { R(g, '#334155', x, G - 44, 14, 1) } }
   }
   if (ev === 'newyear' && night) for (let i = 0; i < 3; i++) { const k = ((now / 1600) + i / 3) % 1, cx = w * (0.25 + i * 0.25), cy = 30 - i * 6; if (k < 0.5) R(g, '#fde047', cx, 70 - k * 80, 1, 2); else for (let q = 0; q < 10; q++) { const a = q / 10 * Math.PI * 2, r = (k - 0.5) * 40; R(g, ['#f472b6', '#fde047', '#7dd3fc'][i], cx + Math.cos(a) * r, cy + Math.sin(a) * r, 2, 2) } }
   if (ev === 'songkran') for (let i = 0; i < 14; i++) { const k = (now / 900 + i / 14) % 1, x = 30 + hash(i) * (w - 60); R(g, 'rgba(125,211,252,.9)', x + k * 14, G - 10 - Math.sin(k * Math.PI) * 18, 2, 2) }

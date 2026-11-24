@@ -9,6 +9,7 @@ import { visitorFor } from './festivals'
 import { MON_BY_ID, MAP_BY_ID } from './farmData'
 import { SHADOW_BY_ID } from './farm'
 import { APPRENTICE, storyOf } from './townTalk'
+import { todOf, isFullMoon, NIGHT } from './timeOfDay'
 
 const PARTY = { healer: { name: 'ลูน่า', sprite: 'healer' }, mage: { name: 'ไพร์', sprite: 'mage' }, ranger: { name: 'ฟิน', sprite: 'ranger' } }
 const fmt = (n) => Math.round(n).toLocaleString('th-TH')
@@ -32,24 +33,44 @@ export function speakers(rpg) {
 /** today's conversations, the ones built from your real day first */
 export function townChats(rpg) {
   const S = speakers(rpg), h = rpg.habits, tr = rpg.traces || {}, f = rpg.farm || {}, w = rpg.world || {}
-  const hr = new Date().getHours(), day = new Date().getDate()
+  const hr = new Date().getHours(), day = new Date().getDate(), tod = todOf().id // shared clock: morning 5-10, day 10-17, evening 17-19, night 19-5
   const me = S.hero.name
   const C = []
   const add = (w8, need, lines) => { if (need.every((id) => S[id])) C.push({ w: w8, lines }) }
 
   // ---------- greetings by the time of day ----------
-  if (hr >= 5 && hr < 11) {
+  if (tod === 'morning') {
     add(1, ['farmer'], [['farmer', `อรุณสวัสดิ์ท่าน${me}! ตื่นเช้าแบบนี้ วันนี้ต้องดีแน่`], ['hero', 'อรุณสวัสดิ์ลุง วันนี้ทุ่งดูเขียวกว่าเมื่อวานนะ'], ['farmer', 'ก็ข้ารดน้ำทุกเช้าเหมือนท่านจดบัญชีทุกวันนั่นแหละ']])
     add(1, ['merchant'], [['merchant', 'เช้านี้มีของใหม่มาลงแผงนะท่าน!'], ['hero', 'ขอดูก่อนนะ ยังไม่ซื้อ ฮ่า ๆ'], ['merchant', 'ดูฟรี! ข้าชอบลูกค้าที่คิดก่อนซื้อ']])
-  } else if (hr >= 11 && hr < 17) {
+  } else if (tod === 'day') {
     add(1, ['merchant', 'farmer'], [['merchant', 'เที่ยงแล้ว ข้าวกล่องข้าขายดีเชียว'], ['farmer', 'ข้าห่อข้าวมาเอง ประหยัดไปอีกวัน'], ['merchant', 'ลุงนี่ทำข้าขาดทุนทุกวันเลย…'], ['hero', 'ผมเข้าข้างลุงนะ ห่อข้าวไปทำงานก็ดีเหมือนกัน']])
     add(1, ['farmer'], [['hero', 'ลุงไม่พักบ้างเหรอ แดดแรงนะ'], ['farmer', 'พักแล้วค่อยทำต่อ เหมือนการออมนั่นแหละ ไม่ต้องรีบ แต่อย่าหยุด']])
-  } else if (hr >= 17 && hr < 22) {
+  } else if (tod === 'evening') {
     add(1, ['merchant'], [['merchant', 'เย็นแล้ว ข้าจะเก็บแผงละ'], ['hero', 'วันนี้ขายดีไหม'], ['merchant', 'พอได้ ๆ ข้าจดรายรับไว้แล้วด้วย เรียนมาจากท่านนั่นแหละ']])
     add(1, ['farmer'], [['farmer', 'พระอาทิตย์ตกสวยนะคืนนี้'], ['hero', 'ใช่ ลุงกลับบ้านดี ๆ นะ'], ['farmer', 'ท่านก็เข้านอนให้ตรงเวลาล่ะ พรุ่งนี้จะได้สดชื่น']])
   } else {
     add(1, ['farmer'], [['hero', 'ดึกแล้ว ลุงยังไม่นอนอีกเหรอ'], ['farmer', 'เพิ่งตื่นมาดื่มน้ำ ท่านเองก็รีบนอนนะ'], ['hero', 'ครับ ขอปิดไฟอีกดวงก่อน']])
     if (S.guard) add(1, ['guard'], [['guard', 'เวรยามกลางคืน ทุกอย่างเรียบร้อยครับ'], ['hero', 'ขอบคุณที่เฝ้าเมืองนะ'], ['guard', 'หน้าที่ข้า! ท่านไปพักเถอะ']])
+  }
+
+  // ---------- the hunt by the time of day: night bonus, glowing monsters, full moon ----------
+  {
+    const by0 = (...ids) => ids.find((id) => S[id])
+    const rare = NIGHT.rare, glowP = Math.round(NIGHT.glow * 100), moon = tod === 'night' && isFullMoon()
+    const recentGlow = (f.recent || []).filter((l) => l.glow).slice(-1)[0], glowMon = recentGlow && MON_BY_ID[recentGlow.mon]
+    if (tod === 'morning') {
+      add(1, ['farmer'], [['farmer', 'ได้ยินไก่ขันไหมท่าน เช้าแล้ว ทีมล่ากลับมาพักกันหรือยัง'], ['hero', 'กลับมาแล้วครับ เมื่อคืนได้ของมาเพียบ'], ['farmer', 'งั้นกินข้าวเช้าก่อน แล้วค่อยไปทำงานจริงนะ']])
+      const sp = by0('baker', 'merchant'); if (sp) add(1, [sp], [[sp, 'หมอกยังไม่จางเลย แต่ขนมปังเช้าอบเสร็จแล้ว!'], ['hero', 'กลิ่นหอมมาถึงหน้าบ้านเลย']])
+    }
+    if (tod === 'evening') {
+      const sp = by0('guard', 'farmer'); if (sp) add(1, [sp], [[sp, `ฝูงกากลับรังแล้ว อีกไม่นานก็มืด`], ['hero', 'พอตกกลางคืน มอนสเตอร์จะแกร่งขึ้นใช่ไหม'], [sp, `ใช่ แต่ของหายากก็ดรอปง่ายขึ้น ×${rare} เลยนะ`]])
+    }
+    if (tod === 'night') {
+      const sp = by0('guard', 'smith', 'farmer'); if (sp) add(2, [sp], [[sp, `คืนนี้มอนสเตอร์แกร่งขึ้น ${Math.round((NIGHT.monPow - 1) * 100)}% ระวังตัวด้วยนะ`], ['hero', 'ทีมล่าให้อยู่แล้ว ข้าไปนอนก่อนนะ'], [sp, 'ดีแล้ว พักผ่อนให้พอ พรุ่งนี้ค่อยดูของที่ได้']])
+      const s2 = by0('bard', 'merchant', 'farmer'); if (s2) add(1, [s2], [[s2, `ว่ากันว่ากลางคืนจะมีมอนสเตอร์เรืองแสงโผล่มา ราว ${glowP}% เลยนะ`], ['hero', 'ถ้วยรางวัลมันได้สองเท่าใช่ไหม'], [s2, 'ใช่! ขายได้ราคาดีด้วย']])
+      if (moon) { const s3 = by0('fisher', 'farmer', 'guard'); if (s3) add(3, [s3], [[s3, 'คืนนี้พระจันทร์เต็มดวง! มอนสเตอร์เรืองแสงออกมาเยอะเป็นสองเท่า'], ['hero', 'ของแรร์ก็ดรอปง่ายขึ้นอีกใช่ไหม'], [s3, 'ใช่ คืนเพ็ญแบบนี้มีเดือนละครั้งเท่านั้น']]) }
+    }
+    if (glowMon) { const sp = by0('merchant', 'banker', 'farmer'); if (sp) add(3, [sp], [[sp, `ได้ยินว่าท่านล่า${glowMon.name}ตัวเรืองแสงได้ด้วย!`], ['hero', 'โชคดีน่ะ มันโผล่มาตอนกลางคืน'], [sp, `${glowMon.trophy}จากตัวเรืองแสง เอามาขายข้าได้เลยนะ`]]) }
   }
 
   // ---------- your real day ----------

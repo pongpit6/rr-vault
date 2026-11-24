@@ -5,6 +5,7 @@ import { NPC_BY_ID, RESIDENTS } from '../lib/town'
 import { useStore } from '../store'
 import { worldBack, worldFront } from './WorldFx'
 import { prop } from './propArt'
+import { todOf, drawPhased, phaseArt } from '../lib/timeOfDay'
 import { TRACE_HOME, traceOnBuilding, traceProps, traceNoSpend, heroForm, growthAura } from './TownTraces'
 
 const MEMBER_COLOR = { knight: '#f97316', mage: '#6366f1', healer: '#14b8a6', ranger: '#f59e0b' }
@@ -27,6 +28,21 @@ function sky(g, top, bottom, w) { for (let i = 0; i < 12; i++) { g.fillStyle = m
 function hills(g, c1, c2, w) {
   g.fillStyle = c1; for (let x = 0; x < w; x++) { const y = 84 - Math.round(6 + 5 * Math.sin(x / 19) + 3 * Math.sin(x / 7.7)); g.fillRect(x, y, 1, 98 - y) }
   g.fillStyle = c2; for (let x = 0; x < w; x++) { const y = 94 - Math.round(3 + 3 * Math.sin(x / 12 + 2)); g.fillRect(x, y, 1, 98 - y) }
+}
+
+/* town life by time of day (PixelLab am_* sprites, half-res coords): rooster at dawn, birds by day, crows at dusk, cat, fireflies and shooting stars at night */
+const hs = (i, k = 0) => { const x = Math.sin(i * 127.1 + k * 311.7) * 43758.5453; return x - Math.floor(x) }
+function townLife(g, now, w, G, phase) {
+  const t = now / 1000, put = (name, x, y, sz, flip = false, a = 1) => { const im = still(name); if (!im) return; g.save(); g.globalAlpha = a; g.translate(Math.round(x + sz / 2), Math.round(y)); g.scale(flip ? -1 : 1, 1); g.drawImage(im, -sz / 2, -sz, sz, sz); g.restore() }
+  const fly = (name, n, sz, sp) => { for (let i = 0; i < n; i++) { const dir = hs(i, sz) > 0.5, p = ((t * sp * (0.8 + hs(i) * 0.5) + hs(i, 3) * 900) % (w + 60)) - 30; put(name, dir ? p : w - p, 18 + hs(i, 5) * 22 + Math.sin(t * 3 + i) * 2, sz, !dir) } }
+  if (phase === 'morning') { put('am_rooster', w * 0.62, G + 1, 13, Math.sin(t * 0.2) > 0); fly('am_bird', 2, 9, 18) }
+  if (phase === 'day') fly('am_bird', 3, 9, 20)
+  if (phase === 'evening') fly('am_crow', 3, 10, 16)
+  if (phase === 'night') {
+    put('am_cat', w * 0.38 + Math.sin(t * 0.15) * 30, G + 1, 12, Math.cos(t * 0.15) < 0)
+    for (let i = 0; i < 8; i++) put('am_firefly', (hs(i) * w + Math.sin(t * 0.6 + i) * 20 + w) % w, G - 8 - hs(i, 2) * 30 + Math.sin(t * 1.3 + i) * 4, 6, false, 0.5 + 0.5 * Math.sin(t * 3 + i * 1.7))
+    const k = (t % 12) / 1.1; if (k < 1) put('am_shoot', w * 0.3 + k * 70, 10 + k * 22, 14, false, 1 - k)
+  }
 }
 
 /** Draw the whole town onto a context already scaled ×2 (half-res coords). Returns a full-res foreground painter. */
@@ -64,10 +80,15 @@ export function drawTown(g, t, now, o = {}) {
   // cobble street
   g.fillStyle = GR.speck; for (let y = G + 5, r = 0; y < 118; y += 4, r++) for (let x = (r % 2) * 4; x < w; x += 8) g.fillRect(x, y, 6, 1)
   if (bgA && grA) {
-    tile(bgA, G - bgA.height + 4, bgA.height)
-    if (night) { g.fillStyle = 'rgba(15,23,42,.55)'; g.fillRect(0, 0, w, G + 4); for (let i = 0; i < 40; i++) { const x = (i * 73) % w, y = (i * 37) % 50; if (Math.sin(now / 500 + i) > -0.2) R('#e0f2fe', x, y, 1, 1) } R('#fef9c3', w - 40, 10, 7, 7) }
-    else if (S.night > 0) { g.fillStyle = `rgba(251,146,60,${0.25 * Math.min(1, S.night * 4)})`; g.fillRect(0, 0, w, G + 4) }
+    // backdrop for this time of day (PixelLab variants town_bg_morning/_evening/_night), cross-fading near the change
+    const tod = o.dark ? { id: 'night', blend: 0 } : o.hour != null ? { id: o.hour >= 19 || o.hour < 5 ? 'night' : o.hour < 10 ? 'morning' : o.hour < 17 ? 'day' : 'evening', blend: 0 } : todOf()
+    drawPhased(g, 'town_bg', still, (im) => tile(im, G - im.height + 4, im.height), tod)
+    const painted = still(phaseArt('town_bg', tod.id)) && tod.id !== 'day'
+    if (night && painted) { g.fillStyle = 'rgba(15,23,42,.18)'; g.fillRect(0, 0, w, G + 4) }
+    else if (night) { g.fillStyle = 'rgba(15,23,42,.55)'; g.fillRect(0, 0, w, G + 4); for (let i = 0; i < 40; i++) { const x = (i * 73) % w, y = (i * 37) % 50; if (Math.sin(now / 500 + i) > -0.2) R('#e0f2fe', x, y, 1, 1) } R('#fef9c3', w - 40, 10, 7, 7) }
+    else if (S.night > 0 && !painted) { g.fillStyle = `rgba(251,146,60,${0.25 * Math.min(1, S.night * 4)})`; g.fillRect(0, 0, w, G + 4) }
     worldBack(g, now, { w, G, night, world: o.world })
+    townLife(g, now, w, G, tod.id)
     tile(grA, G, grA.height)
   }
 

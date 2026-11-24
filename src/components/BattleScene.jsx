@@ -9,6 +9,7 @@ import { useStore } from '../store'
 import { ACHIEVEMENTS } from '../lib/rpg'
 import { memberById } from '../lib/party'
 import { popDmg, drawDmg } from './dmgFx'
+import { todOf, drawPhased, phaseArt } from '../lib/timeOfDay'
 
 /* ---------------- sprite sheets (PixelLab art) ---------------- */
 const imgs = {}
@@ -90,9 +91,10 @@ export function skinUrl(hue, name = 'hero_idle') {
 }
 
 /* ---------------- sky by real local time ---------------- */
+/** sky colours for an hour, on the shared clock (lib/timeOfDay): night 19-5, morning 5-10, day 10-17, evening 17-19 */
 export function skyFor(h) {
   if (h >= 19 || h < 5) return { top: '#0b1736', bottom: '#27407a', night: 0.3, hill: ['#1e5b4b', '#164e3f'] }
-  if (h < 7) return { top: '#fbcfe8', bottom: '#fde68a', night: 0.06, hill: ['#6ee7b7', '#34d399'] }
+  if (h < 10) return { top: '#fbcfe8', bottom: '#fde68a', night: 0.06, hill: ['#6ee7b7', '#34d399'] }
   if (h < 17) return { top: '#7dd3fc', bottom: '#e0f2fe', night: 0, hill: ['#86efac', '#4ade80'] }
   return { top: '#fdba74', bottom: '#c4b5fd', night: 0.1, hill: ['#6ee7b7', '#2fbf8a'] }
 }
@@ -501,7 +503,7 @@ export default function BattleScene({
       g.fillStyle = GR.speck
       if (GR.cobble) { for (let y = bgy + 5, r = 0; y < BH; y += 4, r++) for (let x = (r % 2) * 4; x < BW; x += 8) g.fillRect(x, y, 6, 1) }
       else for (let x = 2; x < BW; x += 9) g.fillRect(x, bgy + 6 + (x % 3), 2, 1)
-      } else { const top = bgy - BT_GROUND[tier]; if (top > 0) { g.drawImage(btArt, 0, 0, BW, 1, 0, 0, BW, top + 1) } g.drawImage(btArt, 0, top, BW, 120); if (sky.night > 0.2) { g.fillStyle = 'rgba(15,23,42,.5)'; g.fillRect(0, 0, BW, BH) } }
+      } else { const top = bgy - BT_GROUND[tier]; const tod = todOf(); drawPhased(g, `bt_${tier}`, still, (im) => { if (top > 0) g.drawImage(im, 0, 0, BW, 1, 0, 0, BW, top + 1); g.drawImage(im, 0, top, BW, 120) }, tod); if (sky.night > 0.2 && !still(phaseArt(`bt_${tier}`, 'night')) && tier !== 0) { g.fillStyle = 'rgba(15,23,42,.5)'; g.fillRect(0, 0, BW, BH) } }
       if (decos.deco_banner) { const bx = Math.round((heroBaseX - 34 * backRow.length - 14) / 2); g.fillStyle = '#334155'; g.fillRect(bx, bgy - 28, 1, 30); const wv = Math.floor(now / 250) % 2; g.fillStyle = '#10b981'; g.fillRect(bx + 1, bgy - 28 + wv, 9, 3); g.fillStyle = '#38bdf8'; g.fillRect(bx + 1, bgy - 25 + wv, 9, 3) }
 
       // ---- sprites (full res) ----
@@ -659,7 +661,7 @@ export default function BattleScene({
           g.fillRect(Math.round(fx), gy - 44 + i * 6, 92, 8); g.fillRect(Math.round(fx) + 16, gy - 50 + i * 6, 60, 6)
         }
       }
-      if (sky.night) { g.fillStyle = `rgba(15,23,60,${sky.night * 0.85})`; g.fillRect(-10, -10, W + 20, H + 20) }
+      if (sky.night) { g.fillStyle = `rgba(15,23,60,${sky.night * (btArt ? 0.45 : 0.85)})`; g.fillRect(-10, -10, W + 20, H + 20) } // painted night backdrops are already dark
       drawDmg(g, s.dmg, dt) // numbers stay bright above the night tint
       g.setTransform(1, 0, 0, 1, 0, 0)
       raf = requestAnimationFrame(loop)

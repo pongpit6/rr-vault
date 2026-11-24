@@ -3,6 +3,7 @@ import { frame, still } from './BattleScene'
 import { MON_BY_ID, MAP_BY_ID } from '../lib/farmData'
 import { itemName, TREE_BY_ID } from '../lib/farm'
 import { popDmg, drawDmg, fmtDmg } from './dmgFx'
+import { todOf, drawPhased } from '../lib/timeOfDay'
 import { sfx } from '../lib/sfx'
 
 const W = 400, H = 180, GY = 168
@@ -25,21 +26,28 @@ function flashOf(im, key) {
 }
 /** row of each map backdrop (200×120) where feet stand: the sand, grass, cave floor… */
 const MAP_GROUND = { meadow: 93, forest: 82, mine: 88, swamp: 95, desert: 95, snow: 112, volcano: 100, shadow: 102 }
-/* ambient life on each map (PixelLab sprites am_*): [sprite, count, size, motion, layer] — drawn from time, no state */
+/* ambient life on each map (PixelLab sprites am_*): [sprite, count, size, motion, layer, phases] — drawn from time, no state.
+   phases: letters of the times of day it appears in (m morning, d day, e evening, n night); default all day */
 const AMBIENT = {
-  meadow: [['am_cloud', 2, 58, 'drift', 'back'], ['am_bird', 2, 23, 'fly', 'back'], ['am_butterfly', 3, 19, 'flutter', 'back'], ['am_bunny', 1, 23, 'hop', 'back']],
-  forest: [['am_leaf', 7, 14, 'fall', 'front'], ['am_firefly', 5, 13, 'flutter', 'back'], ['am_bird', 1, 20, 'fly', 'back']],
-  mine: [['am_glint', 6, 14, 'twinkle', 'back'], ['am_drop', 4, 12, 'drip', 'front'], ['am_bat', 2, 23, 'fly', 'back']],
-  swamp: [['am_firefly', 7, 13, 'flutter', 'back'], ['am_bubble', 4, 14, 'rise', 'front'], ['am_dragonfly', 2, 23, 'fly', 'back']],
-  desert: [['am_vulture', 2, 32, 'soar', 'back'], ['am_tumble', 1, 32, 'roll', 'back'], ['am_cloud', 1, 49, 'drift', 'back']],
-  snow: [['am_snow', 14, 12, 'fall', 'front'], ['am_bird', 1, 20, 'fly', 'back']],
-  volcano: [['am_ember', 10, 14, 'rise', 'front'], ['am_bat', 1, 23, 'fly', 'back']],
-  shadow: [['am_wisp', 4, 23, 'flutter', 'back'], ['am_bat', 3, 23, 'fly', 'back'], ['am_glint', 3, 12, 'twinkle', 'back']],
+  meadow: [['am_cloud', 2, 58, 'drift', 'back', 'mde'], ['am_mist', 3, 40, 'low', 'front', 'm'], ['am_bird', 2, 23, 'fly', 'back', 'md'], ['am_butterfly', 3, 19, 'flutter', 'back', 'md'], ['am_bee', 2, 14, 'flutter', 'back', 'd'], ['am_bunny', 1, 23, 'hop', 'back', 'mde'],
+    ['am_crow', 2, 22, 'fly', 'back', 'e'], ['am_dragonfly', 1, 20, 'fly', 'back', 'e'], ['am_firefly', 8, 13, 'flutter', 'back', 'n'], ['am_moth', 2, 16, 'flutter', 'back', 'n'], ['am_owl', 1, 26, 'fly', 'back', 'n'], ['am_shoot', 1, 30, 'shoot', 'back', 'n']],
+  forest: [['am_leaf', 7, 14, 'fall', 'front'], ['am_mist', 3, 44, 'low', 'front', 'm'], ['am_bird', 1, 20, 'fly', 'back', 'md'], ['am_squirrel', 1, 22, 'hop', 'back', 'md'], ['am_butterfly', 2, 17, 'flutter', 'back', 'd'],
+    ['am_crow', 2, 22, 'fly', 'back', 'e'], ['am_firefly', 5, 13, 'flutter', 'back', 'en'], ['am_firefly', 4, 13, 'flutter', 'back', 'n'], ['am_mushglow', 4, 16, 'ground', 'back', 'n'], ['am_eyes', 2, 18, 'blink', 'back', 'n'], ['am_owl', 1, 26, 'fly', 'back', 'n']],
+  mine: [['am_glint', 6, 14, 'twinkle', 'back'], ['am_drop', 4, 12, 'drip', 'front'], ['am_bat', 2, 23, 'fly', 'back', 'md'], ['am_bat', 5, 23, 'fly', 'back', 'en'], ['am_mushglow', 3, 15, 'ground', 'back', 'n']],
+  swamp: [['am_mist', 4, 46, 'low', 'front', 'me'], ['am_heron', 1, 28, 'fly', 'back', 'm'], ['am_dragonfly', 2, 23, 'fly', 'back', 'md'], ['am_bubble', 4, 14, 'rise', 'front'], ['am_frog', 1, 20, 'hop', 'back', 'den'],
+    ['am_firefly', 4, 13, 'flutter', 'back', 'e'], ['am_firefly', 9, 13, 'flutter', 'back', 'n'], ['am_moth', 2, 16, 'flutter', 'back', 'n'], ['am_eyes', 1, 18, 'blink', 'back', 'n']],
+  desert: [['am_cloud', 1, 49, 'drift', 'back', 'md'], ['am_vulture', 2, 32, 'soar', 'back', 'md'], ['am_lizard', 1, 20, 'crawl', 'back', 'md'], ['am_tumble', 1, 32, 'roll', 'back', 'mde'],
+    ['am_crow', 1, 22, 'fly', 'back', 'e'], ['am_scorpion', 1, 20, 'crawl', 'back', 'en'], ['am_moth', 1, 15, 'flutter', 'back', 'n'], ['am_shoot', 1, 30, 'shoot', 'back', 'n']],
+  snow: [['am_snow', 14, 12, 'fall', 'front'], ['am_bird', 1, 20, 'fly', 'back', 'md'], ['am_snowfox', 1, 24, 'hop', 'back', 'den'], ['am_owl', 1, 26, 'fly', 'back', 'n'], ['am_shoot', 1, 30, 'shoot', 'back', 'n']],
+  volcano: [['am_ember', 10, 14, 'rise', 'front'], ['am_ember', 6, 14, 'rise', 'front', 'en'], ['am_bat', 1, 23, 'fly', 'back', 'md'], ['am_crow', 2, 22, 'fly', 'back', 'e'], ['am_bat', 3, 23, 'fly', 'back', 'n']],
+  shadow: [['am_wisp', 4, 23, 'flutter', 'back'], ['am_wisp', 3, 23, 'flutter', 'back', 'n'], ['am_bat', 3, 23, 'fly', 'back'], ['am_glint', 3, 12, 'twinkle', 'back'], ['am_eyes', 2, 18, 'blink', 'back', 'en']],
 }
+const PH_LETTER = { morning: 'm', day: 'd', evening: 'e', night: 'n' }
 const hsh = (i, k = 0) => { const x = Math.sin(i * 127.1 + k * 311.7) * 43758.5453; return x - Math.floor(x) }
-function drawAmbient(g, mapId, layer, now) {
-  for (const [sp, n, sz, mo, ly] of AMBIENT[mapId] || []) {
-    if (ly !== layer) continue
+function drawAmbient(g, mapId, layer, now, phase = 'day') {
+  const L = PH_LETTER[phase]
+  for (const [sp, n, sz, mo, ly, ph = 'mden'] of AMBIENT[mapId] || []) {
+    if (ly !== layer || !ph.includes(L)) continue
     const im = still(sp); if (!im) continue
     for (let i = 0; i < n; i++) {
       const r1 = hsh(i, sp.length), r2 = hsh(i + 7, sp.length), t = now / 1000
@@ -53,7 +61,12 @@ function drawAmbient(g, mapId, layer, now) {
       else if (mo === 'twinkle') { x = 20 + r1 * (W - 40); y = 20 + r2 * (GY - 60); a = Math.max(0, Math.sin(t * 2.2 + i * 2.3)); if (a < 0.05) continue }
       else if (mo === 'drip') { const per = 2.5 + r1 * 2, k = ((t + r2 * per) % per) / per; x = 30 + r1 * (W - 60); y = 4 + k * k * (GY - 4); a = k > 0.92 ? (1 - k) * 12 : 1 }
       else if (mo === 'roll') { const p = ((t * 26 + r1 * 400) % (W + 60)) - 30; x = p; y = GY - sz + 2 - Math.abs(Math.sin(t * 4)) * 4; rot = t * 4 }
-      else if (mo === 'hop') { x = 120 + r1 * 40 + Math.sin(t * 0.3) * 30; y = GY - 46 - Math.max(0, Math.sin(t * 2.4)) * 8; flip = Math.cos(t * 0.3) < 0; a = 0.9 }
+      else if (mo === 'hop') { x = 120 + r1 * 40 + Math.sin(t * 0.3 + r2 * 6) * 30; y = GY - 46 - Math.max(0, Math.sin(t * 2.4 + i)) * 8; flip = Math.cos(t * 0.3 + r2 * 6) < 0; a = 0.9 }
+      else if (mo === 'low') { x = ((t * 4 + r1 * W) % (W + 80)) - 60; y = GY - 30 - r2 * 16; a = 0.35 + 0.15 * Math.sin(t * 0.5 + i) }
+      else if (mo === 'crawl') { const p = ((t * 9 + r1 * 300) % (W + 60)) - 30, dir = r2 > 0.5; x = dir ? p : W - p; flip = !dir; y = GY - 44 }
+      else if (mo === 'ground') { x = 14 + r1 * (W - 160); y = GY - 40 - r2 * 6; a = 0.6 + 0.4 * Math.sin(t * 1.5 + i * 2) }
+      else if (mo === 'blink') { x = 10 + r1 * (W - 170); y = GY - 70 - r2 * 30; const k = (t * 0.25 + r2 * 3) % 3; a = k < 1.6 ? (Math.sin(t * 7) > -0.95 ? 1 : 0) : 0; if (a < 0.05) continue }
+      else if (mo === 'shoot') { const per = 9 + r1 * 6, k = ((t + r2 * per) % per) / 1.1; if (k > 1) continue; x = W * (0.25 + r1 * 0.5) + k * 120; y = 6 + k * 38; a = 1 - k; rot = 0 }
       g.save(); g.globalAlpha = Math.max(0, Math.min(1, a)); g.translate(Math.round(x + sz / 2), Math.round(y + sz / 2)); if (rot) g.rotate(rot); g.scale(flip ? -1 : 1, sy)
       g.drawImage(im, -sz / 2, -sz / 2, sz, sz); g.restore()
     }
@@ -138,10 +151,12 @@ export default function FarmScene({ mapId, party = [], shadows = [], recent = []
 
     // background (map art, bottom-aligned), dimmed slightly at the edges
     g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, W, H)
-    const bgId = s.bg || mapId, bg = still(`map_${bgId}`)
-    if (bg) { const top = GY - 2 * (MAP_GROUND[bgId] || 114); if (top > 0) g.drawImage(bg, 0, 0, 200, 1, 0, 0, 400, top + 2); g.drawImage(bg, 0, top, 400, 240) } else { g.fillStyle = '#bae6fd'; g.fillRect(0, 0, W, H) }
+    const bgId = s.bg || mapId, tod = todOf()
+    // backdrop for this time of day (morning / day / evening / night), cross-fading near the change
+    const top = GY - 2 * (MAP_GROUND[bgId] || 114)
+    if (!drawPhased(g, `map_${bgId}`, still, (im) => { if (top > 0) g.drawImage(im, 0, 0, 200, 1, 0, 0, 400, top + 2); g.drawImage(im, 0, top, 400, 240) }, tod)) { g.fillStyle = '#bae6fd'; g.fillRect(0, 0, W, H) }
 
-    drawAmbient(g, bgId, 'back', now)
+    drawAmbient(g, bgId, 'back', now, tod.id)
     // shadow soldiers stand behind the party in a dark aura; one lunges in now and then
     shadows.forEach((id, i) => {
       const lunge = c && c.shadow === i && k > 0.2 && k < 0.6
@@ -212,6 +227,14 @@ export default function FarmScene({ mapId, party = [], shadows = [], recent = []
         if (c.win && k > 0.75) alpha = Math.max(0, 1 - (k - 0.75) / 0.2) // falls
         if (!c.win && k > 0.55 && k < 0.8) x -= Math.sin(((k - 0.55) / 0.25) * Math.PI) * 120 // strikes back
       }
+      // a glowing night monster (✨ตัวเรืองแสง): golden aura and sparkles around it
+      if (c && c.glow && alpha > 0.05) {
+        const au = still('fx_aura'); g.save(); g.globalCompositeOperation = 'lighter'; g.globalAlpha = alpha * (0.55 + 0.25 * Math.sin(now / 160))
+        if (au) g.drawImage(au, Math.round(x - 10), Math.round(y + h * 0.55), h + 20, h * 0.5)
+        g.fillStyle = 'rgba(253,224,71,.18)'; g.beginPath(); g.ellipse(x + h / 2, y + h / 2, h * 0.62, h * 0.58, 0, 0, 7); g.fill(); g.restore()
+        if (Math.random() < dt / 90) s.fx.push({ kind: 'spark', x: x + Math.random() * h, y: y + Math.random() * h, vx: 0, vy: -0.03, life: 600 })
+        if (!c.glowSaid) { c.glowSaid = true; s.fx.push({ kind: 'num', text: '✨ตัวเรืองแสง!', x: x + h / 2, y: y - 10, life: 1500, color: '#fde047' }) }
+      }
       if (im) { g.globalAlpha = alpha; g.drawImage(mode && Math.floor(now / 60) % 2 ? flashOf(im, mon.id) : im, x, y, h, h); g.globalAlpha = 1 }
       // hit: damage number + sparks + sound once
       if (c && !c.hitDone && k > 0.5) {
@@ -240,7 +263,9 @@ export default function FarmScene({ mapId, party = [], shadows = [], recent = []
       }
     }
 
-    drawAmbient(g, bgId, 'front', now)
+    // night: a soft moonlight tint over the fighters so they sit in the scene
+    if (tod.id === 'night') { g.fillStyle = 'rgba(30,41,90,.16)'; g.fillRect(0, 0, W, H) } else if (tod.id === 'evening') { g.fillStyle = 'rgba(251,146,60,.07)'; g.fillRect(0, 0, W, H) }
+    drawAmbient(g, bgId, 'front', now, tod.id)
     // effects
     s.fx = s.fx.filter((p) => (p.life -= dt) > 0)
     for (const p of s.fx) {

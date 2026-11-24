@@ -710,8 +710,10 @@ export function useRpg() {
       else if (bank > 0) bank--
       else break
       const m = maps[(f.runs || 0) % maps.length]
-      const l = fight(f, day, ctx, m.id)
-      logs.push({ ...l, seq: f.runs, at: new Date(nowMs).toISOString() })
+      // a catch-up replays the fights at the times they happened (one every IDLE_AWAY_MS), so night hunts count as night
+      const atMs = away ? Math.min(nowMs, new Date(away).getTime() + (i + 1) * IDLE_AWAY_MS) : nowMs
+      const l = fight(f, day, { ...ctx, at: new Date(atMs) }, m.id)
+      logs.push({ ...l, seq: f.runs, at: new Date(atMs).toISOString() })
     }
     if (!logs.length) return []
     f.day = day; f.hourly = { at: hr.at, bank, bonusDay: hr.bonusDay, bonusN: hr.bonusToday }; f.last = new Date(nowMs).toISOString(); f.idleAt = f.last
