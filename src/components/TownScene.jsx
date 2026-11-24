@@ -278,10 +278,10 @@ export function drawTown(g, t, now, o = {}) {
   const dec = t.decor
   const spots = (k) => LEFT + 4 + Math.round(((k + 0.5) * (w - LEFT - RIGHT)) / Math.max(1, dec.length))
   dec.forEach((id, k) => {
-    const x = spots(k), y = G + 12 + (dec.length > 8 && k % 2 ? 9 : 0) // two rows when there are many
+    const rows = dec.length > 20 ? 3 : dec.length > 8 ? 2 : 1, x = spots(k), y = G + 12 + (k % rows) * 8 // up to three rows when there are many
     g.save(); g.translate(x, y); g.scale(1.3, 1.3); g.translate(-x, -y)
     const art = still(BASIC_ART[id] || id)
-    if (art && (BASIC_ART[id] || id.startsWith('ev_') || id.startsWith('cr_'))) { g.drawImage(art, x - 5, y - 17, 18, 18); g.restore(); return }
+    if (art && (BASIC_ART[id] || id.startsWith('dc_') || id.startsWith('ev_') || id.startsWith('cr_'))) { g.drawImage(art, x - 5, y - 17, 18, 18); g.restore(); return }
     if (id === 'tree') { R(C.wood, x + 2, y - 6, 2, 6); R(C.leaf, x - 2, y - 16, 10, 10); R(C.leaf2, x, y - 15, 4, 3) }
     if (id === 'bench') { R(C.wood2, x, y - 4, 10, 2); R(C.wood, x, y - 2, 1, 2); R(C.wood, x + 9, y - 2, 1, 2); R(C.wood, x, y - 7, 10, 1) }
     if (id === 'lamp') { R('#334155', x, y - 16, 1, 16); R(night ? '#fde047' : '#fef9c3', x - 1, y - 18, 3, 2); if (night) { g.fillStyle = 'rgba(253,224,71,.2)'; g.fillRect(x - 6, y - 22, 13, 12) } }
@@ -293,7 +293,7 @@ export function drawTown(g, t, now, o = {}) {
       for (let q = 0; q < 6; q++) { const k2 = (now / 500 + q / 6) % 1; R('#7dd3fc', x + 3 + Math.round(Math.sin(q * 2) * k2 * 6), y - 12 + k2 * 9 - Math.sin(k2 * Math.PI) * 4, 1, 1) }
     }
     // festival pieces: emoji stand-ins until their PixelLab art is drawn
-    if ((id.startsWith('ev_') || id.startsWith('cr_')) && !still(id)) { const it = DECOR_BY_ID[id]; if (it) { g.font = '12px sans-serif'; g.textAlign = 'center'; g.fillText(it.emoji, x + 4, y - 2); g.textAlign = 'left' } }
+    if ((id.startsWith('dc_') || id.startsWith('ev_') || id.startsWith('cr_')) && !still(id)) { const it = DECOR_BY_ID[id]; if (it) { g.font = '12px sans-serif'; g.textAlign = 'center'; g.fillText(it.emoji, x + 4, y - 2); g.textAlign = 'left' } }
     if (id === 'statue') { R(C.stone2, x, y - 4, 8, 4); R(C.gold, x + 2, y - 14, 4, 10); R(C.gold2, x + 3, y - 16, 2, 2); if (Math.sin(now / 300) > 0.8) R('#fff', x + 5, y - 13, 1, 1) }
     g.restore()
   })

@@ -784,8 +784,8 @@ export function useRpg() {
   }
   const sellItems = (keys) => {
     const f = F(), bag = { ...f.bag }; let got = 0
-    const tm = 1 + (cardFx(f).trophy || 0) / 100 // desert cards raise trophy prices
-    for (const k of keys) { got += Math.round(itemPrice(k) * (k.startsWith('t:') ? tm : 1) * (bag[k] || 0)); delete bag[k] }
+    const cf = cardFx(f), tm = 1 + (cf.trophy || 0) / 100, sm = 1 + (cf.sell || 0) / 100 // card abilities raise sale prices
+    for (const k of keys) { got += Math.round(itemPrice(k) * (k.startsWith('t:') ? tm : sm) * (bag[k] || 0)); delete bag[k] }
     if (!got) return 0
     pay(got, 0, { icon: '💰', text: `ขายของจากการล่ามอนสเตอร์` }, { farm: { ...f, bag } }); sfx('coin'); return got
   }

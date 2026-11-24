@@ -7,7 +7,7 @@ import { MAPS, MAP_BY_ID, MON_BY_ID } from '../lib/farmData'
 import { SHEETS } from '../lib/spriteSheets'
 import { MON_LORE } from '../lib/farmLore'
 import { MON_GLOW_LORE } from '../lib/glowLore'
-import { CARD_STAT, CARD_CAP, CARD_MAX, KIND_MULT, GLOW_CARD_PCT, CARD_DROP, GLOW_CARD_MULT, GLOW_CARD, SELL_RATE, SHOP_ODDS, cardPct, cardPrice, sellPrice } from '../lib/cards'
+import { ABILITY, CARD_CAP, CARD_MAX, KIND_MULT, CARD_DROP, GLOW_CARD_MULT, GLOW_CARD, SELL_RATE, SHOP_ODDS, cardPct, glowCardPct, abilityOf, cardPrice, sellPrice } from '../lib/cards'
 
 const NIGHT_BG = ['meadow', 'forest', 'swamp', 'desert', 'snow', 'volcano']
 const pct = (x) => `${+(x * 100).toFixed(2)}%`
@@ -24,6 +24,7 @@ export function MonCard({ mon, glow = false, lv = 0, size = 88, dim = false, ani
         <div className={moving ? 'card-anim' : ''} style={{ position: 'absolute', left: '8%', right: '8%', bottom: '2%', aspectRatio: '1', backgroundImage: moving ? `url(${sp}_anim.png)` : `url(${sp}.png)`, backgroundSize: moving ? '800% 100%' : '100% 100%', backgroundRepeat: 'no-repeat', filter: dim ? 'brightness(0)' : undefined, opacity: dim ? 0.55 : 1 }} />
       </div>
       <img src={`./sprites/card_${frame}.png`} alt="" className="absolute inset-0 w-full h-full pointer-events-none" style={{ imageRendering: 'pixelated' }} />
+      {!dim && size >= 56 && <span className="absolute" style={{ left: '12%', top: '9%' }} title={abilityOf(mon)?.name}><Emo k={abilityOf(mon)?.icon} size={Math.max(12, size / 7)} /></span>}
       <div className="absolute left-0 right-0 text-center leading-none" style={{ bottom: '8%', fontSize: Math.max(8, size / 9) }}>
         <div className={`font-bold truncate px-[12%] ${glow ? 'text-fuchsia-200' : mon.kind === 'boss' ? 'text-amber-200' : 'text-slate-100'}`} style={{ textShadow: '0 1px 0 #000, 0 0 2px #000' }}>{dim ? '???' : mon.name}</div>
         {!dim && <div className="text-amber-300 mt-0.5" style={{ textShadow: '0 1px 0 #000', fontSize: Math.max(7, size / 11) }}>{glow ? (lv ? '✦ เรืองแสง' : '✦ ใหม่!') : lv ? `ขั้น ${lv}/${CARD_MAX}` : 'ใหม่!'}</div>}
@@ -36,9 +37,9 @@ function CardSheet({ rpg, sel, onClose, onSwitch }) {
   const [back, setBack] = useState(false)
   const showToast = useStore((s) => s.showToast)
   if (!sel) return null
-  const f = rpg.farm, mon = MON_BY_ID[sel.id], st = CARD_STAT[mon.map], glow = sel.glow
+  const f = rpg.farm, mon = MON_BY_ID[sel.id], st = abilityOf(mon), glow = sel.glow
   const lv = glow ? (f.glowCards?.[mon.id] ? 1 : 0) : f.cards?.[mon.id] || 0, spare = (glow ? f.glowSpare : f.cardSpare)?.[mon.id] || 0
-  const now = glow ? (lv ? GLOW_CARD_PCT[mon.kind] : 0) : cardPct(mon, lv), next = !glow && lv < CARD_MAX ? cardPct(mon, lv + 1) : null
+  const now = glow ? (lv ? glowCardPct(mon) : 0) : cardPct(mon, lv), next = !glow && lv < CARD_MAX ? cardPct(mon, lv + 1) : null
   const sell = () => { const g = rpg.sellCard(mon.id, glow); if (g) showToast(`ขายการ์ดซ้ำได้ ${g.toLocaleString()} FIAT`) }
   return (
     <Sheet open onClose={() => { setBack(false); onClose() }} title={lv ? `${mon.name}${glow ? ' (เรืองแสง)' : ''}` : '??? (ยังไม่มีการ์ดใบนี้)'}>
@@ -49,7 +50,7 @@ function CardSheet({ rpg, sel, onClose, onSwitch }) {
                 <div className="absolute inset-[7%] bg-slate-900/90 p-2.5 space-y-1.5 overflow-hidden">
                   <div className="flex items-center gap-1 font-bold text-amber-200"><Emo k={st.icon} size={14} /> {st.name}</div>
                   <div>ตอนนี้ <b className="text-emerald-300">+{now}%</b>{next != null && <> · ขั้นถัดไป +{+next.toFixed(2)}%</>}</div>
-                  <div className="text-slate-300">{glow ? `การ์ดเรืองแสงมีขั้นเดียว +${GLOW_CARD_PCT[mon.kind]}%` : `ขั้น 1 = ${KIND_MULT[mon.kind]}% · ขั้น 10 = ${2 * KIND_MULT[mon.kind]}% (${KIND_TH[mon.kind]} ×${KIND_MULT[mon.kind]})`}</div>
+                  <div className="text-slate-300">{glow ? `การ์ดเรืองแสงมีขั้นเดียว +${glowCardPct(mon)}%` : `ขั้น 1 = ${cardPct(mon, 1)}% · ขั้น 10 = ${cardPct(mon, CARD_MAX)}% (${KIND_TH[mon.kind]} ×${KIND_MULT[mon.kind]})`}</div>
                   <div className="text-slate-300 text-[11px] leading-snug">{lv ? (glow ? MON_GLOW_LORE[mon.id] : MON_LORE[mon.id]) : 'ยังไม่มีการ์ดใบนี้'}</div>
                 </div>
               </div>}
@@ -62,6 +63,7 @@ function CardSheet({ rpg, sel, onClose, onSwitch }) {
         <div className="px-inner p-3 text-sm space-y-1">
           <div><b>{KIND_TH[mon.kind]}</b> · <Emo e={MAP_BY_ID[mon.map].emoji} size={14} /> {MAP_BY_ID[mon.map].name}</div>
           <div className="flex items-center gap-1"><Emo k={st.icon} size={14} /> {st.name} <b>+{now}%</b>{CARD_CAP[st.key] ? ` (รวมทุกใบสูงสุด ${CARD_CAP[st.key]}%)` : ''}</div>
+          <div className="text-[12px] text-slate-500">ตอนนี้ทั้งสมุดให้{st.name}รวม +{rpg.cardFx?.[st.key] || 0}%</div>
           <div className="text-[12px] text-slate-500">{glow ? `ได้จากตัวเรืองแสงเท่านั้น (${pct(GLOW_CARD)} ต่อครั้งที่ล่าชนะ) หรือพ่อค้าวันอาทิตย์` : `ดรอป ${pct(CARD_DROP[mon.kind])} ต่อการชนะ (ตัวเรืองแสง ×${GLOW_CARD_MULT}) · ใส่ทับเพื่ออัปขั้น สูงสุด ${CARD_MAX} ขั้น`} · ราคาที่พ่อค้า {cardPrice(mon, glow).toLocaleString()} FIAT</div>
           {spare > 0 && <div className="flex items-center gap-2 pt-1"><span className="flex-1">การ์ดซ้ำเกินขั้นสูงสุด ×{spare}</span><button className="px-btn !py-1 !px-2 text-xs" onClick={sell} data-testid="card-sell"><PxIcon name="em_sell" size={14} /> ขาย {(sellPrice(mon, glow) * spare).toLocaleString()} FIAT</button></div>}
         </div>
@@ -84,9 +86,9 @@ export default function CardAlbum({ rpg }) {
       <CardSheet rpg={rpg} sel={sel} onClose={() => setSel(null)} onSwitch={setSel} />
       <section className="px-card p-3">
         <div className="flex items-center gap-2 mb-1"><PxIcon name="em_album" size={22} /><b className="flex-1">สมุดสะสมการ์ด</b><span className="text-[11px] text-slate-500">{own}/{total} · เต็มขั้น {maxed} · <Emo k="em_glow" size={12} /> {glowN}/{total}</span></div>
-        <div className="text-[11px] text-slate-500 mb-2">การ์ดหายากเท่าเศษทอง (ดรอป {pct(CARD_DROP.normal)} / {pct(CARD_DROP.elite)} / {pct(CARD_DROP.boss)} ต่อการชนะ ตัวเรืองแสง ×{GLOW_CARD_MULT}) · ใส่สมุดแล้วได้ความสามารถติดตัวตามแผนที่ ใส่ใบซ้ำทับเพื่ออัปขั้น 1→{CARD_MAX} (1%→2%, หัวหน้า ×2, บอส ×3) · การ์ดเรืองแสงมีขั้นเดียว · ใบซ้ำที่เกินขั้นสูงสุดขายได้ {Math.round(SELL_RATE * 100)}% ของราคาพ่อค้า</div>
+        <div className="text-[11px] text-slate-500 mb-2">การ์ดหายากเท่าเศษทอง (ดรอป {pct(CARD_DROP.normal)} / {pct(CARD_DROP.elite)} / {pct(CARD_DROP.boss)} ต่อการชนะ ตัวเรืองแสง ×{GLOW_CARD_MULT}) · การ์ดแต่ละใบมีความสามารถของตัวเอง ใส่ใบซ้ำทับเพื่ออัปขั้น 1→{CARD_MAX} (ขั้น 10 แรงเป็น 2 เท่าของขั้น 1, หัวหน้า ×2, บอส ×3) · การ์ดเรืองแสงมีขั้นเดียว แรง 3 เท่าของขั้น 1 · ใบซ้ำที่เกินขั้นสูงสุดขายได้ {Math.round(SELL_RATE * 100)}% ของราคาพ่อค้า</div>
         <div className="grid grid-cols-2 gap-1.5 text-[11px]" data-testid="card-bonus">
-          {MAPS.map((m) => { const st = CARD_STAT[m.id], v = fx[st.key] || 0; return <div key={m.id} className="px-inner px-2 py-1 flex items-center gap-1"><Emo k={st.icon} size={14} /><span className="flex-1 truncate">{st.name}</span><b className={v ? 'text-emerald-600' : 'text-slate-400'}>+{v}%</b>{CARD_CAP[st.key] && <span className="text-slate-400">/{CARD_CAP[st.key]}</span>}</div> })}
+          {Object.entries(ABILITY).map(([k, st]) => { const v = fx[k] || 0; return <div key={k} className="px-inner px-2 py-1 flex items-center gap-1"><Emo k={st.icon} size={14} /><span className="flex-1 truncate">{st.name}</span><b className={v ? 'text-emerald-600' : 'text-slate-400'}>+{v}%</b><span className="text-slate-400">/{st.cap}</span></div> })}
         </div>
       </section>
       <section className="px-card p-3" data-testid="card-shop">
@@ -97,10 +99,10 @@ export default function CardAlbum({ rpg }) {
         </div> : <div className="text-xs text-slate-400">วันนี้พ่อค้ายังไม่มา แวะมาใหม่วันอาทิตย์นะ</div>}
       </section>
       {MAPS.map((m) => {
-        const st = CARD_STAT[m.id], got = m.mons.filter((x) => cards[x.id]).length
+        const got = m.mons.filter((x) => cards[x.id]).length
         return (
           <section key={m.id} className="px-card p-3">
-            <div className="flex items-center gap-2 mb-2 text-sm"><Emo e={m.emoji} size={16} /><b className="flex-1">{m.name}</b><span className="text-[11px] text-slate-500 flex items-center gap-1"><Emo k={st.icon} size={12} /> {st.name} · {got}/{m.mons.length}</span></div>
+            <div className="flex items-center gap-2 mb-2 text-sm"><Emo e={m.emoji} size={16} /><b className="flex-1">{m.name}</b><span className="text-[11px] text-slate-500">{got}/{m.mons.length}</span></div>
             <div className="grid grid-cols-5 gap-1.5">
               {m.mons.map((x) => <button key={x.id} onClick={() => setSel({ id: x.id, glow: false })} className="relative" data-testid={`card-${x.id}`}>
                 <MonCard mon={x} lv={cards[x.id] || 0} size={62} dim={!cards[x.id]} anim={false} />

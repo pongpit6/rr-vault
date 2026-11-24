@@ -237,20 +237,32 @@ export default function TownTab({ rpg }) {
       </Section>
 
       <Section icon={Sparkles} title="DECOR · ตกแต่งเมือง">
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-          {DECOR.filter((d) => (d.craft ? T.decor.includes(d.id) : !d.event || T.decor.includes(d.id) || decorOnSale(d, rpg.world))).map((d) => {
-            const own = T.decor.includes(d.id), p = rpg.decorPrice ? rpg.decorPrice(d) : priceOf(d.cost, rpg.econData)
-            return (
-              <div key={d.id} className={`px-inner p-2 text-center ${own ? 'bg-teal-50' : ''}`}>
-                {d.event && <div className="text-[9px] font-bold text-rose-600"><PxIcon name="em_hourglass" size={11} /> เฉพาะ{d.event === 'sale' ? 'วันเลขเบิ้ล' : EVENTS[d.event]?.name || 'เทศกาล'}</div>}
-                <Art name={DECOR_ART[d.id] || d.id} size={32} fallback={d.emoji} /><div className="text-[11px] font-semibold">{d.name}</div><div className="text-[10px] text-teal-700">ความสุข +{d.happy}</div>{d.scene && <div className="text-[10px] text-slate-500">+ {d.scene}</div>}
-                {own ? <div className="text-[10px] text-slate-500 mt-1">ติดตั้งแล้ว ✓</div> : (
-                  <button className={`${btn} mt-1 w-full bg-white`} disabled={!rpg.afford(p)} onClick={() => ok(rpg.buyDecor(d.id), `ติดตั้ง${d.name}แล้ว`)}><Price p={p} rpg={rpg} /></button>
-                )}
-              </div>
-            )
-          })}
-        </div>
+        <div className="text-[11px] text-slate-500 mb-2">ของแต่งทุกชิ้นเพิ่มความสุขเมือง (สูงสุด 100%) · ติดตั้งแล้ว {T.decor.length} ชิ้น</div>
+        {[
+          { key: 'basic', title: 'ของแต่งทั่วไป', note: 'ซื้อได้ตลอด', list: DECOR.filter((d) => !d.craft && !d.event) },
+          { key: 'craft', title: 'ของแต่งจากวัสดุมอนสเตอร์', note: 'สร้างที่แท็บชาวเมือง (ล่า → ชาวเมือง) ไม่มีขายในร้าน', list: DECOR.filter((d) => d.craft) },
+          { key: 'event', title: 'ของแต่งเทศกาล', note: 'วางขายเฉพาะช่วงเทศกาลนั้น ซื้อแล้วเก็บไว้ตลอดไป', list: DECOR.filter((d) => d.event) },
+        ].map((grp) => (
+          <div key={grp.key} className="mb-3" data-testid={`decor-${grp.key}`}>
+            <div className="flex items-baseline gap-2 mb-1.5"><b className="text-sm">{grp.title}</b><span className="text-[10px] text-slate-500">{grp.note} · มีแล้ว {grp.list.filter((d) => T.decor.includes(d.id)).length}/{grp.list.length}</span></div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              {grp.list.map((d) => {
+                const own = T.decor.includes(d.id), p = rpg.decorPrice ? rpg.decorPrice(d) : priceOf(d.cost, rpg.econData)
+                const onSale = !d.event || decorOnSale(d, rpg.world)
+                return (
+                  <div key={d.id} className={`px-inner p-2 text-center ${own ? 'bg-teal-50' : ''} ${!own && (d.craft || !onSale) ? 'opacity-70' : ''}`}>
+                    {d.event && <div className={`text-[9px] font-bold ${onSale ? 'text-rose-600' : 'text-slate-500'}`}><PxIcon name="em_hourglass" size={11} /> {onSale ? 'ขายอยู่ตอนนี้ · ' : ''}เทศกาล{d.event === 'sale' ? 'วันเลขเบิ้ล' : EVENTS[d.event]?.name || ''}</div>}
+                    <Art name={DECOR_ART[d.id] || d.id} size={32} fallback={d.emoji} /><div className="text-[11px] font-semibold">{d.name}</div><div className="text-[10px] text-teal-700">ความสุข +{d.happy}</div>{d.scene && <div className="text-[10px] text-slate-500">{d.scene}</div>}
+                    {own ? <div className="text-[10px] text-slate-500 mt-1">ติดตั้งแล้ว ✓</div>
+                      : d.craft ? <div className="text-[10px] text-slate-500 mt-1">สร้างจากวัสดุที่ชาวเมือง</div>
+                      : !onSale ? <div className="text-[10px] text-slate-500 mt-1">รอเทศกาลรอบหน้า</div>
+                      : <button className={`${btn} mt-1 w-full bg-white`} disabled={!rpg.afford(p)} onClick={() => ok(rpg.buyDecor(d.id), `ติดตั้ง${d.name}แล้ว`)}><Price p={p} rpg={rpg} /></button>}
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        ))}
       </Section>
 
       <FestivalCalendar T={T} />

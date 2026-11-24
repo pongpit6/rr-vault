@@ -4,7 +4,8 @@ import { Emo, PxIcon, hasPx } from './px'
 import { Portrait } from './RpgBits'
 import FarmScene from './FarmScene'
 import CardAlbum from './CardAlbum'
-import { GLOW_CARD_MULT, GLOW_CARD, CARD_DROP } from '../lib/cards'
+import HuntFull from './HuntFull'
+import { GLOW_CARD_MULT, GLOW_CARD, CARD_DROP, abilityOf, cardPct } from '../lib/cards'
 import { useStore } from '../store'
 import { MAPS, MAP_BY_ID, MON_BY_ID, MATS, TREE, rankCost, RECIPES, mapUnlocked, itemName, itemPrice, itemIcon, RELICS, RELIC_BY_ID, NPC_INFO, SHADOWS, SHADOW_SLOT_LV, enhStep, ENH_FX, SHARDS_PER_GOLD, MAP_MODES, huntMaps, mapWinRate, LOOT, RARE_ODDS, rareOf, matUse, happyBonusChance, HUNT_XP_PER_WIN, HUNT_XP_DAY } from '../lib/farm'
 import { monPower, BOSS_AFTER, trophyPrice, bossOf, eliteOf, normalsOf } from '../lib/farmData'
@@ -87,6 +88,7 @@ function AwayCard({ rpg }) {
 }
 
 function Hunt({ rpg }) {
+  const [full, setFull] = useState(false)
   const f = rpg.farm
   const setUi = useStore((s) => s.setUi)
   useEffect(() => { setUi({ huntOpen: true }); return () => setUi({ huntOpen: false }) }, []) // eslint-disable-line
@@ -125,6 +127,8 @@ function Hunt({ rpg }) {
       <section className="px-card overflow-hidden" data-testid="farm-battle">
         <div className="relative">
           <FarmScene mapId={map.id} party={rpg.party} power={rpg.power} skills={f.skills || {}} shadows={f.shadowWorn || []} recent={recent} live={rpg.staminaLeft > 0} onMon={setShown} hue={rpg.skin?.hue || 0} idleMon={map.mons[0].id} />
+          <button onClick={() => setFull(true)} className="absolute right-2 top-[30px] px-1.5 py-0.5 text-[10px] font-bold bg-slate-900/80 text-white" data-testid="hunt-full-open">⛶ ดูเต็มจอ</button>
+          {full && <HuntFull onClose={() => setFull(false)} title={`${map.name} · พลังทีม ${rpg.power}`} mapId={map.id} party={rpg.party} power={rpg.power} skills={f.skills || {}} shadows={f.shadowWorn || []} recent={recent} live={rpg.staminaLeft > 0} onMon={setShown} hue={rpg.skin?.hue || 0} idleMon={map.mons[0].id} />}
           <div className="absolute left-2 top-2 px-font text-[10px] bg-white/85 px-1.5 py-0.5">พลังทีม {rpg.power}</div>
           <PhaseBadge />
           <div className="absolute right-2 top-2 text-[11px] bg-white/85 px-1.5 py-0.5"><b>{last.name}</b> · พลัง {monPower(last)}{last.kind !== 'normal' && <span className="text-rose-600"> · {last.kind === 'boss' ? 'บอส' : 'หัวหน้า'}</span>}</div>
@@ -338,7 +342,7 @@ function MonSheet({ mon, seen, glow = 0, onClose }) {
             {rareOf(map).map((k) => <div key={k} className="px-inner p-2 flex items-center gap-2 text-xs"><ItemIcon k={k} /><div className="flex-1"><b>{MATS[k].name}</b> · ของหายาก<div className="text-slate-500">โอกาส {pct(RARE_ODDS[mon.kind] / 2)} (กลางคืน ×{NIGHT.rare}, คืนเพ็ญ ×{1 + (NIGHT.rare - 1) * NIGHT.moonMult}) · {matUse(k)}</div></div></div>)}
             <div className="px-inner p-2 flex items-center gap-2 text-xs"><ItemIcon k="mcrystal" /><div className="flex-1"><b>{MATS.mcrystal.name}</b> · ใช้ตีบวก<div className="text-slate-500">โอกาส {pct(LOOT.mcrystal[mon.kind])} · {matUse('mcrystal')}</div></div></div>
             <div className="px-inner p-2 flex items-center gap-2 text-xs bg-amber-50"><ItemIcon k="shard" /><div className="flex-1"><b>{MATS.shard.name}</b> · หายากมาก<div className="text-slate-500">โอกาส {pct(LOOT.shard[mon.kind])} · {matUse('shard')}</div></div></div>
-            <div className="px-inner p-2 flex items-center gap-2 text-xs bg-indigo-50"><PxIcon name="em_card" size={28} /><div className="flex-1"><b>การ์ด{mon.name}</b> · ใส่สมุดสะสมการ์ด<div className="text-slate-500">โอกาส {pct(CARD_DROP[mon.kind])} (เท่าเศษทอง) · ตัวเรืองแสง ×{GLOW_CARD_MULT} · ดูในแท็บ “การ์ด”</div></div></div>
+            <div className="px-inner p-2 flex items-center gap-2 text-xs bg-indigo-50"><PxIcon name="em_card" size={28} /><div className="flex-1"><b>การ์ด{mon.name}</b> · {abilityOf(mon)?.name} +{cardPct(mon, 1)}% → +{cardPct(mon, 10)}% (ขั้น 1→10)<div className="text-slate-500">โอกาส {pct(CARD_DROP[mon.kind])} (เท่าเศษทอง) · ตัวเรืองแสง ×{GLOW_CARD_MULT} · ดูในแท็บ “การ์ด”</div></div></div>
           </div>
         </div>
         </>}

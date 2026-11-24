@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { frame, still } from './BattleScene'
-import { MON_BY_ID, MAP_BY_ID } from '../lib/farmData'
+import { MON_BY_ID, MAP_BY_ID, FACES_RIGHT } from '../lib/farmData'
 import { itemName, TREE_BY_ID } from '../lib/farm'
 import { popDmg, drawDmg, fmtDmg } from './dmgFx'
 import { todOf, drawPhased } from '../lib/timeOfDay'
@@ -218,7 +218,13 @@ export default function FarmScene({ mapId, party = [], shadows = [], recent = []
         if (Math.random() < dt / 90) s.fx.push({ kind: 'spark', x: x + Math.random() * h, y: y + Math.random() * h, vx: 0, vy: -0.03, life: 600 })
         if (!c.glowSaid) { c.glowSaid = true; s.fx.push({ kind: 'num', text: '✨ตัวเรืองแสง!', x: x + h / 2, y: y - 10, life: 1500, color: '#fde047' }) }
       }
-      if (im) { g.globalAlpha = alpha; g.drawImage(mode && Math.floor(now / 60) % 2 ? flashOf(im, `${mon.id}${gl ? '_g' : ''}:${g8}`) : im, x, y, h, h); g.globalAlpha = 1 }
+      if (im) {
+        const pic = mode && Math.floor(now / 60) % 2 ? flashOf(im, `${mon.id}${gl ? '_g' : ''}:${g8}`) : im
+        g.globalAlpha = alpha
+        if (FACES_RIGHT.has(mon.id)) { g.save(); g.translate(x + h, y); g.scale(-1, 1); g.drawImage(pic, 0, 0, h, h); g.restore() } // face the party
+        else g.drawImage(pic, x, y, h, h)
+        g.globalAlpha = 1
+      }
       // hit: damage number + sparks + sound once
       if (c && !c.hitDone && k > 0.5) {
         c.hitDone = true

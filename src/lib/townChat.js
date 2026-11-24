@@ -77,6 +77,13 @@ export function townChats(rpg) {
     if (nCards > 0) { const sp = by0('bard', 'apprentice', 'farmer'); if (sp) add(2, [sp], [[sp, `สมุดการ์ดของท่านมี ${nCards} ใบแล้วนะ!`], ['hero', 'การ์ดหายากเท่าเศษทองเลย ได้ทีดีใจทุกที'], [sp, 'ใส่ใบซ้ำทับ ความสามารถก็แรงขึ้นเรื่อย ๆ']]) }
     else { const sp = by0('bard', 'farmer'); if (sp) add(1, [sp], [[sp, 'ได้ยินว่ามอนสเตอร์บางตัวทิ้งการ์ดไว้ หายากพอ ๆ กับเศษทองเลย'], ['hero', 'ถ้าได้มาจะเอาใส่สมุดสะสมไว้']]) }
     if (maxed > 0) { const sp = by0('banker', 'merchant'); if (sp) add(2, [sp], [[sp, 'การ์ดที่เต็มสิบขั้นแล้ว ใบซ้ำเอามาขายให้ข้าได้นะ'], ['hero', 'ดีเลย จะได้เก็บ FIAT ไว้ซื้อใบใหม่']]) }
+    // new town decorations
+    const dec = rpg.town?.decor || []
+    if (dec.includes('dc_koi')) { const sp = by0('fisher', 'farmer'); if (sp) add(2, [sp], [[sp, 'ปลาคาร์ปในบ่อตัวโตขึ้นทุกวันเลยนะ'], ['hero', 'เหมือนเงินออม ค่อย ๆ โตถ้าไม่ไปรบกวน']]) }
+    if (dec.includes('dc_gymbar')) { const sp = by0('guard', 'smith'); if (sp) add(2, [sp], [[sp, 'บาร์ออกกำลังกายที่ท่านตั้งไว้ ข้าใช้ทุกเช้าเลย'], ['hero', 'ดีเลย ข้าก็จะไปโหนด้วย']]) }
+    if (dec.includes('dc_bookstall')) { const sp = by0('apprentice', 'bard'); if (sp) add(2, [sp], [[sp, 'ซุ้มหนังสือหน้าบ้านมีเล่มใหม่มาอีกแล้ว'], ['hero', 'อ่านวันละนิด สะสมไปเรื่อย ๆ']]) }
+    if (dec.includes('dc_piggy')) { const sp = by0('banker', 'merchant'); if (sp) add(2, [sp], [[sp, 'รูปปั้นกระปุกออมสินกลางเมือง เตือนใจทุกคนให้เก็บเงินเลยนะ'], ['hero', 'ตั้งใจไว้แบบนั้นแหละ']]) }
+    if (dec.length >= 12) { const sp = by0('bard', 'farmer'); if (sp) add(1, [sp], [[sp, `เมืองเราสวยขึ้นมาก มีของแต่งตั้ง ${dec.length} ชิ้นแล้ว`], ['hero', 'ทุกคนช่วยกันดูแลนะ']]) }
     if (glowMon) { const sp = by0('merchant', 'banker', 'farmer'); if (sp) add(3, [sp], [[sp, `ได้ยินว่าท่านล่า${glowMon.name}ตัวเรืองแสงได้ด้วย!`], ['hero', 'โชคดีน่ะ มันโผล่มาตอนกลางคืน'], [sp, `${glowMon.trophy}จากตัวเรืองแสง เอามาขายข้าได้เลยนะ`]]) }
   }
 

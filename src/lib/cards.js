@@ -2,35 +2,56 @@
  * Collector's Album (สมุดสะสมการ์ด): one card per monster (120) plus one glowing card each.
  * - Cards drop as rarely as gold shards (normal 0.45%, elite 0.9%, boss 1.5% per win); a glowing monster gives ×3 and
  *   has a GLOW_CARD chance of its glowing card.
- * - A card in the album gives a passive bonus for its map's stat. Copies stack up to level 10:
- *   level 1 = 1.0%, +0.1% a level, level 10 = 2.0% (elite ×2, boss ×3). Glowing cards have one level only (3/6/9%).
+ * - Every card has its own ability (CARD_ABILITY). Copies stack up to level 10: level 1 = the ability's unit,
+ *   +10% of it a level, level 10 = 2 × unit (elite ×2, boss ×3). Glowing cards: one level, 3 × unit (× kind).
  * - Copies beyond level 10 (and spare glowing cards) can be sold.
  * - Every Sunday the merchant brings 5 random cards (rarer cards sometimes).
  */
 import { MAPS, MAP_BY_ID, MON_BY_ID } from './farmData'
 
-export const CARD_STAT = {
-  meadow: { key: 'mat', name: 'โอกาสดรอปวัสดุ', icon: 'em_meadow' },
-  forest: { key: 'rare', name: 'โอกาสของหายาก', icon: 'em_forest' },
-  mine: { key: 'crystal', name: 'โอกาสผลึกเวท', icon: 'em_mine' },
-  swamp: { key: 'proc', name: 'โอกาสสกิลสุ่มทำงาน', icon: 'em_swamp' },
-  desert: { key: 'trophy', name: 'ราคาขายของประจำตัว', icon: 'em_desert' },
-  snow: { key: 'weaken', name: 'มอนสเตอร์อ่อนลง', icon: 'em_snow' },
-  volcano: { key: 'power', name: 'พลังทีม', icon: 'em_volcano' },
-  shadow: { key: 'glow', name: 'โอกาสเจอตัวเรืองแสง', icon: 'em_glow' },
+/** every card has its own ability (chosen to fit the monster); unit = % at level 1, level 10 = 2 × unit.
+    Every ability is capped in total (cap); the fight-changers (weaken, power, second) much lower. */
+export const ABILITY = {
+  mat: { name: 'โอกาสดรอปวัสดุ', icon: 'em_basket', unit: 0.5, cap: 20 },
+  sell: { name: 'ราคาขายวัสดุ', icon: 'em_moneybag', unit: 0.75, cap: 20 },
+  rare: { name: 'โอกาสของหายาก', icon: 'Gem', unit: 0.5, cap: 20 },
+  crystal: { name: 'โอกาสผลึกเวท', icon: 'em_mine', unit: 1, cap: 30 },
+  trophy: { name: 'ราคาขายของประจำตัว', icon: 'Trophy', unit: 0.5, cap: 20 },
+  trophyDrop: { name: 'โอกาสดรอปของประจำตัว', icon: 'Award', unit: 0.5, cap: 15 },
+  proc: { name: 'โอกาสสกิลสุ่มทำงาน', icon: 'Sparkles', unit: 1, cap: 20 },
+  mana: { name: 'มานาต่อวัน', icon: 'Zap', unit: 2, cap: 40 },
+  elite: { name: 'โอกาสเจอหัวหน้า', icon: 'Target', unit: 1, cap: 20 },
+  night: { name: 'ของหายากตอนกลางคืน', icon: 'em_night', unit: 1, cap: 25 },
+  glow: { name: 'โอกาสเจอตัวเรืองแสง', icon: 'em_glow', unit: 1.5, cap: 30 },
+  weaken: { name: 'มอนสเตอร์อ่อนลง', icon: 'em_snow', unit: 0.3, cap: 8 },
+  power: { name: 'พลังทีม', icon: 'em_volcano', unit: 0.3, cap: 8 },
+  second: { name: 'โอกาสพลิกแพ้เป็นชนะ', icon: 'Shield', unit: 0.2, cap: 5 },
 }
-/** stats that change the fight a lot are capped */
-export const CARD_CAP = { power: 20, weaken: 20 }
+/** which ability each monster's card gives */
+export const CARD_ABILITY = {
+  slime_g: 'mat', rabbit: 'trophyDrop', mushroom: 'crystal', bee: 'proc', boar: 'power', crow: 'trophy', sprout: 'mat', snail: 'sell', ladybug: 'rare', frog_g: 'elite', mole_m: 'mat', duck: 'trophy', worm_m: 'sell', scarecrow: 'weaken', king_slime: 'mat',
+  wolf: 'elite', spider: 'weaken', treant: 'sell', owlbear: 'night', goblin: 'trophy', fox_fire: 'glow', beetle: 'power', bat: 'night', deer: 'rare', mushroom_p: 'proc', monkey: 'trophyDrop', raccoon: 'sell', pixie: 'mana', bandit: 'trophy', ent: 'rare',
+  mole: 'crystal', rockling: 'weaken', cave_bat: 'night', skeleton: 'second', gem_crab: 'crystal', worm: 'mat', kobold: 'sell', ooze: 'proc', drill: 'crystal', bat_g: 'rare', slime_r: 'weaken', dwarf: 'trophy', spider_c: 'glow', iron_golem: 'power', crystal_wyrm: 'crystal',
+  frog: 'proc', leech: 'mana', croc: 'power', wisp: 'glow', lizard: 'elite', mosquito: 'trophyDrop', hag: 'mana', toad_king: 'rare', turtle_s: 'second', eel: 'proc', bog_zombie: 'second', dragonfly: 'night', snake_s: 'weaken', hydra_jr: 'elite', bog_lord: 'mana',
+  scorpion: 'weaken', mummy: 'second', cactus: 'sell', vulture: 'trophyDrop', sandworm: 'mat', djinn: 'rare', jackal: 'trophy', beetle_s: 'sell', camel: 'mat', lizard_d: 'elite', tumble: 'trophyDrop', cobra: 'proc', sand_golem: 'power', pharaoh: 'trophy', sphinx: 'rare',
+  yeti_jr: 'power', ice_slime: 'weaken', penguin: 'second', snow_wolf: 'elite', frost_bird: 'night', snowman: 'sell', ice_imp: 'proc', mammoth: 'power', seal: 'mat', owl_s: 'night', ice_golem: 'weaken', fox_s: 'glow', walrus: 'trophyDrop', frost_knight: 'second', ice_dragon: 'crystal',
+  lava_slime: 'mat', salamander: 'proc', imp: 'mana', magma_golem: 'power', fire_bat: 'night', hellhound: 'elite', ember: 'crystal', fire_crab: 'sell', phoenix_s: 'second', rock_turtle: 'weaken', fire_snake: 'proc', demon_jr: 'trophy', ash_wolf: 'elite', efreet: 'mana', red_dragon: 'power',
+  ghost: 'glow', gargoyle: 'weaken', vampire_bat: 'night', armor: 'second', shadow_cat: 'glow', book_mimic: 'mana', chest_mimic: 'rare', wraith: 'night', banshee: 'proc', skull_mage: 'mana', candle: 'glow', doll: 'trophyDrop', lich: 'crystal', death_knight: 'power', shadow_lord: 'glow',
+}
+export const CARD_CAP = Object.fromEntries(Object.entries(ABILITY).filter(([, a]) => a.cap).map(([k, a]) => [k, a.cap]))
 export const CARD_MAX = 10
 export const KIND_MULT = { normal: 1, elite: 2, boss: 3 }
-export const GLOW_CARD_PCT = { normal: 3, elite: 6, boss: 9 }
+/** a glowing card: its ability at 1.5 × the level-10 value, one level only */
+export const GLOW_CARD_MULT_PCT = 3
 export const CARD_DROP = { normal: 0.0045, elite: 0.009, boss: 0.015 } // same as a gold shard
 export const GLOW_CARD_MULT = 3, GLOW_CARD = 0.25
 export const SELL_RATE = 0.3
 
 /** % bonus of one card at a level */
-export const cardPct = (mon, lv) => (lv <= 0 ? 0 : (lv >= CARD_MAX ? 2 : 1 + 0.1 * (lv - 1)) * KIND_MULT[mon.kind])
-export const statOf = (mon) => CARD_STAT[mon.map]
+export const abilityOf = (mon) => ABILITY[CARD_ABILITY[mon.id]] && { key: CARD_ABILITY[mon.id], ...ABILITY[CARD_ABILITY[mon.id]] }
+/** level 1 = unit, +10% of unit a level, level 10 = 2 × unit; elite ×2, boss ×3 */
+export const cardPct = (mon, lv) => { const a = abilityOf(mon); return lv <= 0 || !a ? 0 : +((lv >= CARD_MAX ? 2 : 1 + 0.1 * (lv - 1)) * a.unit * KIND_MULT[mon.kind]).toFixed(2) }
+export const glowCardPct = (mon) => { const a = abilityOf(mon); return a ? +(a.unit * KIND_MULT[mon.kind] * GLOW_CARD_MULT_PCT).toFixed(2) : 0 }
 /** shop price (FIAT) by rarity and map tier; selling a spare gives SELL_RATE of it */
 export function cardPrice(mon, glow = false) {
   const tier = MAP_BY_ID[mon.map]?.tier || 1, base = 60 + 20 * tier
@@ -38,11 +59,11 @@ export function cardPrice(mon, glow = false) {
 }
 export const sellPrice = (mon, glow = false) => Math.round(cardPrice(mon, glow) * SELL_RATE)
 
-/** total bonus from the album: { mat, rare, crystal, proc, trophy, weaken, power, glow } in % */
+/** total bonus from the album, by ability key, in % */
 export function cardFx(f) {
   const fx = {}
-  for (const [id, lv] of Object.entries(f.cards || {})) { const m = MON_BY_ID[id]; if (m) { const k = statOf(m).key; fx[k] = (fx[k] || 0) + cardPct(m, lv) } }
-  for (const id of Object.keys(f.glowCards || {})) { const m = MON_BY_ID[id]; if (m) { const k = statOf(m).key; fx[k] = (fx[k] || 0) + GLOW_CARD_PCT[m.kind] } }
+  for (const [id, lv] of Object.entries(f.cards || {})) { const m = MON_BY_ID[id], a = m && abilityOf(m); if (a) fx[a.key] = (fx[a.key] || 0) + cardPct(m, lv) }
+  for (const id of Object.keys(f.glowCards || {})) { const m = MON_BY_ID[id], a = m && abilityOf(m); if (a) fx[a.key] = (fx[a.key] || 0) + glowCardPct(m) }
   for (const [k, cap] of Object.entries(CARD_CAP)) if (fx[k] > cap) fx[k] = cap
   for (const k of Object.keys(fx)) fx[k] = Math.round(fx[k] * 100) / 100
   return fx

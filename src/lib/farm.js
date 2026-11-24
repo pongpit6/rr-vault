@@ -234,22 +234,24 @@ export const RARE_ODDS = { normal: 0.02, elite: 0.08, boss: 0.3 }
 export const LOOT = { trophy: 0.34, mat: 0.29, shard: { normal: 0.0045, elite: 0.009, boss: 0.015 }, mcrystal: { normal: 0.02, elite: 0.065, boss: 0.2 } }
 /** one fight. f = data.farm (mutated copy), day = today's usage (mana is spent here). returns a log entry */
 export function fight(f, day, ctx, mapId = f.map) {
-  const map = MAP_BY_ID[mapId] || MAP_BY_ID[f.map], sk = ctx.skills, fx = ctx.fx, procs = [], used = []
+  const map = MAP_BY_ID[mapId] || MAP_BY_ID[f.map], sk = ctx.skills, fx = ctx.fx, procs = [], used = [], cf = fx.card || {}
+  const manaCap = ctx.mana * (1 + (cf.mana || 0) / 100) // mana cards
   const has = (m) => m === 'knight' || ctx.joined.includes(m)
   const rank = (id) => (has(TREE_BY_ID[id].member) ? sk[id] || 0 : 0)
-  const proc = (id) => { const t = TREE_BY_ID[id], r = rank(id); if (!r || day.mana + t.mana > ctx.mana || rnd() >= t.chance(r) * (1 + (fx.card?.proc || 0) / 100) + (fx.shadowProc || 0) / 100) return false; day.mana += t.mana; procs.push(t.name); used.push(id); return true }
+  const proc = (id) => { const t = TREE_BY_ID[id], r = rank(id); if (!r || day.mana + t.mana > manaCap || rnd() >= t.chance(r) * (1 + (fx.card?.proc || 0) / 100) + (fx.shadowProc || 0) / 100) return false; day.mana += t.mana; procs.push(t.name); used.push(id); return true }
   const kills = f.kills[map.id] || 0, bossKills = f.bossKills?.[map.id] || 0
   const bossAfter = fx.rl_badge || BOSS_AFTER
   const norm = normalsOf(map)
-  const mon = kills >= bossAfter * (bossKills + 1) ? bossOf(map) : rnd() < 0.1 + ((fx.rl_cloak || 0) + (fx.enh?.boots || 0) + (fx.shadowElite || 0)) / 100 ? eliteOf(map) : norm[Math.floor(rnd() * norm.length)]
+  const mon = kills >= bossAfter * (bossKills + 1) ? bossOf(map) : rnd() < (0.1 + ((fx.rl_cloak || 0) + (fx.enh?.boots || 0) + (fx.shadowElite || 0)) / 100) * (1 + (cf.elite || 0) / 100) ? eliteOf(map) : norm[Math.floor(rnd() * norm.length)]
   // night hunt (19:00-05:00): monsters 10% tougher, rare drops ×1.5; some glow (trophies ×2); a full moon doubles both bonuses
   const at = ctx.at || new Date(), night = isNight(at), moon = night && isFullMoon(at), nm = moon ? NIGHT.moonMult : 1
-  const cf = fx.card || {}, glow = night && rnd() < NIGHT.glow * nm * (1 + (cf.glow || 0) / 100)
+  const glow = night && rnd() < NIGHT.glow * nm * (1 + (cf.glow || 0) / 100)
   let win = rnd() < winChance(night ? ctx.power / NIGHT.monPow : ctx.power, mon, fx)
   let meteor = false
   if (mon.kind !== 'normal' && proc('meteor')) { win = true; meteor = true }
   if (!win && proc('revive')) win = true
   if (!win && rank('bless') && rnd() < rank('bless') * 0.06) { win = true; procs.push('พรคุ้มครอง'); used.push('bless') }
+  if (!win && cf.second && rnd() < cf.second / 100) { win = true; procs.push('การ์ดพลิกเกม') }
   if (!win && (f.potions || 0) > 0) { win = true; f.potions--; procs.push('ยาฟื้นพลัง') }
   f.runs = (f.runs || 0) + 1
   if (fx.rl_flask && f.runs % fx.rl_flask === 0) { f.potions = (f.potions || 0) + 1; procs.push('ได้ยาใหม่') }
@@ -264,14 +266,14 @@ export function fight(f, day, ctx, mapId = f.map) {
     // slot 1: its own trophy
     const gm = glow ? NIGHT.glowDrop : 1 // a glowing monster drops everything more often
     if (glow) { add(`t:${mon.id}`, NIGHT.glowTrophy); f.glowDex = { ...(f.glowDex || {}), [mon.id]: (f.glowDex?.[mon.id] || 0) + 1 } } // a glowing one always drops, doubled
-    else if (mon.kind !== 'normal' || rnd() < LOOT.trophy + (fx.shadowTrophy || 0) / 100) add(`t:${mon.id}`, 1 + (meteor ? 1 : 0))
+    else if (mon.kind !== 'normal' || rnd() < (LOOT.trophy + (fx.shadowTrophy || 0) / 100) * (1 + (cf.trophyDrop || 0) / 100)) add(`t:${mon.id}`, 1 + (meteor ? 1 : 0))
     // slot 2: materials (a second piece needs luck)
     const matChance = (1 + (cf.mat || 0) / 100) * gm * (LOOT.mat + rank('eye') * 0.04 + ctx.hard * 0.05 + ((fx.enh?.satchel || 0) + (fx.shadowMat || 0)) / 100 + (ctx.traces.saved ? 0.1 : 0))
     const mat = () => map.mats[Math.floor(rnd() * map.mats.length)]
     if (rnd() < matChance) { add(mat(), big); if (rnd() < 0.15 + (fx.rl_bag || 0) / 100) add(mat(), 1) }
     if (proc('hawk')) add(mat(), 1)
     // slot 3: something rare
-    const rare = (RARE_ODDS[mon.kind] + ((fx.rl_map || 0) + (fx.enh?.ring || 0) + (fx.shadowRare || 0)) / 100) * (night ? 1 + (NIGHT.rare - 1) * nm : 1) * (1 + (cf.rare || 0) / 100) * gm
+    const rare = (RARE_ODDS[mon.kind] + ((fx.rl_map || 0) + (fx.enh?.ring || 0) + (fx.shadowRare || 0)) / 100) * (night ? (1 + (NIGHT.rare - 1) * nm) * (1 + (cf.night || 0) / 100) : 1) * (1 + (cf.rare || 0) / 100) * gm
     if (rnd() < rare) add(rnd() < 0.5 ? rareOf(map)[0] : rareOf(map)[1], 1)
     // gold shards (very rare) and magic crystals for enhancing gear
     if (rnd() < LOOT.shard[mon.kind] * (glow ? NIGHT.glowShard : 1)) add('shard', 1)
