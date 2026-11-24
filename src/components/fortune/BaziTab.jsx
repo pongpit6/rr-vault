@@ -7,6 +7,37 @@ import {
 } from '../../lib/fortune/bazi'
 import { DM_TEXT, GOD_TEXT, PALACE, EL_ADVICE, STRENGTH_TEXT, STRUCT_TEXT } from '../../lib/fortune/baziText'
 import { thDT } from './TaksaTab'
+import { natalReactions, eventsOf, upcomingEvents, TONE_COLOR } from '../../lib/fortune/baziReact'
+import { Guide, T, ScoreBars } from './FortuneKit'
+
+const TONE_BG = { good: '#dcfce7', bad: '#fee2e2', info: '#e0e7ff' }
+const TH_D = (y, m, d) => `${d} ${['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'][m - 1]}`
+/** one event (a day / hour / year bringing a reaction) as a coloured alert */
+function EventBox({ e, small }) {
+  return (
+    <div className={`flex gap-2 items-start rounded-lg border-2 ${small ? 'p-1.5 text-[11px]' : 'p-2 text-xs'}`} style={{ background: TONE_BG[e.tone], borderColor: TONE_COLOR[e.tone] }} data-testid="event-box">
+      <PxIcon name={e.icon} size={small ? 18 : 24} /><div><b style={{ color: TONE_COLOR[e.tone] }}>{e.title}</b><div className="text-slate-700">{e.text}</div></div>
+    </div>
+  )
+}
+const STATUS = { missing: ['ขาด', '#94a3b8'], closed: ['ปิดอยู่', '#a16207'], open: ['เปิดแล้ว', '#16a34a'], partial: ['ยังไม่ครบ', '#f59e0b'], full: ['ครบ', '#16a34a'], have: ['มี', '#16a34a'], pair: ['', ''] }
+/** one reaction card: what you have (solid), what is missing (dashed ?) and when it comes */
+function ReactionCard({ c, nextDay, nextYear }) {
+  const st = STATUS[c.status]
+  const wantB = c.kind === 'vault' ? (c.status === 'closed' ? [c.opener] : c.status === 'missing' ? [c.open] : []) : c.kind === 'star' && c.status === 'missing' ? c.slots.map((x) => x.b) : (c.missing || [])
+  return (
+    <div className="px-inner p-3 space-y-2" data-testid={`react-${c.kind}`}>
+      <div className="flex items-center gap-2"><PxIcon name={c.icon} size={26} /><b className="text-xs flex-1">{c.title}</b>{st[0] && <span className="text-[10px] font-bold text-white rounded-full px-2 py-0.5" style={{ background: st[1] }}>{st[0]}</span>}</div>
+      {c.slots.length > 0 && <div className="flex gap-1.5 flex-wrap">{c.slots.map((x, i) => (
+        <div key={i} className={`rounded-md px-1.5 py-1 text-center min-w-[52px] border-2 ${x.on ? '' : 'border-dashed'}`} style={{ borderColor: x.on ? EL_COLOR[BRANCH_EL[x.b]] : '#cbd5e1', background: x.on ? EL_COLOR[BRANCH_EL[x.b]] + '1a' : '#f8fafc', opacity: x.on ? 1 : 0.75 }}>
+          <div className="flex items-center justify-center gap-0.5"><Branch b={x.b} size={16} /><PxIcon name={ZODIAC_ICON[x.b]} size={16} />{!x.on && <b className="text-slate-400 text-xs">?</b>}</div>
+          <div className="text-[9px] text-slate-500">{x.label}</div></div>))}</div>}
+      <div className="text-xs text-slate-700">{c.text}</div>
+      {wantB.length > 0 && <div className="text-[11px] text-violet-700">จะมาเมื่อ: {wantB.map((b) => { const d = nextDay(b); return `${ZODIAC[b]} → วันที่ ${TH_D(d.y, d.m, d.d)} · ปี ${nextYear(b) + 543}` }).join(' | ')}</div>}
+    </div>
+  )
+}
+const GROUPS = [['vault', 'คลัง', ['vault']], ['triad', 'ประสาน', ['triad', 'season']], ['pair', 'ชง/รวม/ลงโทษ', ['punish', 'clash', 'harmony', 'harm']], ['star', 'ดาวเสริม', ['star', 'void']]]
 
 const TZ = 7 * 3600e3
 const nowParts = () => { const d = new Date(Date.now() + TZ); return { y: d.getUTCFullYear(), m: d.getUTCMonth() + 1, d: d.getUTCDate(), h: d.getUTCHours() } }
@@ -60,6 +91,7 @@ function DaySheet({ N, ymd, onClose }) {
       <div className="space-y-3 text-sm" data-testid="day-sheet">
         <div className="flex items-center gap-3"><Stem s={c % 10} size={34} /><Branch b={c % 12} size={34} /><PxIcon name={ZODIAC_ICON[c % 12]} size={32} />
           <div className="flex-1"><div className="text-xs text-slate-500">วัน{EL[stemEl(c % 10)]}{STEM_TH[c % 10].slice(-4)} · {ZODIAC[c % 12]}</div><Chip lvl={r.lvl} /></div></div>
+        {eventsOf(N, c, 'วัน').map((e, i) => <EventBox key={i} e={e} />)}
         <div className="px-inner p-3 text-xs"><b>{GOD[r.god]} ({GOD_TH[r.god]}):</b> {GOD_TEXT[r.god].period}</div>
         <Why r={r} />
         <div className="font-semibold text-xs pt-1">ยามทั้ง 24 ชั่วโมง (ยามละ 2 ชั่วโมง · แตะเพื่อดูเหตุผล)</div>
@@ -67,9 +99,9 @@ function DaySheet({ N, ymd, onClose }) {
           <details key={h.h} className={`px-inner px-2 py-1.5 ${isToday && h.h === curH ? 'ring-2 ring-violet-500' : ''}`} data-testid={`hour-${h.h}`}>
             <summary className="flex items-center gap-2 text-xs cursor-pointer list-none">
               <span className="w-[86px] num">{h.label}</span><Stem s={h.c % 10} size={16} /><Branch b={h.c % 12} size={16} /><PxIcon name={ZODIAC_ICON[h.c % 12]} size={18} />
-              <span className="flex-1 truncate text-slate-500">{GOD_TH[h.god]}</span>{isToday && h.h === curH && <b className="text-violet-600 text-[10px]">ตอนนี้</b>}<Chip lvl={h.lvl} small />
+              <span className="flex-1 truncate text-slate-500">{GOD_TH[h.god]}</span>{eventsOf(N, h.c, 'ยาม').slice(0, 2).map((e, i) => <PxIcon key={i} name={e.icon} size={16} />)}{isToday && h.h === curH && <b className="text-violet-600 text-[10px]">ตอนนี้</b>}<Chip lvl={h.lvl} small />
             </summary>
-            <div className="pt-1.5"><Why r={h} />{h.late && <div className="text-[10px] text-slate-500 mt-1">หลัง 23:00 นับเป็นยามชวดของวันถัดไป (กฎวันเปลี่ยน 23:00)</div>}</div>
+            <div className="pt-1.5 space-y-1">{eventsOf(N, h.c, 'ยาม').map((e, i) => <EventBox key={i} e={e} small />)}<Why r={h} />{h.late && <div className="text-[10px] text-slate-500 mt-1">หลัง 23:00 นับเป็นยามชวดของวันถัดไป (กฎวันเปลี่ยน 23:00)</div>}</div>
           </details>))}</div>
       </div>
     </Sheet>
@@ -82,6 +114,7 @@ function RateSheet({ N, item, onClose }) {
     <Sheet open onClose={onClose} title={item.title}>
       <div className="space-y-3 text-sm">
         <div className="flex items-center gap-3"><Stem s={item.c % 10} size={34} /><Branch b={item.c % 12} size={34} /><PxIcon name={ZODIAC_ICON[item.c % 12]} size={32} /><div className="flex-1 text-xs text-slate-500">{item.sub}</div><Chip lvl={item.r.lvl} /></div>
+        {eventsOf(N, item.c, item.what || 'ปี').map((e, i) => <EventBox key={i} e={e} />)}
         <div className="px-inner p-3 text-xs"><b>{GOD[item.r.god]} ({GOD_TH[item.r.god]}):</b> {GOD_TEXT[item.r.god].period}</div>
         <Why r={item.r} />
       </div>
@@ -100,15 +133,26 @@ export default function BaziTab({ birth, onEdit }) {
   const curH = np.h === 23 ? 12 : Math.floor((np.h + 1) / 2), hourNow = hrsToday[curH]
   const cal = useMemo(() => {
     const [y, m] = ym, first = new Date(Date.UTC(y, m - 1, 1)).getUTCDay(), n = new Date(Date.UTC(y, m, 0)).getUTCDate()
-    return { first, days: Array.from({ length: n }, (_, i) => { const c = dayIdx(y, m, i + 1); return { d: i + 1, c, r: rate(N, c) } }) }
+    return { first, days: Array.from({ length: n }, (_, i) => { const c = dayIdx(y, m, i + 1); return { d: i + 1, c, r: rate(N, c), ev: eventsOf(N, c, 'วัน').find((e) => e.rank >= 5) } }) }
   }, [N, ym])
   const lichunNow = Date.now() >= lichun(np.y) ? np.y : np.y - 1
   const years = [lichunNow, lichunNow + 1].map((y) => ({ y, c: yearPillar(y), r: rate(N, yearPillar(y), { label: 'ปี' }), from: lichun(y), to: lichun(y + 1) }))
   const curLuck = luck?.list.find((l) => l.from <= Date.now() && Date.now() < l.to)
+  const reacts = useMemo(() => natalReactions(N), [N])
+  const [grp, setGrp] = useState('vault')
+  const todayEv = eventsOf(N, todayC, 'วัน')
+  const upcoming = useMemo(() => upcomingEvents(N, dayIdx, Date.now(), 30), [N])
+  const nextDay = (b) => { const k = ((b - (todayC % 12)) % 12 + 12) % 12, d = new Date(Date.UTC(np.y, np.m - 1, np.d + k)); return { y: d.getUTCFullYear(), m: d.getUTCMonth() + 1, d: d.getUTCDate() } }
+  const nextYear = (b) => lichunNow + ((b - (yearPillar(lichunNow) % 12)) % 12 + 12) % 12
+  const yearBars = Array.from({ length: 12 }, (_, i) => { const y = lichunNow + i, c = yearPillar(y), r = rate(N, c, { label: 'ปี' }); return { y, c, r } })
   const shiftM = (k) => setYm(([y, m]) => { const t = (y * 12 + m - 1) + k; return [Math.floor(t / 12), (t % 12) + 1] })
   const order = ['hour', 'day', 'month', 'year'] // traditional right-to-left reading: year on the right
   return (
     <div className="space-y-4" data-testid="bazi-tab">
+      <section className="px-card p-3 space-y-2" data-testid="bazi-alert">
+        <div className="flex items-center gap-2"><PxIcon name="ev_alert" size={22} /><b className="text-sm flex-1">แจ้งเตือนวันนี้</b><Guide which="bazi" /></div>
+        {todayEv.length ? todayEv.map((e, i) => <EventBox key={i} e={e} />) : <div className="text-xs text-slate-500">วันนี้ไม่มีปฏิกิริยาพิเศษกับดวงของคุณ ดูภาพรวมที่สีของวันในปฏิทิน</div>}
+      </section>
       <section className="px-card p-4" data-testid="bazi-chart">
         <div className="flex items-center gap-2 mb-3"><PxIcon name="ft_yinyang" size={22} /><b className="text-sm">ดวงสี่เสา</b><span className="ml-auto text-[11px] text-slate-500">แตะเสาเพื่อดูคำอธิบาย</span></div>
         <div className="grid grid-cols-4 gap-2">{order.map((k) => { const p = N.pillars.find((x) => x.key === k); return p ? (
@@ -126,12 +170,12 @@ export default function BaziTab({ birth, onEdit }) {
         <div className="flex items-center gap-2"><Stem s={N.dm} size={30} /><b className="text-sm">ดิถีของคุณ: {STEMS[N.dm]} {STEM_TH[N.dm]}</b></div>
         <div className="text-sm">{DM_TEXT[N.dm]}</div>
         <div className="px-inner p-3 text-xs space-y-1">
-          <div className="flex items-center gap-2"><b>กำลังดิถี:</b> {N.strength === 'strong' ? 'แข็ง' : N.strength === 'weak' ? 'อ่อน' : 'ค่อนข้างกลาง'} <span className="text-slate-400">(คะแนน {N.score})</span><button className="ui-link ml-auto" onClick={() => setShowEv(!showEv)}>{showEv ? 'ซ่อนเหตุผล' : 'ดูเหตุผล'}</button></div>
+          <div className="flex items-center gap-2"><b>กำลัง<T k="ดิถี" />:</b> {N.strength === 'strong' ? 'แข็ง' : N.strength === 'weak' ? 'อ่อน' : 'ค่อนข้างกลาง'} <span className="text-slate-400">(คะแนน {N.score})</span><button className="ui-link ml-auto" onClick={() => setShowEv(!showEv)}>{showEv ? 'ซ่อนเหตุผล' : 'ดูเหตุผล'}</button></div>
           <div>{STRENGTH_TEXT[N.strength]}</div>
           {showEv && <ul className="list-disc pl-4 text-slate-600">{N.ev.map((e, i) => <li key={i}>{e}</li>)}</ul>}
         </div>
         <div className="space-y-1.5 text-xs">
-          <div className="flex flex-wrap items-center gap-1.5"><b>ธาตุที่ช่วยคุณ:</b>{N.fav.map((e) => <ElChip key={e} e={e} />)}</div>
+          <div className="flex flex-wrap items-center gap-1.5"><b><T k="ธาตุที่ช่วย">ธาตุที่ช่วยคุณ</T>:</b>{N.fav.map((e) => <ElChip key={e} e={e} />)}</div>
           <div className="flex flex-wrap items-center gap-1.5"><b>ธาตุที่ทำร้ายคุณ:</b>{N.unfav.map((e) => <ElChip key={e} e={e} />)}</div>
           {N.cold && <div className="text-slate-500">เกิดฤดูหนาว ไฟช่วยให้ดวงอุ่นขึ้น</div>}{N.hot && <div className="text-slate-500">เกิดฤดูร้อน น้ำช่วยให้ดวงชุ่มชื้นขึ้น</div>}
         </div>
@@ -141,6 +185,30 @@ export default function BaziTab({ birth, onEdit }) {
         <div className="flex gap-1 items-end h-16">{N.count.map((v, e) => (
           <div key={e} className="flex-1 flex flex-col items-center gap-0.5"><div className="w-full rounded-t" style={{ height: `${Math.max(4, v * 9)}px`, background: EL_COLOR[e] }} /><PxIcon name={EL_ICON[e]} size={16} /><span className="text-[9px] text-slate-500">{EL[e]} {v}</span></div>))}</div>
         {(N.rels.length > 0 || N.groups.length > 0) && <div className="text-xs"><b>ความสัมพันธ์ในดวง:</b> {[...N.groups, ...N.rels.map((r) => `${r.lv}${r.txt}`)].join(' · ')}</div>}
+      </section>
+
+      <section className="px-card p-4 space-y-3" data-testid="bazi-react">
+        <div className="flex items-center gap-2"><PxIcon name="ev_triad" size={22} /><b className="text-sm">ปฏิกิริยาในดวง</b><span className="ml-auto text-[11px] text-slate-500">ช่องประ = สิ่งที่ขาด</span></div>
+        <div className="text-[11px] text-slate-600"><T k="คลัง" /> · <T k="สามประสาน" /> · <T k="รวมทิศ" /> · <T k="ชง" /> · <T k="ลงโทษ" /> · <T k="หกประสาน" /> · <T k="ว่าง" /> (แตะคำเพื่อดูความหมาย)</div>
+        <div className="flex gap-1 overflow-x-auto">{GROUPS.map(([k, t, kinds]) => { const n = reacts.filter((c) => kinds.includes(c.kind)).length; return <button key={k} onClick={() => setGrp(k)} className={`px-btn text-xs shrink-0 ${grp === k ? '' : 'opacity-50'}`} data-testid={`react-tab-${k}`}>{t} {n}</button> })}</div>
+        <div className="space-y-2">{reacts.filter((c) => GROUPS.find((g) => g[0] === grp)[2].includes(c.kind)).map((c, i) => <ReactionCard key={i} c={c} nextDay={nextDay} nextYear={nextYear} />)}
+          {!reacts.some((c) => GROUPS.find((g) => g[0] === grp)[2].includes(c.kind)) && <div className="text-xs text-slate-500">ไม่มีในดวงเดิม</div>}</div>
+      </section>
+
+      <section className="px-card p-4 space-y-2" data-testid="bazi-upcoming">
+        <div className="flex items-center gap-2"><PxIcon name="ev_alert" size={20} /><b className="text-sm">เหตุการณ์ 30 วันข้างหน้า</b></div>
+        {upcoming.length ? upcoming.map((u) => (
+          <button key={u.i} onClick={() => setDay([u.y, u.m, u.d])} className="w-full text-left flex gap-2 items-start border-b border-slate-100 pb-1.5">
+            <div className="w-14 shrink-0 text-xs font-bold">{u.i === 0 ? 'วันนี้' : u.i === 1 ? 'พรุ่งนี้' : TH_D(u.y, u.m, u.d)}</div>
+            <div className="flex-1 flex flex-wrap gap-1">{u.ev.map((e, j) => <span key={j} className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold" style={{ background: TONE_BG[e.tone], color: TONE_COLOR[e.tone] }}><PxIcon name={e.icon} size={14} />{e.title}</span>)}</div>
+          </button>)) : <div className="text-xs text-slate-500">ช่วงนี้ไม่มีเหตุการณ์ใหญ่</div>}
+      </section>
+
+      <section className="px-card p-4 space-y-2" data-testid="bazi-chart-years">
+        <div className="flex items-center gap-2"><PxIcon name="ev_chart" size={20} /><b className="text-sm">กราฟดวงรายปี 12 ปีข้างหน้า</b></div>
+        <ScoreBars h={110} max={5} items={yearBars.map((x, i) => ({ v: x.r.score, color: RATE[x.r.lvl].color, on: i === 0, title: `${x.y + 543}`, onClick: () => setItem({ title: `ปี ${pillarName(x.c)} (${x.y + 543})`, c: x.c, r: x.r, what: 'ปี', sub: `${thDT(lichun(x.y))} – ${thDT(lichun(x.y + 1))}` }) }))}
+          sub={<div className="grid grid-cols-12 text-center text-[8px] text-slate-500">{yearBars.map((x) => <div key={x.y}>{String(x.y + 543).slice(2)}<br /><PxIcon name={ZODIAC_ICON[x.c % 12]} size={12} /></div>)}</div>} />
+        <div className="text-[10px] text-slate-500">แท่งขึ้น = ปีที่ช่วยคุณ แท่งลง = ปีที่ต้องระวัง กรอบดำคือปีนี้ แตะแท่งเพื่อดูเหตุผล</div>
       </section>
 
       <section className="px-card p-4 space-y-2" data-testid="bazi-today">
@@ -161,13 +229,14 @@ export default function BaziTab({ birth, onEdit }) {
         <div className="grid grid-cols-7 gap-1">
           {Array.from({ length: cal.first }, (_, i) => <div key={'e' + i} />)}
           {cal.days.map((x) => { const today = ym[0] === np.y && ym[1] === np.m && x.d === np.d; return (
-            <button key={x.d} onClick={() => setDay([ym[0], ym[1], x.d])} className="rounded-md p-0.5 text-center border-2" style={{ background: RATE[x.r.lvl].color + '26', borderColor: today ? '#0f172a' : RATE[x.r.lvl].color + '66' }} data-testid={`cal-${x.d}`}>
+            <button key={x.d} onClick={() => setDay([ym[0], ym[1], x.d])} className="relative rounded-md p-0.5 text-center border-2" style={{ background: RATE[x.r.lvl].color + '26', borderColor: today ? '#0f172a' : RATE[x.r.lvl].color + '66' }} data-testid={`cal-${x.d}`}>
               <div className="text-[10px] font-bold leading-tight">{x.d}</div>
               <div className="flex justify-center items-center gap-px leading-none"><Stem s={x.c % 10} size={11} /><Branch b={x.c % 12} size={11} /></div>
               <div className="flex justify-center"><PxIcon name={ZODIAC_ICON[x.c % 12]} size={16} /></div>
+              {x.ev && <div className="absolute -top-1.5 -right-1.5"><PxIcon name={x.ev.icon} size={16} /></div>}
             </button>) })}
         </div>
-        <div className="flex flex-wrap gap-2 mt-2 text-[10px]">{RATE.map((r, i) => <span key={i} className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm" style={{ background: r.color }} />{r.th}</span>)}<span className="text-slate-500">· แตะวันเพื่อดูเหตุผลและยามทั้ง 24 ชม.</span></div>
+        <div className="flex flex-wrap gap-2 mt-2 text-[10px]">{RATE.map((r, i) => <span key={i} className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm" style={{ background: r.color }} />{r.th}</span>)}<span className="flex items-center gap-1"><PxIcon name="ev_triad" size={12} />ไอคอนมุม = เหตุการณ์พิเศษ</span><span className="text-slate-500">· แตะวันเพื่อดูเหตุผลและยามทั้ง 24 ชม.</span></div>
       </section>
 
       <section className="px-card p-4 space-y-2" data-testid="bazi-years">
@@ -179,11 +248,12 @@ export default function BaziTab({ birth, onEdit }) {
       </section>
 
       <section className="px-card p-4 space-y-2" data-testid="bazi-luck">
-        <div className="flex items-center gap-2"><PxIcon name="History" size={20} /><b className="text-sm">เสาโชค 10 ปี (大運)</b></div>
+        <div className="flex items-center gap-2"><PxIcon name="History" size={20} /><b className="text-sm"><T k="เสาโชค">เสาโชค 10 ปี (大運)</T></b></div>
         {!luck ? <div className="text-xs text-slate-500">{!N.known ? 'ต้องทราบเวลาเกิดจึงคำนวณอายุเริ่มเสาโชคได้' : 'ใส่เพศในข้อมูลเกิดเพื่อหาทิศเดินเสาโชค (ตามสูตรดั้งเดิม)'} <button className="ui-link" onClick={onEdit}>แก้ข้อมูลเกิด</button></div> : <>
           <div className="text-[11px] text-slate-500">เดิน{luck.fwd ? 'หน้า' : 'ถอยหลัง'} · เริ่มเสาแรกอายุ {luck.start.y} ปี {luck.start.m} เดือน {luck.start.d} วัน ({thDT(luck.start.ms, false)})</div>
+          <ScoreBars h={80} max={5} items={luck.list.map((l) => ({ v: l.score, color: RATE[l.lvl].color, on: l === curLuck, onClick: () => setItem({ title: `เสาโชค ${pillarName(l.c)} อายุ ${l.age}–${l.age + 10}`, c: l.c, r: l, what: 'เสาโชค', sub: `${thDT(l.from, false)} – ${thDT(l.to, false)}` }) }))} />
           <div className="flex gap-1.5 overflow-x-auto pb-1">{luck.list.map((l) => (
-            <button key={l.k} onClick={() => setItem({ title: `เสาโชค ${pillarName(l.c)} อายุ ${l.age}–${l.age + 10}`, c: l.c, r: l, sub: `${thDT(l.from, false)} – ${thDT(l.to, false)}` })} className={`px-inner p-1.5 text-center shrink-0 w-14 ${l === curLuck ? 'ring-2 ring-violet-500' : ''}`}>
+            <button key={l.k} onClick={() => setItem({ title: `เสาโชค ${pillarName(l.c)} อายุ ${l.age}–${l.age + 10}`, c: l.c, r: l, what: 'เสาโชค', sub: `${thDT(l.from, false)} – ${thDT(l.to, false)}` })} className={`px-inner p-1.5 text-center shrink-0 w-14 ${l === curLuck ? 'ring-2 ring-violet-500' : ''}`}>
               <div className="text-[9px] text-slate-500">{l.age}+</div><Stem s={l.c % 10} size={20} /><br /><Branch b={l.c % 12} size={20} /><div className="mt-0.5"><Chip lvl={l.lvl} small /></div>
             </button>))}</div>
           {curLuck && <div className="text-xs"><b>ตอนนี้อยู่เสาโชค {pillarName(curLuck.c)}:</b> {GOD_TEXT[curLuck.god].period}</div>}

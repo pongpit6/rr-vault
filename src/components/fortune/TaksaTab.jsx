@@ -1,8 +1,8 @@
 import { useMemo, useState } from 'react'
 import { Sheet } from '../ui'
 import { PxIcon } from '../px'
-import { saveFortune } from './FortuneKit'
-import { PLANET, POWER, bkkMs, bkkParts, birthPlanet, possiblePlanets, taksaAt, taksaRange, subPeriods, symbolic, bhumiOf, pairTags, toneOf, TONE } from '../../lib/fortune/taksa'
+import { saveFortune, Guide, T, ScoreBars } from './FortuneKit'
+import { PLANET, POWER, bkkMs, bkkParts, birthPlanet, possiblePlanets, taksaAt, taksaRange, subPeriods, symbolic, bhumiOf, pairTags, toneOf, TONE, pairScore, scoreColor, scoreText } from '../../lib/fortune/taksa'
 import { MAIN_TEXT, SUB_FOCUS, PAIR_TEXT } from '../../lib/fortune/taksaText'
 
 const TH_M = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.']
@@ -20,7 +20,7 @@ function PairSheet({ pair, onClose, birthP }) {
   return (
     <Sheet open onClose={onClose} title={`${PLANET[m].name}เสวย · ${PLANET[q].name}แทรก`}>
       <div className="space-y-3 text-sm" data-testid="pair-sheet">
-        <div className="flex items-center gap-2"><Pl p={m} size={32} /><span className="text-slate-400">→</span><Pl p={q} size={32} /><Tone m={m} q={q} /></div>
+        <div className="flex items-center gap-2"><Pl p={m} size={32} /><span className="text-slate-400">→</span><Pl p={q} size={32} /><Tone m={m} q={q} /><span className="ml-auto text-xs font-bold" style={{ color: scoreColor(pairScore(m, q, birthP)) }}>คะแนนดวง {pairScore(m, q, birthP) > 0 ? '+' : ''}{pairScore(m, q, birthP)} · {scoreText(pairScore(m, q, birthP))}</span></div>
         <div className="text-xs text-slate-500">{thDT(start)} – {thDT(end)} · ระยะตามสูตร {sy.y ? `${sy.y} ปี ` : ''}{sy.m ? `${sy.m} เดือน ` : ''}{sy.d ? `${sy.d} วัน ` : ''}{sy.h ? `${sy.h} ชม.` : ''} ({POWER[m]}×{POWER[q]}÷108 ปีโหร)</div>
         <div className="px-inner p-3 font-semibold">{PAIR_TEXT[m][q]}</div>
         <div className="grid gap-2">
@@ -49,6 +49,8 @@ export default function TaksaTab({ birth, onEdit }) {
   const years = useMemo(() => [yr, yr + 1].map((y) => ({ y, list: taksaRange(birthMs, bkkMs(`${y}-01-01`), bkkMs(`${y + 1}-01-01`), bp) })), [birthMs, bp, yr])
   if (!at) return <div className="px-card p-5 text-sm">วันเกิดอยู่ในอนาคต ตรวจข้อมูลเกิดอีกครั้ง <button className="ui-link" onClick={onEdit}>แก้ไข</button></div>
   const wd = bkkParts(birthMs).wd
+  const lifeSubs = at.mains.slice(0, 8).flatMap((m) => subPeriods(m))
+  const Y = 365.2425 * 864e5, ten = lifeSubs.filter((x) => x.end > now && x.start < now + 10 * Y)
   const span = at.mains.slice(0, 8), total = 108
   return (
     <div className="space-y-4" data-testid="taksa-tab">
@@ -59,7 +61,7 @@ export default function TaksaTab({ birth, onEdit }) {
       </section>
 
       <section className="px-card p-4 space-y-3" data-testid="taksa-now">
-        <div className="text-xs text-slate-500">ตอนนี้ (อายุ {Math.floor((now - birthMs) / (365.2425 * 864e5))} ปี)</div>
+        <div className="text-xs text-slate-500"><T k="ดาวเสวย" /> · <T k="ดาวแทรก" /> · ตอนนี้ (อายุ {Math.floor((now - birthMs) / (365.2425 * 864e5))} ปี)</div>
         <button onClick={() => setPair(at.sub)} className="w-full text-left flex items-center gap-3" data-testid="taksa-current">
           <div className="flex items-center"><Pl p={at.main.planet} size={48} /><Pl p={at.sub.planet} size={30} /></div>
           <div className="flex-1 min-w-0">
@@ -75,6 +77,21 @@ export default function TaksaTab({ birth, onEdit }) {
         <button className="text-xs ui-link" onClick={() => setPair(at.sub)}>อ่านคำทำนายเต็ม</button>
       </section>
 
+      <section className="px-card p-4 space-y-2" data-testid="taksa-chart10">
+        <div className="flex items-center gap-2"><PxIcon name="ev_chart" size={20} /><b className="text-sm">กราฟดวง 10 ปีข้างหน้า</b><span className="ml-auto"><Guide which="taksa" /></span></div>
+        <ScoreBars h={120} items={ten.map((x) => { const sc = pairScore(x.main, x.planet, bp); return { w: (Math.min(x.end, now + 10 * Y) - Math.max(x.start, now)) / Y, v: sc, color: scoreColor(sc), on: x.start <= now && now < x.end, title: `${PLANET[x.main].name}→${PLANET[x.planet].name}`, onClick: () => setPair(x) } })}
+          sub={<div className="flex text-[9px] text-slate-500">{ten.map((x, i) => <div key={i} className="text-center overflow-hidden" style={{ flex: (Math.min(x.end, now + 10 * Y) - Math.max(x.start, now)) / Y }}><PxIcon name={PLANET[x.planet].icon} size={14} /><br />{bkkParts(Math.max(x.start, now)).y + 543 - 2500}</div>)}</div>} />
+        <div className="text-[10px] text-slate-500">แต่ละแท่งคือช่วงดาวแทรก กว้างตามระยะเวลาจริง สูงขึ้น = ดี ต่ำลง = ต้องระวัง กรอบดำคือตอนนี้ แตะแท่งเพื่ออ่านคำทำนาย</div>
+      </section>
+
+      <section className="px-card p-4 space-y-2" data-testid="taksa-chartlife">
+        <div className="flex items-center gap-2"><PxIcon name="History" size={20} /><b className="text-sm">กราฟดวงตลอดชีวิต (108 ปี)</b></div>
+        <ScoreBars h={110} items={lifeSubs.map((x) => { const sc = pairScore(x.main, x.planet, bp); return { w: POWER[x.main] * POWER[x.planet] / 108, v: sc, color: scoreColor(sc), on: x.start <= now && now < x.end, title: `${PLANET[x.main].name}→${PLANET[x.planet].name}`, onClick: () => setPair(x) } })}
+          sub={<div className="flex h-5 mt-0.5">{at.mains.slice(0, 8).map((m) => <div key={m.ageFrom} className="grid place-items-center border-r border-white" style={{ flex: POWER[m.planet], background: PLANET[m.planet].color + '55' }}><PxIcon name={PLANET[m.planet].icon} size={14} /></div>)}</div>} />
+        <div className="flex justify-between text-[9px] text-slate-500"><span>อายุ 0</span><span>27</span><span>54</span><span>81</span><span>108</span></div>
+        <div className="flex flex-wrap gap-2 text-[10px]">{[[2.5, 'ดีมาก'], [1.2, 'ดี'], [0, 'กลาง ๆ'], [-1, 'ระวัง'], [-2, 'หนัก']].map(([v, t]) => <span key={t} className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm" style={{ background: scoreColor(v) }} />{t}</span>)}</div>
+      </section>
+
       <section className="px-card p-4 space-y-2" data-testid="taksa-years">
         <div className="flex items-center gap-2"><PxIcon name="CalendarDays" size={20} /><b className="text-sm">ปีนี้และปีหน้า</b></div>
         {years.map(({ y, list }) => (
@@ -82,7 +99,7 @@ export default function TaksaTab({ birth, onEdit }) {
             {list.map((s, i) => (
               <button key={i} onClick={() => setPair(s)} className="w-full flex items-center gap-2 py-1.5 border-b border-slate-100 text-left text-xs">
                 <Pl p={s.main} size={18} /><Pl p={s.planet} size={18} />
-                <span className="flex-1">{PLANET[s.main].name} → {PLANET[s.planet].name} · {thDT(s.from, false)} – {thDT(s.to, false)}</span><Tone m={s.main} q={s.planet} />
+                <span className="flex-1">{PLANET[s.main].name} → {PLANET[s.planet].name} · {thDT(s.from, false)} – {thDT(s.to, false)}</span><b style={{ color: scoreColor(pairScore(s.main, s.planet, bp)) }}>{scoreText(pairScore(s.main, s.planet, bp))}</b>
               </button>))}
           </div>))}
       </section>
@@ -99,7 +116,7 @@ export default function TaksaTab({ birth, onEdit }) {
       </section>
 
       <section className="px-card p-4" data-testid="taksa-bhumi">
-        <div className="flex items-center gap-2 mb-2"><PxIcon name="Map" size={20} /><b className="text-sm">ภูมิทักษากำเนิด</b></div>
+        <div className="flex items-center gap-2 mb-2"><PxIcon name="Map" size={20} /><b className="text-sm"><T k="ภูมิทักษา">ภูมิทักษากำเนิด</T></b></div>
         <div className="grid grid-cols-2 gap-1.5 text-xs">{bhumiOf(bp).map((b) => (
           <div key={b.name} className="px-inner p-2 flex items-center gap-2"><Pl p={b.planet} size={20} /><div><b>{b.name}</b> · {PLANET[b.planet].name}<div className="text-[10px] text-slate-500">{b.text}</div></div></div>))}</div>
       </section>

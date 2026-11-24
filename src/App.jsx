@@ -11,6 +11,7 @@ import Settings from './screens/Settings'
 import VaultRpg from './screens/VaultRpg'
 import Invest from './screens/Invest'
 const Fortune = lazy(() => import('./screens/Fortune'))
+import FortuneAlerts from './components/fortune/FortuneAlerts'
 import Habits from './screens/Habits'
 import Onboarding from './components/Onboarding'
 import ErrorBoundary from './components/ErrorBoundary'
@@ -276,6 +277,7 @@ export default function App() {
       <InsightsRunner />
       <AlertWatcher />
       <Reminders />
+      <FortuneAlerts />
       <HabitHost />
       <TxnForm open={!!form} initial={form} onClose={() => setForm(null)} />
       <TradeForm open={!!trade} initial={trade} onClose={() => setTrade(null)} />

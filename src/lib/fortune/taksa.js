@@ -103,3 +103,15 @@ const TONE_SRC = { 1: '!±!+!+!+', 2: '!+!+!±!+', 3: '!+!+!±!+', 4: '!+!+!+!+'
 const COLS = [1, 2, 3, 4, 7, 5, 8, 6]
 export const toneOf = (m, q) => TONE_SRC[m][COLS.indexOf(q)]
 export const TONE = { '+': { name: 'เกื้อหนุน', color: '#10b981' }, '!': { name: 'ต้องระวัง', color: '#ef4444' }, '±': { name: 'มีทั้งดีและต้องระวัง', color: '#f59e0b' } }
+
+/** a simple luck score for a main → sub pair (this app's model, for the charts):
+ *  tone from the article (+ 2, ± 0.5, ! −1.5), planet pair (มิตร/สมพล +0.5, ศัตรู −0.5),
+ *  and where the sub planet sits in your natal bhumi (ศรี/มนตรี/เดช/อายุ +0.5, กาลกิณี −1). Range about −3…+3. */
+export function pairScore(m, q, birthP) {
+  const t = { '+': 2, '±': 0.5, '!': -1.5 }[toneOf(m, q)]
+  const tags = pairTags(m, q), bh = bhumiOf(birthP).find((b) => b.planet === q)?.name
+  const s = t + (tags.includes('มิตร') || tags.includes('สมพล') ? 0.5 : 0) - (tags.includes('ศัตรู') ? 0.5 : 0) + (['ศรี', 'มนตรี', 'เดช', 'อายุ'].includes(bh) ? 0.5 : bh === 'กาลกิณี' ? -1 : 0)
+  return Math.round(s * 10) / 10
+}
+export const scoreColor = (s) => (s >= 2 ? '#7c3aed' : s >= 1 ? '#22c55e' : s > -0.5 ? '#94a3b8' : s > -1.5 ? '#f97316' : '#dc2626')
+export const scoreText = (s) => (s >= 2 ? 'ดีมาก' : s >= 1 ? 'ดี' : s > -0.5 ? 'กลาง ๆ' : s > -1.5 ? 'ระวัง' : 'หนัก')
