@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react'
 import { Sheet } from '../ui'
 import { PxIcon } from '../px'
-import { saveFortune, Guide, T, ScoreBars } from './FortuneKit'
+import { saveFortune, Guide, T } from './FortuneKit'
+import { TimeChart, Legend, TAKSA_LEVELS } from './FortuneChart'
 import { PLANET, POWER, bkkMs, bkkParts, birthPlanet, possiblePlanets, taksaAt, taksaRange, subPeriods, symbolic, bhumiOf, pairTags, toneOf, TONE, pairScore, scoreColor, scoreText } from '../../lib/fortune/taksa'
 import { MAIN_TEXT, SUB_FOCUS, PAIR_TEXT } from '../../lib/fortune/taksaText'
 
@@ -43,6 +44,7 @@ export default function TaksaTab({ birth, onEdit }) {
   const bp = opts ? (opts.includes(birth.planet) ? birth.planet : opts[0]) : birthPlanet(birthMs)
   const [pair, setPair] = useState(null)
   const [mainOpen, setMainOpen] = useState(null)
+  const [zoom, setZoom] = useState(null)
   const now = Date.now()
   const at = useMemo(() => taksaAt(birthMs, now, bp), [birthMs, bp]) // eslint-disable-line
   const yr = bkkParts(now).y
@@ -52,6 +54,9 @@ export default function TaksaTab({ birth, onEdit }) {
   const lifeSubs = at.mains.slice(0, 8).flatMap((m) => subPeriods(m))
   const Y = 365.2425 * 864e5, ten = lifeSubs.filter((x) => x.end > now && x.start < now + 10 * Y)
   const span = at.mains.slice(0, 8), total = 108
+  const age = (ms) => (ms - birthMs) / Y
+  const ageTxt = (a, b) => { const p = Math.floor(age(a)), q = Math.floor(age(b) - 1e-9); return p === q ? `${p}` : `${p}–${q}` }
+  const seg = (f) => (x) => ({ from: f(x.start), to: f(x.end), v: pairScore(x.main, x.planet, bp), title: `${PLANET[x.main].name}เสวย · ${PLANET[x.planet].name}แทรก`, sub: `${thDT(x.start, false)} – ${thDT(x.end, false)} · อายุ ${ageTxt(x.start, x.end)}`, text: PAIR_TEXT[x.main][x.planet], icon: PLANET[x.planet].icon, now: x.start <= now && now < x.end, onOpen: () => setPair(x) })
   return (
     <div className="space-y-4" data-testid="taksa-tab">
       <section className="px-card p-4 space-y-2">
@@ -79,17 +84,21 @@ export default function TaksaTab({ birth, onEdit }) {
 
       <section className="px-card p-4 space-y-2" data-testid="taksa-chart10">
         <div className="flex items-center gap-2"><PxIcon name="ev_chart" size={20} /><b className="text-sm">กราฟดวง 10 ปีข้างหน้า</b><span className="ml-auto"><Guide which="taksa" /></span></div>
-        <ScoreBars h={120} items={ten.map((x) => { const sc = pairScore(x.main, x.planet, bp); return { w: (Math.min(x.end, now + 10 * Y) - Math.max(x.start, now)) / Y, v: sc, color: scoreColor(sc), on: x.start <= now && now < x.end, title: `${PLANET[x.main].name}→${PLANET[x.planet].name}`, onClick: () => setPair(x) } })}
-          sub={<div className="flex text-[9px] text-slate-500">{ten.map((x, i) => <div key={i} className="text-center overflow-hidden" style={{ flex: (Math.min(x.end, now + 10 * Y) - Math.max(x.start, now)) / Y }}><PxIcon name={PLANET[x.planet].icon} size={14} /><br />{bkkParts(Math.max(x.start, now)).y + 543 - 2500}</div>)}</div>} />
-        <div className="text-[10px] text-slate-500">แต่ละแท่งคือช่วงดาวแทรก กว้างตามระยะเวลาจริง สูงขึ้น = ดี ต่ำลง = ต้องระวัง กรอบดำคือตอนนี้ แตะแท่งเพื่ออ่านคำทำนาย</div>
+        <TimeChart testid="taksa-c10" items={ten.map(seg((ms) => ms))} x0={now} x1={now + 10 * Y} nowX={now} xTitle="พ.ศ."
+          ticks={Array.from({ length: 5 }, (_, i) => { const y = bkkParts(now).y + 1 + i * 2; return { x: bkkMs(`${y}-01-01`), label: String(y + 543) } })} />
+        <div className="flex items-center justify-between gap-2"><Legend levels={TAKSA_LEVELS} /><span className="text-[10px] text-slate-500">เส้นแต่ละขั้น = ช่วงดาวแทรก</span></div>
       </section>
 
       <section className="px-card p-4 space-y-2" data-testid="taksa-chartlife">
-        <div className="flex items-center gap-2"><PxIcon name="History" size={20} /><b className="text-sm">กราฟดวงตลอดชีวิต (108 ปี)</b></div>
-        <ScoreBars h={110} items={lifeSubs.map((x) => { const sc = pairScore(x.main, x.planet, bp); return { w: POWER[x.main] * POWER[x.planet] / 108, v: sc, color: scoreColor(sc), on: x.start <= now && now < x.end, title: `${PLANET[x.main].name}→${PLANET[x.planet].name}`, onClick: () => setPair(x) } })}
-          sub={<div className="flex h-5 mt-0.5">{at.mains.slice(0, 8).map((m) => <div key={m.ageFrom} className="grid place-items-center border-r border-white" style={{ flex: POWER[m.planet], background: PLANET[m.planet].color + '55' }}><PxIcon name={PLANET[m.planet].icon} size={14} /></div>)}</div>} />
-        <div className="flex justify-between text-[9px] text-slate-500"><span>อายุ 0</span><span>27</span><span>54</span><span>81</span><span>108</span></div>
-        <div className="flex flex-wrap gap-2 text-[10px]">{[[2.5, 'ดีมาก'], [1.2, 'ดี'], [0, 'กลาง ๆ'], [-1, 'ระวัง'], [-2, 'หนัก']].map(([v, t]) => <span key={t} className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm" style={{ background: scoreColor(v) }} />{t}</span>)}</div>
+        <div className="flex items-center gap-2"><PxIcon name="History" size={20} /><b className="text-sm">{zoom ? `${PLANET[zoom.planet].name}เสวย อายุ ${zoom.ageFrom}–${zoom.ageTo} ปี` : 'กราฟดวงตลอดชีวิต (108 ปี)'}</b>
+          {zoom && <button className="ml-auto px-btn px-2 py-0.5 text-[11px]" onClick={() => setZoom(null)} data-testid="life-zoomout">ดูทั้งชีวิต</button>}</div>
+        <TimeChart testid="taksa-clife" items={(zoom ? subPeriods(zoom) : lifeSubs).map(seg(age))} x0={zoom ? age(zoom.start) : 0} x1={zoom ? age(zoom.end) : 108} nowX={age(now)} xTitle="อายุ (ปี)"
+          ticks={zoom ? Array.from({ length: zoom.ageTo - zoom.ageFrom + 1 }, (_, i) => zoom.ageFrom + i).filter((a, i, arr) => i % Math.ceil(arr.length / 9) === 0).map((a) => ({ x: a, label: String(a) })) : [0, 12, 24, 36, 48, 60, 72, 84, 96, 108].map((a) => ({ x: a, label: String(a) }))} />
+        <div className="text-[10px] text-slate-500">แตะดาวเสวยด้านล่างเพื่อซูมเข้าไปดูช่วงนั้น</div>
+        <div className="flex h-7 rounded overflow-hidden border-2 border-slate-800" data-testid="life-zoom">
+          {span.map((m) => <button key={m.ageFrom} onClick={() => setZoom(zoom === m ? null : m)} className="grid place-items-center" style={{ width: `${(POWER[m.planet] / total) * 100}%`, background: PLANET[m.planet].color + (zoom && zoom !== m ? '55' : ''), outline: zoom === m ? '3px solid #0f172a' : undefined }} title={`${PLANET[m.planet].name} อายุ ${m.ageFrom}–${m.ageTo}`}><PxIcon name={PLANET[m.planet].icon} size={16} /></button>)}
+        </div>
+        <Legend levels={TAKSA_LEVELS} />
       </section>
 
       <section className="px-card p-4 space-y-2" data-testid="taksa-years">
