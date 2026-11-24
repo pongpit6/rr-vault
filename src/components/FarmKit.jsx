@@ -246,7 +246,7 @@ function Craft({ rpg }) {
                 const ok = Object.entries(r.need).every(([k, v]) => (bag[k] || 0) >= v), done = r.decor && rpg.town.decor.includes(r.id)
                 return (
                   <div key={r.id} className="px-inner p-2 flex items-center gap-2" data-testid={`recipe-${r.id}`}>
-                    <Emo k={hasPx(r.id) ? r.id : r.icon} size={28} />
+                    {r.art ? <img src={`./sprites/${r.art}.png`} alt="" width={28} height={28} style={{ imageRendering: 'pixelated' }} /> : <Emo k={hasPx(r.id) ? r.id : r.icon} size={28} />}
                     <div className="flex-1 min-w-0 text-xs"><div className="font-semibold text-sm">{r.name}</div><div className="text-slate-500">{r.gives}</div>
                       <div>{Object.entries(r.need).map(([k, v]) => <span key={k} className={`mr-2 ${(bag[k] || 0) >= v ? 'text-emerald-700' : 'text-rose-500'}`}>{MATS[k].name} {bag[k] || 0}/{v}</span>)}</div></div>
                     <button className="px-btn !py-1 text-xs shrink-0" disabled={!ok || done} onClick={() => showToast(rpg.craft(r.id) ? `ได้ “${r.name}” แล้ว` : 'วัสดุไม่พอ')}>{done ? 'มีแล้ว' : 'ส่งของ'}</button>

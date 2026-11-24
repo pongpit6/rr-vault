@@ -127,7 +127,10 @@ export const monPower = (mon) => { const t = MAP_BY_ID[mon.map].tier; return Mat
 export const BOSS_AFTER = 30 // kills in a map before its boss shows up
 
 /** monsters whose PixelLab art faces right; the hunt scene mirrors them so every monster faces the party (left) */
-export const FACES_RIGHT = new Set(['rabbit', 'bee', 'boar', 'crow', 'snail', 'frog_g', 'goblin', 'fox_fire', 'beetle', 'deer', 'raccoon', 'pixie', 'bandit',
-  'mole', 'skeleton', 'worm', 'kobold', 'drill', 'dwarf', 'crystal_wyrm', 'leech', 'croc', 'lizard', 'turtle_s', 'bog_zombie', 'dragonfly', 'snake_s',
-  'scorpion', 'mummy', 'vulture', 'djinn', 'jackal', 'camel', 'lizard_d', 'frost_bird', 'seal', 'owl_s', 'walrus',
-  'salamander', 'imp', 'hellhound', 'phoenix_s', 'rock_turtle', 'red_dragon', 'ghost', 'gargoyle', 'armor', 'shadow_cat', 'chest_mimic', 'shadow_lord'])
+export const FACES_RIGHT = new Set([
+  'rabbit', 'bee', 'boar', 'crow', 'snail', 'frog_g', 'goblin', 'fox_fire', 'beetle', 'deer', 'raccoon', 'pixie',
+  'bandit', 'mole', 'skeleton', 'worm', 'kobold', 'drill', 'dwarf', 'crystal_wyrm', 'leech', 'croc', 'lizard', 'turtle_s',
+  'bog_zombie', 'dragonfly', 'scorpion', 'mummy', 'vulture', 'djinn', 'jackal', 'camel', 'lizard_d', 'frost_bird', 'seal', 'owl_s',
+  'walrus', 'salamander', 'imp', 'hellhound', 'phoenix_s', 'rock_turtle', 'red_dragon', 'ghost', 'gargoyle', 'armor', 'shadow_cat', 'chest_mimic',
+  'shadow_lord', 'cobra', 'sphinx', 'ice_imp', 'ice_dragon', 'fox_s', 'snow_wolf', 'owlbear', 'skull_mage', 'penguin', 'eel',
+])

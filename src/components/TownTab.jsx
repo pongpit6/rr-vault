@@ -190,8 +190,8 @@ export default function TownTab({ rpg }) {
       <section className="px-card p-3.5 flex items-center gap-3" data-testid="town-collect">
         <PxIcon name="em_basket" size={36} />
         <div className="flex-1 min-w-0 text-sm">
-          {res ? <div className="anim-pop font-semibold text-emerald-700">เก็บได้ +{res.fiat} FIAT ({res.days} วัน){res.interest ? ` · ดอกเบี้ย ${res.interest}` : ''}</div>
-            : rpg.collectReady ? <div><b>รายได้เมืองสะสม {rpg.collectDays} วัน</b> <span className="num text-emerald-700">+{rpg.collectAmount}</span><div className="text-xs text-slate-500">ฟาร์ม ตลาด NPC{T.bankRate ? ' + ดอกเบี้ยธนาคาร' : ''} · เก็บไว้ได้สูงสุด 7 วัน ไม่หายไปไหน</div></div>
+          {res ? <div className="anim-pop font-semibold text-emerald-700">เก็บได้ +{res.fiat} FIAT ({res.days} วัน){res.interest ? ` · ดอกเบี้ย ${res.interest}` : ''}{res.wage ? ` · หักค่าจ้าง NPC ${res.wage}` : ''}</div>
+            : rpg.collectReady ? <div><b>รายได้เมืองสะสม {rpg.collectDays} วัน</b> <span className="num text-emerald-700">+{rpg.collectAmount}</span>{T.wages ? <span className="text-[11px] text-slate-500"> · ค่าจ้าง NPC −{T.wages * rpg.collectDays}</span> : null}<div className="text-xs text-slate-500">ฟาร์ม ตลาด NPC{T.bankRate ? ' + ดอกเบี้ยธนาคาร' : ''} · เก็บไว้ได้สูงสุด 7 วัน ไม่หายไปไหน</div></div>
             : <div className="text-slate-500">{T.dailyFiat || T.bankRate ? 'เก็บครบแล้ว รายได้จะสะสมทุกวันที่คุณทำอะไรสักอย่าง' : 'สร้างฟาร์ม ตลาด หรือจ้าง NPC เพื่อมีรายได้รายวัน'}</div>}
         </div>
         <button className={`${btn} bg-emerald-500 text-white`} disabled={!rpg.collectReady} onClick={() => setRes(rpg.collect())}>เก็บ</button>
@@ -230,7 +230,7 @@ export default function TownTab({ rpg }) {
               <div key={n.id} className={`px-inner p-2.5 ${hired ? 'bg-teal-50' : ''}`} data-testid={`npc-${n.id}`}>
                 <div className="flex items-center gap-2">
                   <Portrait sprite={n.sprite} size={40} dim={!hired && !T.npcSlots} />
-                  <div className="min-w-0 flex-1"><div className="text-xs font-semibold">{n.name}</div><div className="text-[10px] text-teal-700">{n.perkText}</div></div>
+                  <div className="min-w-0 flex-1"><div className="text-xs font-semibold">{n.name}</div><div className="text-[10px] text-teal-700">{n.perkText}</div><div className="text-[10px] text-slate-500">ค่าจ้าง {n.wage} FIAT/วัน (ถ้าเงินไม่พอก็ยังทำงาน)</div></div>
                 </div>
                 {hired ? <div className="text-[10px] text-slate-500 mt-1.5 italic">“{townLines(rpg).find((l) => l.id === n.id)?.text || n.line}”</div> : (
                   <div className="mt-1.5 flex items-center justify-between gap-1"><Price p={p} rpg={rpg} />

@@ -40,13 +40,15 @@ export const LEVEL_REQ = {
 export const HOUSE_RENT = 2 // FIAT a day per resident living in a house
 export const HALL = { name: 'ศาลากลาง', emoji: '🏛️', cost: [null, [1000, 10], [2500, 25]], plots: [6, 9, 12] }
 
+/* NPCs: a one-time hiring price, then a small daily wage paid when the town income is collected.
+   If FIAT runs short the wage is simply skipped — NPCs keep working, nothing is lost. */
 export const NPCS = [
-  { id: 'guard', sprite: 'npc_guard', name: 'ทหารยาม', cost: [300, 0], perk: { happy: 10 }, perkText: 'ความสุข +10', line: 'ข้าเฝ้าประตูเมืองให้ ไม่มีรายจ่ายแปลกปลอมเล็ดลอดเข้ามาได้!' },
-  { id: 'fisher', sprite: 'npc_fisher', name: 'ชาวประมง', cost: [350, 0], perk: { fiat: 20, happy: 3 }, perkText: '+20 FIAT/วัน · ความสุข +3', line: 'ตกปลาต้องใจเย็น เหมือนการลงทุนนั่นแหละ' },
-  { id: 'baker', sprite: 'npc_baker', name: 'คนทำขนมปัง', cost: [400, 0], perk: { fiat: 25 }, perkText: '+25 FIAT/วัน', line: 'ขนมปังอบเองถูกกว่าซื้อกาแฟทุกเช้านะ~' },
-  { id: 'bard', sprite: 'npc_bard', name: 'นักกวีพเนจร', cost: [500, 0], perk: { happy: 16 }, perkText: 'ความสุข +16', line: '♪ ออมวันละนิด จิตแจ่มใส ♪' },
-  { id: 'smith', sprite: 'npc_smith', name: 'ช่างตีเหล็ก', cost: [0, 6], perk: { discount: 15 }, perkText: 'ค่าก่อสร้าง FIAT −15%', line: 'สร้างของดีครั้งเดียว ใช้ได้ทั้งชีวิต' },
-  { id: 'banker', sprite: 'npc_banker', name: 'นักเวทนายธนาคาร', cost: [0, 10], perk: { bankBoost: 100 }, perkText: 'เพดานดอกเบี้ยธนาคาร ×2', line: 'เงินกระดาษพิมพ์เพิ่มได้ แต่ทองคำ… ต้องขุดเอา' },
+  { id: 'guard', sprite: 'npc_guard', name: 'ทหารยาม', cost: [300, 0], wage: 6, perk: { happy: 12 }, perkText: 'ความสุข +12', line: 'ข้าเฝ้าประตูเมืองให้ ไม่มีรายจ่ายแปลกปลอมเล็ดลอดเข้ามาได้!' },
+  { id: 'fisher', sprite: 'npc_fisher', name: 'ชาวประมง', cost: [350, 0], wage: 8, perk: { fiat: 35, happy: 3 }, perkText: '+35 FIAT/วัน · ความสุข +3', line: 'ตกปลาต้องใจเย็น เหมือนการลงทุนนั่นแหละ' },
+  { id: 'baker', sprite: 'npc_baker', name: 'คนทำขนมปัง', cost: [400, 0], wage: 10, perk: { fiat: 45 }, perkText: '+45 FIAT/วัน', line: 'ขนมปังอบเองถูกกว่าซื้อกาแฟทุกเช้านะ~' },
+  { id: 'bard', sprite: 'npc_bard', name: 'นักกวีพเนจร', cost: [500, 0], wage: 8, perk: { happy: 18 }, perkText: 'ความสุข +18', line: '♪ ออมวันละนิด จิตแจ่มใส ♪' },
+  { id: 'smith', sprite: 'npc_smith', name: 'ช่างตีเหล็ก', cost: [0, 6], wage: 15, perk: { discount: 15 }, perkText: 'ค่าก่อสร้าง FIAT −15%', line: 'สร้างของดีครั้งเดียว ใช้ได้ทั้งชีวิต' },
+  { id: 'banker', sprite: 'npc_banker', name: 'นักเวทนายธนาคาร', cost: [0, 10], wage: 20, perk: { bankBoost: 100 }, perkText: 'เพดานดอกเบี้ยธนาคาร ×2', line: 'เงินกระดาษพิมพ์เพิ่มได้ แต่ทองคำ… ต้องขุดเอา' },
 ]
 export const NPC_BY_ID = Object.fromEntries(NPCS.map((n) => [n.id, n]))
 // villagers who live in town for free
@@ -85,6 +87,22 @@ export const DECOR = [
   { id: 'cr_tapestry', name: 'ผ้าแขวนลายมอนสเตอร์', emoji: '🎏', cost: null, craft: true, happy: 8 },
   { id: 'cr_lamp', name: 'โคมคริสตัล', emoji: '💎', cost: null, craft: true, happy: 10 },
   { id: 'cr_hero', name: 'รูปปั้นวีรบุรุษ', emoji: '🗽', cost: null, craft: true, happy: 20 },
+  { id: 'cr_featherwind', name: 'กระดิ่งลมขนนก', emoji: '🪶', cost: null, craft: true, happy: 6 },
+  { id: 'cr_cactusgarden', name: 'สวนกระบองเพชร', emoji: '🌵', cost: null, craft: true, happy: 6 },
+  { id: 'cr_mushhut', name: 'บ้านเห็ดยักษ์', emoji: '🍄', cost: null, craft: true, happy: 7 },
+  { id: 'cr_spiderweb', name: 'ใยแมงมุมประดับ', emoji: '🕸️', cost: null, craft: true, happy: 7 },
+  { id: 'cr_scarecrow', name: 'หุ่นไล่กาฟักทอง', emoji: '🎃', cost: null, craft: true, happy: 7 },
+  { id: 'cr_beetlecart', name: 'รถลากด้วงเขาเหล็ก', emoji: '🪲', cost: null, craft: true, happy: 8 },
+  { id: 'cr_hidetent', name: 'กระโจมนักล่า', emoji: '⛺', cost: null, craft: true, happy: 9 },
+  { id: 'cr_slimefountain', name: 'น้ำพุสไลม์', emoji: '⛲', cost: null, craft: true, happy: 9 },
+  { id: 'cr_bonearch', name: 'ซุ้มกระดูกมังกร', emoji: '🦴', cost: null, craft: true, happy: 9 },
+  { id: 'cr_wispcage', name: 'โคมวิญญาณหิ่งห้อย', emoji: '🏮', cost: null, craft: true, happy: 10 },
+  { id: 'cr_crystaltree', name: 'ต้นไม้คริสตัล', emoji: '💎', cost: null, craft: true, happy: 10 },
+  { id: 'cr_lavabrazier', name: 'กระถางไฟลาวา', emoji: '🔥', cost: null, craft: true, happy: 11 },
+  { id: 'cr_goldbeetle', name: 'รูปปั้นด้วงสการับทอง', emoji: '🪲', cost: null, craft: true, happy: 12 },
+  { id: 'cr_icestatue', name: 'รูปสลักน้ำแข็งแมมมอธ', emoji: '🐘', cost: null, craft: true, happy: 12 },
+  { id: 'cr_phoenixnest', name: 'รังไข่นกเพลิง', emoji: '🥚', cost: null, craft: true, happy: 14 },
+  { id: 'cr_bookgolem', name: 'ตู้หนังสือมิมิค', emoji: '📚', cost: null, craft: true, happy: 15 },
   ...EVENT_DECOR, // festival-only pieces (sold while their festival is on, kept forever)
 ]
 // decorations bought in the old shop count as the matching town decoration
@@ -152,6 +170,7 @@ export function computeTown(data = {}, { realmTier = 1, streak = 0 } = {}) {
   const farmFiat = built.filter((b) => b.type === 'farm').reduce((s, b) => s + BUILDINGS.farm.perk[b.lv - 1], 0)
   const mk = perk('market')
   const npcFiat = npcs.reduce((s, id) => s + (NPC_BY_ID[id].perk.fiat || 0), 0)
+  const wages = npcs.reduce((s, id) => s + (NPC_BY_ID[id].wage || 0), 0)
   const rentFiat = tenants * HOUSE_RENT
   const dailyFiat = Math.round((farmFiat + rentFiat + (mk ? mk[0] : 0) + npcFiat + (perk('mine') || 0) + (perk('kitchen') || 0)) * happyMult * (1 + (skinPerk.townPct || 0) / 100))
   const bank = perk('bank')
@@ -160,7 +179,7 @@ export function computeTown(data = {}, { realmTier = 1, streak = 0 } = {}) {
   const buildDiscount = npcs.reduce((s, id) => s + (NPC_BY_ID[id].perk.discount || 0), 0)
   return {
     town, plots, plotCount, built, npcs, decor, pop, happiness, happyParts, happyMult,
-    dailyFiat, farmFiat, npcFiat, marketFiat: mk ? mk[0] : 0, shopDiscount: (mk ? mk[1] : 0) + (skinPerk.shopPct || 0), skinPerk,
+    dailyFiat, farmFiat, npcFiat, wages, marketFiat: mk ? mk[0] : 0, shopDiscount: (mk ? mk[1] : 0) + (skinPerk.shopPct || 0), skinPerk,
     bankRate: bank ? bank[0] : 0, bankCap: bank ? Math.round(bank[1] * bankBoost) : 0, goldChance, buildDiscount, rentFiat, habitBoost: (perk('gym') || 0) + (skinPerk.habitPct || 0),
     xpBonus: (perk('library') || 0) + (perk('school') || 0), npcSlots: perk('tavern') || 0, towerGold: perk('tower') || 0, lvOf,
     count: (type) => built.filter((b) => b.type === type).length,

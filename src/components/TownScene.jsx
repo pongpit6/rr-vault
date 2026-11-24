@@ -20,7 +20,8 @@ const BASIC_ART = { tree: 'dc_tree', bench: 'dc_bench', lamp: 'dc_lamp', flowers
 export const GYH = 96 // half-res ground line
 const K = 1.5 // buildings are drawn 1.5× bigger (3 screen px per unit, still crisp)
 const PLOT_W = 62, HALL_W = 84, LEFT = 22, RIGHT = 30
-export const townWidth = (plotCount) => LEFT + HALL_W + plotCount * PLOT_W + RIGHT
+/** town width (half-res): room for the plots, and the street grows so every decoration has its own spot (2 rows, ~15 px each) */
+export const townWidth = (plotCount, decorCount = 0) => Math.max(LEFT + HALL_W + plotCount * PLOT_W + RIGHT, LEFT + RIGHT + 8 + Math.ceil(decorCount / 2) * 30)
 export const plotX = (i) => LEFT + HALL_W + i * PLOT_W
 export const HALL_X = LEFT
 
@@ -47,7 +48,7 @@ function townLife(g, now, w, G, phase) {
 
 /** Draw the whole town onto a context already scaled ×2 (half-res coords). Returns a full-res foreground painter. */
 export function drawTown(g, t, now, o = {}) {
-  const w = townWidth(t.plotCount)
+  const w = townWidth(t.plotCount, (t.decor || []).length)
   const hour = o.hour ?? new Date().getHours()
   const S = skyFor(o.dark ? 22 : hour)
   const night = o.dark || S.night > 0.2
@@ -276,9 +277,10 @@ export function drawTown(g, t, now, o = {}) {
 
   // decor (front row)
   const dec = t.decor
-  const spots = (k) => LEFT + 4 + Math.round(((k + 0.5) * (w - LEFT - RIGHT)) / Math.max(1, dec.length))
+  const cols = Math.max(1, Math.ceil(dec.length / 2)), colW = (w - LEFT - RIGHT) / cols
+  const spots = (k) => LEFT + 4 + Math.round((Math.floor(k / 2) + 0.5 + (k % 2 ? 0.5 : 0)) * colW) // two staggered rows
   dec.forEach((id, k) => {
-    const rows = dec.length > 20 ? 3 : dec.length > 8 ? 2 : 1, x = spots(k), y = G + 12 + (k % rows) * 8 // up to three rows when there are many
+    const x = spots(k), y = G + (k % 2 ? 17 : 10) // back row, then a staggered front row
     g.save(); g.translate(x, y); g.scale(1.3, 1.3); g.translate(-x, -y)
     const art = still(BASIC_ART[id] || id)
     if (art && (BASIC_ART[id] || id.startsWith('dc_') || id.startsWith('ev_') || id.startsWith('cr_'))) { g.drawImage(art, x - 5, y - 17, 18, 18); g.restore(); return }
@@ -364,7 +366,7 @@ export default function TownScene({ town, party = [], pet, hue, dark, selected, 
   const cv = useRef(null), box = useRef(null)
   const O = useRef({})
   O.current = { town, party, pet, hue, dark, selected, world, traces, extra, growth }
-  const w = townWidth(town.plotCount)
+  const w = townWidth(town.plotCount, (town.decor || []).length)
   useEffect(() => {
     const c = cv.current, g = c.getContext('2d')
     g.imageSmoothingEnabled = false

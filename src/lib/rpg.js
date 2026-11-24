@@ -649,15 +649,17 @@ export function useRpg() {
   }
   // income piles up for every active day since the last collection (max 7), nothing is lost by not opening the app
   const collectDays = pendingDays(rpg.days, data.collectLast, todayISO())
-  const collectReady = collectDays > 0 && (T.dailyFiat > 0 || T.bankRate > 0)
+  const collectReady = collectDays > 0 && (T.dailyFiat > 0 || T.bankRate > 0 || T.wages > 0)
   const collectAmount = Math.round(T.dailyFiat * collectDays * (rpg.world.event?.id === 'xmas' ? 1.5 : 1))
   const collect = () => {
     if (!collectReady) return null
     const interest = T.bankRate ? Math.min(T.bankCap * collectDays, Math.round((fiat * T.bankRate * collectDays) / 100)) : 0
-    const f = collectAmount + interest
+    // NPC wages for the same days; paid only as far as FIAT allows (an unpaid wage is skipped, NPCs still work)
+    const owed = (T.wages || 0) * collectDays, wage = Math.min(owed, Math.max(0, fiat + collectAmount + interest))
+    const f = collectAmount + interest - wage
     sfx('coin')
-    pay(f, 0, { icon: '🧺', text: `เก็บรายได้เมือง ${collectDays} วัน${interest ? ` (ดอกเบี้ยธนาคาร ${interest})` : ''}` }, { collectLast: todayISO() })
-    return { fiat: f, interest, gold: 0, days: collectDays }
+    pay(f, 0, { icon: '🧺', text: `เก็บรายได้เมือง ${collectDays} วัน${interest ? ` (ดอกเบี้ยธนาคาร ${interest})` : ''}${wage ? ` · จ่ายค่าจ้าง NPC ${wage}` : ''}${owed > wage ? ` (ค้าง ${owed - wage} ไม่เป็นไร)` : ''}` }, { collectLast: todayISO() })
+    return { fiat: f, interest, gold: 0, days: collectDays, wage, owed }
   }
   const claim = (q) => {
     if (!q.claimable) return false

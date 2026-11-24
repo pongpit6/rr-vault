@@ -77,6 +77,8 @@ export function townChats(rpg) {
     if (nCards > 0) { const sp = by0('bard', 'apprentice', 'farmer'); if (sp) add(2, [sp], [[sp, `สมุดการ์ดของท่านมี ${nCards} ใบแล้วนะ!`], ['hero', 'การ์ดหายากเท่าเศษทองเลย ได้ทีดีใจทุกที'], [sp, 'ใส่ใบซ้ำทับ ความสามารถก็แรงขึ้นเรื่อย ๆ']]) }
     else { const sp = by0('bard', 'farmer'); if (sp) add(1, [sp], [[sp, 'ได้ยินว่ามอนสเตอร์บางตัวทิ้งการ์ดไว้ หายากพอ ๆ กับเศษทองเลย'], ['hero', 'ถ้าได้มาจะเอาใส่สมุดสะสมไว้']]) }
     if (maxed > 0) { const sp = by0('banker', 'merchant'); if (sp) add(2, [sp], [[sp, 'การ์ดที่เต็มสิบขั้นแล้ว ใบซ้ำเอามาขายให้ข้าได้นะ'], ['hero', 'ดีเลย จะได้เก็บ FIAT ไว้ซื้อใบใหม่']]) }
+    // NPC wages: paid when the town income is collected; skipped (never a penalty) when FIAT runs short
+    { const hired = (rpg.town?.npcs || []).filter((id) => S[id]); if (hired.length) { const sp = hired[0]; add(1, [sp], [[sp, 'ขอบคุณที่จ่ายค่าจ้างรายวันให้ข้านะ'], ['hero', 'ถ้าเดือนไหนเงินตึง ค้างไว้ก่อนได้ไหม'], [sp, 'ได้สิ ข้าก็ยังทำงานให้เหมือนเดิม ไม่ต้องห่วง']]) } }
     // new town decorations
     const dec = rpg.town?.decor || []
     if (dec.includes('dc_koi')) { const sp = by0('fisher', 'farmer'); if (sp) add(2, [sp], [[sp, 'ปลาคาร์ปในบ่อตัวโตขึ้นทุกวันเลยนะ'], ['hero', 'เหมือนเงินออม ค่อย ๆ โตถ้าไม่ไปรบกวน']]) }

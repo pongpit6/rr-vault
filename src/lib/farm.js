@@ -113,8 +113,25 @@ export const RECIPES = [
   { id: 'cr_tapestry', npc: 'npc_smith', name: 'ผ้าแขวนลายมอนสเตอร์', icon: 'Flag', need: { fiber: 6, cloth: 3, dye: 3 }, decor: true, gives: 'ของตกแต่งเมือง · ความสุข +8' },
   { id: 'cr_lamp', npc: 'npc_smith', name: 'โคมคริสตัล', icon: 'Lightbulb', need: { crystal: 4, iron: 4 }, decor: true, gives: 'ของตกแต่งเมือง · ความสุข +10' },
   { id: 'cr_hero', npc: 'npc_smith', name: 'รูปปั้นวีรบุรุษ', icon: 'Award', need: { stone: 15, crystal: 3, star: 1 }, decor: true, gives: 'ของตกแต่งตำนาน · ความสุข +20' },
+  // more pieces made from monster materials (PixelLab art cr_<id>)
+  { id: 'cr_featherwind', npc: 'npc_smith', name: 'กระดิ่งลมขนนก', art: 'cr_featherwind', need: { feather: 8, cloth: 3 }, decor: true, gives: 'ของตกแต่งเมือง · ความสุข +6' },
+  { id: 'cr_cactusgarden', npc: 'npc_smith', name: 'สวนกระบองเพชร', art: 'cr_cactusgarden', need: { stone: 6, dye: 4, fiber: 4 }, decor: true, gives: 'ของตกแต่งเมือง · ความสุข +6' },
+  { id: 'cr_mushhut', npc: 'npc_smith', name: 'บ้านเห็ดยักษ์', art: 'cr_mushhut', need: { herb: 8, fiber: 6, wood: 4 }, decor: true, gives: 'ของตกแต่งเมือง · ความสุข +7' },
+  { id: 'cr_spiderweb', npc: 'npc_smith', name: 'ใยแมงมุมประดับ', art: 'cr_spiderweb', need: { fiber: 10, cloth: 3 }, decor: true, gives: 'ของตกแต่งเมือง · ความสุข +7' },
+  { id: 'cr_scarecrow', npc: 'npc_smith', name: 'หุ่นไล่กาฟักทอง', art: 'cr_scarecrow', need: { wood: 6, fruit: 6, cloth: 3 }, decor: true, gives: 'ของตกแต่งเมือง · ความสุข +7' },
+  { id: 'cr_beetlecart', npc: 'npc_smith', name: 'รถลากด้วงเขาเหล็ก', art: 'cr_beetlecart', need: { wood: 8, iron: 5, hide: 4 }, decor: true, gives: 'ของตกแต่งเมือง · ความสุข +8' },
+  { id: 'cr_hidetent', npc: 'npc_smith', name: 'กระโจมนักล่า', art: 'cr_hidetent', need: { hide: 10, wood: 6, cloth: 4 }, decor: true, gives: 'ของตกแต่งเมือง · ความสุข +9' },
+  { id: 'cr_slimefountain', npc: 'npc_smith', name: 'น้ำพุสไลม์', art: 'cr_slimefountain', need: { stone: 8, herb: 6, crystal: 2 }, decor: true, gives: 'ของตกแต่งเมือง · ความสุข +9' },
+  { id: 'cr_bonearch', npc: 'npc_smith', name: 'ซุ้มกระดูกมังกร', art: 'cr_bonearch', need: { stone: 10, hide: 6, ink: 2 }, decor: true, gives: 'ของตกแต่งเมือง · ความสุข +9' },
+  { id: 'cr_wispcage', npc: 'npc_smith', name: 'โคมวิญญาณหิ่งห้อย', art: 'cr_wispcage', need: { iron: 5, ink: 4, crystal: 3 }, decor: true, gives: 'ของตกแต่งเมือง · ความสุข +10' },
+  { id: 'cr_crystaltree', npc: 'npc_smith', name: 'ต้นไม้คริสตัล', art: 'cr_crystaltree', need: { crystal: 8, wood: 6 }, decor: true, gives: 'ของตกแต่งเมือง · ความสุข +10' },
+  { id: 'cr_lavabrazier', npc: 'npc_smith', name: 'กระถางไฟลาวา', art: 'cr_lavabrazier', need: { iron: 8, crystal: 4, ink: 4 }, decor: true, gives: 'ของตกแต่งเมือง · ความสุข +11' },
+  { id: 'cr_goldbeetle', npc: 'npc_smith', name: 'รูปปั้นด้วงสการับทอง', art: 'cr_goldbeetle', need: { stone: 8, dye: 6, mcrystal: 2 }, decor: true, gives: 'ของตกแต่งเมือง · ความสุข +12' },
+  { id: 'cr_icestatue', npc: 'npc_smith', name: 'รูปสลักน้ำแข็งแมมมอธ', art: 'cr_icestatue', need: { crystal: 10, stone: 8, feather: 4 }, decor: true, gives: 'ของตกแต่งเมือง · ความสุข +12' },
+  { id: 'cr_phoenixnest', npc: 'npc_smith', name: 'รังไข่นกเพลิง', art: 'cr_phoenixnest', need: { feather: 10, ink: 4, page: 2 }, decor: true, gives: 'ของตกแต่งเมือง · ความสุข +14' },
+  { id: 'cr_bookgolem', npc: 'npc_smith', name: 'ตู้หนังสือมิมิค', art: 'cr_bookgolem', need: { ink: 6, cloth: 6, page: 3 }, decor: true, gives: 'ของตกแต่งเมือง · ความสุข +15' },
 ]
-export const CRAFT_DECOR = { cr_garden: 6, cr_totem: 8, cr_tapestry: 8, cr_lamp: 10, cr_hero: 20 }
+export const CRAFT_DECOR = { cr_garden: 6, cr_totem: 8, cr_tapestry: 8, cr_lamp: 10, cr_hero: 20, cr_featherwind: 6, cr_cactusgarden: 6, cr_mushhut: 7, cr_spiderweb: 7, cr_scarecrow: 7, cr_beetlecart: 8, cr_hidetent: 9, cr_slimefountain: 9, cr_bonearch: 9, cr_wispcage: 10, cr_crystaltree: 10, cr_lavabrazier: 11, cr_goldbeetle: 12, cr_icestatue: 12, cr_phoenixnest: 14, cr_bookgolem: 15 }
 
 /* ---------------- shadow soldiers: you in original hero costumes with a shadow aura; expensive, up to 5 ---------------- */
 // [id, name, gold, fiat, effect key, value, text]
