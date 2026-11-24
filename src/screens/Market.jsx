@@ -1,3 +1,4 @@
+import { Emo } from '../components/px'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Search, Star, RefreshCw, ChevronRight, X, Radio, Plus } from '../components/px'
 import { useStore } from '../store'
@@ -283,7 +284,7 @@ export default function Market({ onTrade }) {
       <div className="mkt-chips -mx-4 px-4 md:mx-0 md:px-0 flex gap-1.5 overflow-x-auto no-scrollbar pb-1 md:flex-wrap">
         {tabs.map((t) => (
           <button key={t.id} onClick={() => setCat(t.id)} className={`ui-chip shrink-0 px-3 py-1.5 rounded-xl text-sm border transition ${cat === t.id ? 'ui-on bg-slate-900 text-white border-slate-900' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
-            <span className="mr-1">{t.emoji}</span>{t.label}
+            <span className="mr-1"><Emo e={t.emoji} size={18} /></span>{t.label}
           </button>
         ))}
       </div>
@@ -295,10 +296,10 @@ export default function Market({ onTrade }) {
           <div className="mkt-masonry">
             {overviewCats.map((c) => {
               const { list, extra, mine } = overviewItems(c.id)
-              const head = <>{c.emoji} {c.label}{mine && <span className="ml-1.5 text-[10px] font-medium text-amber-500 align-middle">⭐ {watchIn(c.id).length}</span>}{c.id === 'crypto' && ccyToggle}</>
+              const head = <><Emo e={c.emoji} size={18} /> {c.label}{mine && <span className="ml-1.5 text-[10px] font-medium text-amber-500 align-middle">⭐ {watchIn(c.id).length}</span>}{c.id === 'crypto' && ccyToggle}</>
               if (c.id === 'fund' && !list.length) return (
                 <Section key={c.id} title={head}>
-                  <div className="px-2 py-3 text-xs text-slate-500">ค้นหาชื่อกองทุนด้านบน (เช่น K-USA, SCBSET) แล้วกด ⭐ เพื่อติดตาม · กองทุนที่คุณถือจะขึ้นที่นี่อัตโนมัติ</div>
+                  <div className="px-2 py-3 text-xs text-slate-500">ค้นหาชื่อกองทุนด้านบน (เช่น K-USA, SCBSET) แล้วกด <Emo e="⭐" size={12} /> เพื่อติดตาม · กองทุนที่คุณถือจะขึ้นที่นี่อัตโนมัติ</div>
                 </Section>
               )
               return (
@@ -314,7 +315,7 @@ export default function Market({ onTrade }) {
         cat === 'watch' ? (
           <div className="mkt-masonry">
             {overviewCats.filter((c) => watchIn(c.id).length).map((c) => (
-              <Section key={c.id} title={<>{c.emoji} {c.label} <span className="text-[10px] text-slate-400 font-normal">{watchIn(c.id).length}</span></>}>
+              <Section key={c.id} title={<><Emo e={c.emoji} size={18} /> {c.label} <span className="text-[10px] text-slate-400 font-normal">{watchIn(c.id).length}</span></>}>
                 {watchIn(c.id).map((it) => <Row key={it.symbol} {...rowProps(it)} />)}
               </Section>
             ))}
@@ -340,7 +341,7 @@ export default function Market({ onTrade }) {
               <div><button className="ui-link text-xs mt-2" onClick={() => setCat('all')}>ค้นหาในทุกตลาด</button></div>
             </div>
           )}
-          {cat === 'fund' && !query && <div className="px-2 py-3 text-xs text-slate-500">กองทุนไทยมีหลายพันกอง พิมพ์ชื่อหรือรหัสกองทุนในช่องค้นหาด้านบน แล้วกด ⭐ เพื่อติดตาม · กองทุนที่คุณถือจะขึ้นที่นี่อัตโนมัติ</div>}
+          {cat === 'fund' && !query && <div className="px-2 py-3 text-xs text-slate-500">กองทุนไทยมีหลายพันกอง พิมพ์ชื่อหรือรหัสกองทุนในช่องค้นหาด้านบน แล้วกด <Emo e="⭐" size={12} /> เพื่อติดตาม · กองทุนที่คุณถือจะขึ้นที่นี่อัตโนมัติ</div>}
           {cat === 'gold' && <div className="px-2 pt-2 pb-1 text-[11px] text-slate-500">ทองไทยคำนวณจาก Gold Spot × USD/THB × 96.5% (ใกล้เคียงราคาสมาคมฯ แต่ไม่ใช่ราคาประกาศ)</div>}
           {cat === 'cn' && <div className="px-2 pt-2 pb-1 text-[11px] text-slate-500">หุ้นฮ่องกงเป็น HKD · หุ้นจีนแผ่นดินใหญ่ (.SS/.SZ) เป็น CNY · ราคาอาจดีเลย์ ~15 นาที</div>}
         </section>
@@ -567,10 +568,10 @@ function TopTen({ onOpen }) {
   const open = (r) => onOpen(itemFor(r.symbol, { name: r.name }))
   return (
     <section className="card p-3" data-testid="top10">
-      <div className="flex items-baseline gap-2 px-1 mb-2"><h2 className="font-semibold text-sm flex-1">🏆 10 อันดับสินทรัพย์มูลค่าสูงสุดในโลก</h2><span className="text-[10px] text-slate-500">Market Cap · USD</span></div>
+      <div className="flex items-baseline gap-2 px-1 mb-2"><h2 className="font-semibold text-sm flex-1"><Emo e="🏆" size={15} /> 10 อันดับสินทรัพย์มูลค่าสูงสุดในโลก</h2><span className="text-[10px] text-slate-500">Market Cap · USD</span></div>
       {!d ? <div className="text-xs text-slate-400 px-1 py-3">กำลังโหลด…</div> : d.items.map((r, i) => (
         <button key={r.symbol} onClick={() => open(r)} className="w-full flex items-center gap-2.5 px-1 py-1.5 text-left rounded-lg hover:bg-slate-900/[.03]" data-testid="top10-row">
-          <span className={`w-5 text-center text-xs font-bold num ${i < 3 ? ['text-amber-500', 'text-slate-400', 'text-orange-700'][i] : 'text-slate-400'}`}>{i < 3 ? ['🥇', '🥈', '🥉'][i] : i + 1}</span>
+          <span className={`w-5 text-center text-xs font-bold num ${i < 3 ? ['text-amber-500', 'text-slate-400', 'text-orange-700'][i] : 'text-slate-400'}`}>{i < 3 ? <Emo e="🥇" size={14} /> : i + 1}</span>
           <Badge it={itemFor(r.symbol, { name: r.name })} size={32} />
           <div className="flex-1 min-w-0">
             <div className="flex items-baseline gap-1.5"><span className="text-sm font-semibold truncate">{r.kind === 'metal' ? r.name : r.name}</span><span className="text-[10px] text-slate-400 shrink-0">{r.kind === 'metal' ? 'โลหะมีค่า' : r.kind === 'crypto' ? 'คริปโต' : r.symbol}</span></div>

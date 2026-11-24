@@ -1,5 +1,5 @@
 import { ShadowRaceCard } from './HeroKit'
-import { Emo } from './px'
+import { Emo, EmoText, PxIcon } from './px'
 import { useState } from 'react'
 import { Swords, ScrollText } from './px'
 import { Sheet } from './ui'
@@ -18,7 +18,7 @@ export function MonthBossCard({ rpg }) {
       <div className="flex items-center gap-2 mb-3">
         <Swords size={16} className="text-rose-600" />
         <h2 className="px-font text-[11px] tracking-wide flex-1">MONTH BOSS · {monthLabel(B.mk)}</h2>
-        {c && <span className="text-[11px] text-amber-600 font-semibold">ชนะ = 🪙2 · 💵150</span>}
+        {c && <span className="text-[11px] text-amber-600 font-semibold">ชนะ = <PxIcon name="em_gold" size={12} />2 · <PxIcon name="em_fiat" size={12} />150</span>}
       </div>
       {c ? (
         <div className="flex items-center gap-3">
@@ -77,13 +77,13 @@ export function MonthChapter({ stats, prev, chapter, label, vsLabel = 'เที
       <div className="px-font text-[9px] text-amber-600">{label}</div>
       <div className="font-bold text-lg leading-tight mt-0.5">{chapter.title}</div>
       {chapter.quiet ? <div className="text-sm text-slate-500 mt-2">เดือนนี้ยังเงียบ ๆ ทุกการเดินทางเริ่มจากก้าวเล็ก ๆ</div> : (
-        <ul className="mt-2 space-y-1.5">{chapter.lines.map((l, i) => <li key={i} className="flex gap-2 text-sm"><span>{l.icon}</span><span>{l.text}</span></li>)}</ul>
+        <ul className="mt-2 space-y-1.5">{chapter.lines.map((l, i) => <li key={i} className="flex gap-2 text-sm"><span><Emo e={l.icon} size={16} /></span><span>{l.text}</span></li>)}</ul>
       )}
       <div className="mt-3 px-inner p-2.5">
         <div className="grid grid-cols-[1fr_auto_auto] gap-x-3 gap-y-1 text-xs">
           <span className="text-slate-500">{prev ? vsLabel : 'สรุปตัวเลข'}</span><span /><span />
           {compareRows(stats, prev).map(([k, v, a, b, u]) => (
-            <div key={k} className="contents"><span>{k}</span><b className="num text-right">{v}</b><span className="num text-right text-[11px]">{a == null ? '' : <Delta a={a} b={b} unit={u || ''} />}</span></div>
+            <div key={k} className="contents"><span><EmoText text={k} size={13} /></span><b className="num text-right">{v}</b><span className="num text-right text-[11px]">{a == null ? '' : <Delta a={a} b={b} unit={u || ''} />}</span></div>
           ))}
         </div>
       </div>

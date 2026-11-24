@@ -4,6 +4,7 @@
  * front(): over buildings — rain/storm/fog, fireflies, butterflies, bloom, gloom, festival dressing.
  * Deterministic from `now`, so no state is kept between frames.
  */
+import { prop } from './propArt'
 const R = (g, c, x, y, w, h) => { g.fillStyle = c; g.fillRect(Math.round(x), Math.round(y), w, h) }
 const hash = (i, k = 0) => { const x = Math.sin(i * 127.1 + k * 311.7) * 43758.5453; return x - Math.floor(x) }
 
@@ -41,19 +42,25 @@ export function worldFront(g, now, { w, G, TH, night, world, hx, hallTop }) {
   // rank flag on the hall
   if (world.rank) {
     const c = RANK_FLAG[world.rank] || RANK_FLAG.novice, fy = hallTop - 14
-    R(g, '#1e293b', hx + 44, fy, 1, 14); const wave = Math.floor(now / 250) % 2
-    R(g, c, hx + 45, fy + wave, 7, 4); R(g, c, hx + 45, fy + 1 + wave, 5, 1)
-    if (world.rank === 'legend') R(g, '#fff', hx + 47, fy + 1 + wave, 1, 1)
+    const fl = { novice: 'pr_flag_s', saver: 'pr_flag_g', sage: 'pr_flag_p', legend: 'pr_flag_y' }[world.rank] || 'pr_flag_s'
+    if (!prop(g, fl, hx + 40, fy + 15, 16)) {
+      R(g, '#1e293b', hx + 44, fy, 1, 14); const wave = Math.floor(now / 250) % 2
+      R(g, c, hx + 45, fy + wave, 7, 4); R(g, c, hx + 45, fy + 1 + wave, 5, 1)
+      if (world.rank === 'legend') R(g, '#fff', hx + 47, fy + 1 + wave, 1, 1)
+    }
   }
   // golden tree of saving, right of the hall: grows with lifetime saving
   if (world.tree > 0) {
     const x = hx + 62, lv = world.tree, h = 6 + lv * 3
+    const tz = 12 + lv * 4
+    if (prop(g, lv >= 3 ? 'pr_gtree_l' : 'pr_gtree_s', x - tz / 2, G + 1, tz)) { if (Math.sin(now / 250 + lv) > 0.6) R(g, '#fff', x - 2 + (Math.floor(now / 700) % 5), G - tz + 4, 1, 1) } else {
     R(g, '#92400e', x, G - h, 2, h)
     const leaf = night ? '#ca8a04' : '#fbbf24', leaf2 = night ? '#a16207' : '#fde68a'
     R(g, leaf, x - lv - 2, G - h - 4 - lv, 6 + lv * 2, 6 + lv)
     R(g, leaf2, x - lv, G - h - 3 - lv, 2 + lv, 2)
     if (Math.sin(now / 250 + lv) > 0.6) R(g, '#fff', x + 1 + (Math.floor(now / 700) % 3), G - h - 2 - lv, 1, 1)
-    if (lv >= 3) for (let i = 0; i < lv; i++) { const k = (now / 2200 + i / lv) % 1; R(g, leaf, x - 2 + i * 2, G - h + k * h, 1, 1) }
+    }
+    if (lv >= 3) for (let i = 0; i < lv; i++) { const k = (now / 2200 + i / lv) % 1; R(g, night ? '#ca8a04' : '#fbbf24', x - 2 + i * 2, G - h + k * h, 1, 1) }
   }
   // market sign: BTC mood
   if (world.btc === 'crash' || world.btc === 'pump') {
@@ -62,22 +69,24 @@ export function worldFront(g, now, { w, G, TH, night, world, hx, hallTop }) {
   }
   // double-date sale day: bunting with price tags across the street
   if (world.sale) {
-    for (let x = 6; x < w - 6; x += 12) { const sag = Math.sin((x / w) * Math.PI) * 4; R(g, Math.floor(x / 12) % 2 ? '#ef4444' : '#fbbf24', x, 22 + sag, 5, 5) }
+    for (let x = 0; x < w; x += 18) { const sag = Math.round(Math.sin((x / w) * Math.PI) * 4); if (!prop(g, 'pr_bunting', x, 30 + sag, 18)) R(g, Math.floor(x / 12) % 2 ? '#ef4444' : '#fbbf24', x, 22 + sag, 5, 5) }
     if (Math.floor(now / 600) % 2) { g.fillStyle = '#ef4444'; g.font = 'bold 6px monospace'; g.fillText(`SALE ${world.sale}`, w / 2 - 18, 34) }
   }
   // BTC cycle: a travelling merchant with a SALE sign near the bottom of the cycle, a watchtower flag near the top
   if (world.cycle === 'bottom') {
     const x = 4, bob = Math.floor(now / 400) % 2
+    if (prop(g, 'pr_salecart', x - 2, G + 18 - bob, 26)) { /* PixelLab cart */ } else {
     R(g, '#92400e', x, G - 10, 22, 7); R(g, '#b45309', x, G - 12, 22, 2)            // cart
     R(g, '#1e293b', x + 3, G - 3, 4, 3); R(g, '#1e293b', x + 15, G - 3, 4, 3)          // wheels
     R(g, '#fbbf24', x + 4, G - 14, 3, 2); R(g, '#fbbf24', x + 10, G - 15, 3, 3); R(g, '#f97316', x + 16, G - 14, 3, 2) // coins on the cart
     R(g, '#78350f', x + 24, G - 26, 1, 16)                                              // sign pole
     R(g, '#dc2626', x + 19, G - 31 + bob, 13, 7); g.fillStyle = '#fff'; g.font = 'bold 5px monospace'; g.fillText('SALE', x + 20, G - 26 + bob)
+    }
   } else if (world.cycle === 'top' || world.cycle === 'warm') {
     const x = w - 16, wave = Math.floor(now / 220) % 2, c = world.cycle === 'top' ? '#dc2626' : '#f59e0b'
-    R(g, '#57534e', x, G - 30, 8, 30); R(g, '#78716c', x - 2, G - 32, 12, 3)            // tower
+    if (!prop(g, world.cycle === 'top' ? 'pr_tower_r' : 'pr_tower_o', x - 18, G + 1, 34)) { R(g, '#57534e', x, G - 30, 8, 30); R(g, '#78716c', x - 2, G - 32, 12, 3)            // tower
     R(g, '#1c1917', x + 3, G - 24, 2, 3); R(g, '#1c1917', x + 3, G - 14, 2, 3)          // windows
-    R(g, '#1e293b', x + 4, G - 44, 1, 12); R(g, c, x + 5, G - 44 + wave, 7, 4); R(g, c, x + 5, G - 43 + wave, 5, 1) // flag
+    R(g, '#1e293b', x + 4, G - 44, 1, 12); R(g, c, x + 5, G - 44 + wave, 7, 4); R(g, c, x + 5, G - 43 + wave, 5, 1) } // flag
     if (world.cycle === 'top' && Math.floor(now / 500) % 2) { g.fillStyle = 'rgba(220,38,38,.25)'; g.fillRect(x - 4, G - 48, 16, 6) }
   }
   // bloom: flowers along the street when saving is on track
@@ -99,14 +108,15 @@ export function worldFront(g, now, { w, G, TH, night, world, hx, hallTop }) {
   const ev = world.event
   if (ev === 'newyear' || ev === 'xmas' || ev === 'cny' || ev === 'loy') {
     // lantern string across the street
-    for (let x = 10; x < w - 10; x += 14) { const c = ev === 'cny' ? '#ef4444' : ev === 'xmas' ? ['#ef4444', '#22c55e', '#fde047'][(x / 14) % 3 | 0] : ev === 'loy' ? '#fde68a' : ['#fde047', '#f472b6', '#7dd3fc'][(x / 14) % 3 | 0]; R(g, '#334155', x, G - 44, 14, 1); R(g, c, x + 6, G - 44, 3, 4); if (night) { g.fillStyle = 'rgba(253,224,71,.15)'; g.fillRect(x + 3, G - 47, 9, 9) } }
+    const lan = ev === 'cny' ? 'pr_lantern_r' : ev === 'loy' ? 'pr_lantern_y' : 'pr_lights', step = lan === 'pr_lights' ? 24 : 26
+    for (let x = 6; x < w - 6; x += step) { const sw = lan === 'pr_lights' ? 0 : Math.round(Math.sin(now / 700 + x) * 1); if (night) { g.fillStyle = 'rgba(253,224,71,.15)'; g.fillRect(x + 2, G - 66, step - 4, 14) } if (!prop(g, lan, x + sw, G - (lan === 'pr_lights' ? 52 : 50), lan === 'pr_lights' ? 22 : 14)) { R(g, '#334155', x, G - 44, 14, 1) } }
   }
   if (ev === 'newyear' && night) for (let i = 0; i < 3; i++) { const k = ((now / 1600) + i / 3) % 1, cx = w * (0.25 + i * 0.25), cy = 30 - i * 6; if (k < 0.5) R(g, '#fde047', cx, 70 - k * 80, 1, 2); else for (let q = 0; q < 10; q++) { const a = q / 10 * Math.PI * 2, r = (k - 0.5) * 40; R(g, ['#f472b6', '#fde047', '#7dd3fc'][i], cx + Math.cos(a) * r, cy + Math.sin(a) * r, 2, 2) } }
   if (ev === 'songkran') for (let i = 0; i < 14; i++) { const k = (now / 900 + i / 14) % 1, x = 30 + hash(i) * (w - 60); R(g, 'rgba(125,211,252,.9)', x + k * 14, G - 10 - Math.sin(k * Math.PI) * 18, 2, 2) }
-  if (ev === 'loy') { R(g, '#38bdf8', 0, G + 24, w, 8); for (let i = 0; i < w / 28; i++) { const x = (i * 28 + now / 90) % w, b = Math.sin(now / 500 + i) > 0 ? 1 : 0; R(g, '#16a34a', x, G + 25 - b, 5, 2); R(g, '#f472b6', x + 1, G + 23 - b, 3, 2); R(g, '#fde047', x + 2, G + 21 - b, 1, 2) } }
-  if (ev === 'xmas') { const x = w - 60; R(g, '#92400e', x + 5, G - 4, 2, 4); for (let i = 0; i < 5; i++) R(g, '#15803d', x + i, G - 6 - i * 3, 12 - 2 * i, 3); for (let i = 0; i < 6; i++) if (Math.floor(now / 300 + i) % 3) R(g, ['#fde047', '#ef4444', '#7dd3fc'][i % 3], x + 2 + (i * 7) % 9, G - 7 - (i * 5) % 12, 1, 1); R(g, '#fde047', x + 5, G - 22, 2, 2) }
-  if (ev === 'phansa') for (let i = 0; i < 3; i++) { const x = 40 + i * 70; R(g, '#fde047', x, G - 18 + (Math.floor(now / 500 + i) % 2), 1, 6); R(g, '#f97316', x, G - 20 + (Math.floor(now / 500 + i) % 2), 1, 2) }
-  if (ev === 'payday') for (let i = 0; i < 3; i++) { const x = w - 100 + i * 24; R(g, '#92400e', x, G - 8, 1, 8); R(g, '#92400e', x + 9, G - 8, 1, 8); for (let q = 0; q < 10; q++) R(g, q % 2 ? '#f59e0b' : '#fff', x + q, G - 11, 1, 3); R(g, '#a3e635', x + 2, G - 5, 2, 2); R(g, '#f87171', x + 5, G - 5, 2, 2) }
+  if (ev === 'loy') { R(g, '#38bdf8', 0, G + 24, w, 8); for (let i = 0; i < w / 34; i++) { const x = (i * 34 + now / 90) % w, b = Math.sin(now / 500 + i) > 0 ? 1 : 0; if (!prop(g, 'pr_krathong', x, G + 30 - b, 12)) { R(g, '#16a34a', x, G + 25 - b, 5, 2); R(g, '#f472b6', x + 1, G + 23 - b, 3, 2) } } }
+  if (ev === 'xmas') { const x = w - 64; if (!prop(g, 'pr_xmas', x, G + 1, 30)) { R(g, '#92400e', x + 5, G - 4, 2, 4); for (let i = 0; i < 5; i++) R(g, '#15803d', x + i, G - 6 - i * 3, 12 - 2 * i, 3) } else for (let i = 0; i < 5; i++) if (Math.floor(now / 300 + i) % 3 === 0) R(g, ['#fde047', '#ef4444', '#7dd3fc'][i % 3], x + 9 + (i * 7) % 12, G - 8 - (i * 5) % 16, 1, 1) }
+  if (ev === 'phansa') for (let i = 0; i < 3; i++) { const x = 40 + i * 70; if (!prop(g, 'pr_candle', x - 7, G + 1, 18)) R(g, '#fde047', x, G - 18, 1, 6); if (Math.floor(now / 500 + i) % 2) R(g, '#fff7ed', x + 1, G - 18, 1, 1) }
+  if (ev === 'payday') for (let i = 0; i < 3; i++) { const x = w - 108 + i * 28; if (!prop(g, 'pr_stall', x, G + 1, 26)) { R(g, '#92400e', x, G - 8, 1, 8); R(g, '#92400e', x + 9, G - 8, 1, 8) } }
   // holiday: shop signs "closed"
   if (world.holiday) R(g, '#f43f5e', hx + 20, G - 9, 7, 2)
 }

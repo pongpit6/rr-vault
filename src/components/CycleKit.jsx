@@ -1,3 +1,4 @@
+import { Emo } from './px'
 import { useEffect, useMemo, useState } from 'react'
 import { ChevronRight } from './px'
 import { useCycle, cycleZone, gauges, levels, verdictTh, loadCycleHistory, loadChecklist, ZONE_COLOR, ZONE_TH } from '../lib/btcCycle'
@@ -14,7 +15,7 @@ export function CycleTile({ onClick }) {
       </div>
       {!d ? <div className="text-sm text-slate-500 mt-1">{err ? 'โหลดไม่ได้ตอนนี้' : 'กำลังโหลด…'}</div> : (
         <div className="flex items-center gap-3 mt-1 flex-wrap">
-          <span className="text-lg font-extrabold" style={{ color: z.color }} data-testid="cycle-zone">{z.emoji} {z.name}</span>
+          <span className="text-lg font-extrabold" style={{ color: z.color }} data-testid="cycle-zone"><Emo e={z.emoji} size={18} /> {z.name}</span>
           <span className="text-[11px] text-slate-300 ml-auto">ก้นรอบ <b className="text-emerald-400">{d.bottom?.hitCount}/{d.bottom?.total}</b> · ยอดรอบ <b className="text-rose-400">{d.peak?.hitCount}/{d.peak?.total}</b></span>
         </div>
       )}
@@ -34,7 +35,7 @@ export function CycleDetail({ M, myAvg }) {
     <div className="space-y-4" data-testid="cycle-detail">
       <div className="rounded-2xl p-4 text-white" style={{ background: `linear-gradient(135deg, ${z.color}, #0f172a)` }}>
         <div className="text-[11px] opacity-80">ภาพรวมตอนนี้ · ข้อมูล ณ {d.asOf ? new Date(d.asOf + 'T12:00:00').toLocaleDateString('th-TH', { day: 'numeric', month: 'short' }) : '—'}</div>
-        <div className="text-2xl font-extrabold mt-0.5">{z.emoji} {z.name}</div>
+        <div className="text-2xl font-extrabold mt-0.5"><Emo e={z.emoji} size={18} /> {z.name}</div>
         <div className="grid grid-cols-2 gap-2 mt-3">
           <Verdict title="สัญญาณก้นรอบ" v={d.bottom} color="#4ade80" onClick={() => setOpen(open === 'bottom-signals' ? null : 'bottom-signals')} />
           <Verdict title="สัญญาณยอดรอบ" v={d.peak} color="#fb7185" onClick={() => setOpen(open === 'peak-signals' ? null : 'peak-signals')} />
@@ -87,7 +88,7 @@ function Checklist({ id }) {
       <div className="text-sm font-semibold">{id === 'bottom-signals' ? 'เช็กลิสต์ก้นรอบ' : 'เช็กลิสต์ยอดรอบ'}</div>
       {(c.signals || []).filter((s) => !/open.?interest|funding|long.?short|taker/i.test(`${s.id} ${s.name}`)).map((s) => (
         <div key={s.id} className="text-xs">
-          <div className="flex justify-between gap-2"><span className="font-medium">{s.hit ? '✅' : '⬜'} {s.name}</span><span className="tabular-nums text-slate-500">{s.currentLabel || fmt(s, s.current)} {s.refOp} {fmt(s, s.reference)}</span></div>
+          <div className="flex justify-between gap-2"><span className="font-medium">{s.hit ? <Emo e="✅" size={13} /> : '⬜'} {s.name}</span><span className="tabular-nums text-slate-500">{s.currentLabel || fmt(s, s.current)} {s.refOp} {fmt(s, s.reference)}</span></div>
           {s.note && <div className="text-[10px] text-slate-500">{s.note}</div>}
           <div className="h-1 rounded-full bg-slate-100 mt-0.5 overflow-hidden"><div className="h-full rounded-full" style={{ width: `${Math.max(0, Math.min(100, s.progress || 0))}%`, background: s.hit ? '#16a34a' : '#94a3b8' }} /></div>
         </div>

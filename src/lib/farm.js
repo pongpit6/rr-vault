@@ -169,7 +169,7 @@ export function raidsOf(date, uid = '') {
 /* ---------------- combat ---------------- */
 export function mapUnlocked(map, { level, realmTier }) {
   if (map.unlock.level && level < map.unlock.level) return { ok: false, why: `เลเวล ${map.unlock.level}` }
-  if (map.unlock.realm && realmTier < map.unlock.realm) return { ok: false, why: `ดินแดน ${['', 'หมู่บ้านเริ่มต้น', 'เมืองการค้า', 'ปราสาทมั่งคั่ง', 'อาณาจักรทองคำ'][map.unlock.realm]} (มูลค่าสุทธิจริง)` }
+  if (map.unlock.realm && realmTier < map.unlock.realm) return { ok: false, why: `ดินแดน ${['', 'หมู่บ้านเริ่มต้น', 'เมืองการค้า', 'ปราสาทมั่งคั่ง', 'อาณาจักรทองคำ'][map.unlock.realm]} (มูลค่าสุทธิสูงสุดที่เคยทำได้)` }
   return { ok: true }
 }
 export function partyPower({ level, gear = [], party = [], skills = {}, traces = {}, fx = {} }) {

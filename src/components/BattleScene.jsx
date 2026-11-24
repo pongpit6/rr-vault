@@ -1,4 +1,5 @@
 import { sfx } from '../lib/sfx'
+import { EmoText } from './px'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { SHEETS } from '../lib/spriteSheets'
 import { heroSheet, setHeroStage, petSprite } from '../lib/heroStage'
@@ -189,8 +190,8 @@ export function drawRealm(g, tier, gy, night, now, decos) {
     lamp(30); lamp(170)
   }
   // shop decorations
-  if (decos.deco_lanterns) for (const x of [18, 82, 176]) { R('#334155', x, gy - 18, 1, 8); R('#dc2626', x - 1, gy - 21, 3, 3); if (dark) { g.fillStyle = `rgba(248,113,113,${0.2 + 0.08 * Math.sin(now / 300 + x)})`; g.fillRect(x - 4, gy - 25, 9, 9) } }
-  if (decos.deco_flowers) for (let x = 3; x < 200; x += 11) { const c = ['#f472b6', '#fde047', '#a78bfa', '#fb7185'][x % 4]; R('#16a34a', x, gy - 11, 1, 2); R(c, x - 1, gy - 12, 3, 1); R(c, x, gy - 13, 1, 1) }
+  if (decos.deco_lanterns && still('pr_lantern_r')) { for (const x of [16, 80, 174]) { R('#334155', x + 3, gy - 22, 1, 4); g.drawImage(still('pr_lantern_r'), x - 2, gy - 22, 10, 10) } } else if (decos.deco_lanterns) for (const x of [18, 82, 176]) { R('#334155', x, gy - 18, 1, 8); R('#dc2626', x - 1, gy - 21, 3, 3); if (dark) { g.fillStyle = `rgba(248,113,113,${0.2 + 0.08 * Math.sin(now / 300 + x)})`; g.fillRect(x - 4, gy - 25, 9, 9) } }
+  if (decos.deco_flowers && still('dc_flowers')) { for (let x = 2; x < 200; x += 16) g.drawImage(still('dc_flowers'), x, gy - 14, 12, 12) } else if (decos.deco_flowers) for (let x = 3; x < 200; x += 11) { const c = ['#f472b6', '#fde047', '#a78bfa', '#fb7185'][x % 4]; R('#16a34a', x, gy - 11, 1, 2); R(c, x - 1, gy - 12, 3, 1); R(c, x, gy - 13, 1, 1) }
 }
 
 /* ---------------- component ---------------- */
@@ -673,21 +674,21 @@ export default function BattleScene({
           </div>
         )}
         {floats.map((f) => (
-          <div key={f.id} className={`px-float ${f.cls}`} style={{ left: `${(f.x / W) * 100}%`, top: `${(f.y / H) * 100}%` }}>{f.text}</div>
+          <div key={f.id} className={`px-float ${f.cls}`} style={{ left: `${(f.x / W) * 100}%`, top: `${(f.y / H) * 100}%` }}><EmoText text={f.text} size={14} /></div>
         ))}
         {bubble && (
-          <div key={bubble.id} className={`px-bubble ${bubble.who}`} style={{ left: `${Math.min(80, Math.max(16, (bubble.x / W) * 100))}%`, top: `${Math.max(14, (bubble.y / H) * 100)}%` }}>{bubble.text}</div>
+          <div key={bubble.id} className={`px-bubble ${bubble.who}`} style={{ left: `${Math.min(80, Math.max(16, (bubble.x / W) * 100))}%`, top: `${Math.max(14, (bubble.y / H) * 100)}%` }}><EmoText text={bubble.text} size={13} /></div>
         )}
         {banner && (
           <div className="absolute inset-0 grid place-items-center pointer-events-none">
             <div className={`px-banner ${banner.cls}`}>
-              <div className="px-font text-sm md:text-base">{banner.text}</div>
+              <div className="px-font text-sm md:text-base"><EmoText text={banner.text} size={16} /></div>
               {banner.sub && <div className="text-xs font-semibold mt-0.5">{banner.sub}</div>}
             </div>
           </div>
         )}
       </div>
-      {cap && <div className="px-narr" data-testid="narr"><span className="tx" key={live ? live.id : capIdx}>{cap}</span></div>}
+      {cap && <div className="px-narr" data-testid="narr"><span className="tx" key={live ? live.id : capIdx}><EmoText text={cap} size={14} /></span></div>}
     </div>
   )
 }

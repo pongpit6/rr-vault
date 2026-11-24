@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Flame, ChevronRight } from './px'
+import { Flame, ChevronRight, PxIcon } from './px'
 import BattleScene, { skinUrl, heroSheet, petSprite } from './BattleScene'
 import { SHEETS } from '../lib/spriteSheets'
 import { useStore } from '../store'
@@ -116,7 +116,7 @@ export function ChestCard({ rpg, onAdd }) {
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
             <h2 className="px-font text-[11px] flex-1">DAILY CHEST</h2>
-            <span className="px-chip text-emerald-700">💵 <b className="num">{rpg.fiat.toLocaleString()}</b></span>
+            <span className="px-chip text-emerald-700"><PxIcon name="em_fiat" size={15} /> <b className="num">{rpg.fiat.toLocaleString()}</b></span>
           </div>
           {res ? (
             <div className="mt-1.5 anim-pop">

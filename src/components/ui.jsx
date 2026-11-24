@@ -1,3 +1,4 @@
+import { EmoText } from './px'
 import { useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { X, Undo2 } from './px'
@@ -114,7 +115,7 @@ export function Toast() {
   return (
     <div className="fixed z-[60] left-1/2 -translate-x-1/2 bottom-[calc(env(safe-area-inset-bottom)+84px)] md:bottom-8 anim-pop w-max max-w-[92vw]">
       <div className="flex items-center gap-3 pl-4 pr-2 py-2 rounded-2xl bg-slate-900 text-slate-50 border border-slate-800 shadow-2xl text-sm">
-        <span>{toast.text}</span>
+        <span><EmoText text={toast.text} size={15} /></span>
         {toast.onUndo && (
           <button onClick={() => { toast.onUndo(); hide() }} className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 font-semibold text-sky-300">
             <Undo2 size={15} /> ย้อนกลับ

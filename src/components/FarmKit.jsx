@@ -91,7 +91,7 @@ function Hunt({ rpg }) {
             const u = mapUnlocked(m, { level: rpg.level, realmTier: rpg.realm.tier })
             return (
               <button key={m.id} disabled={!u.ok} onClick={() => rpg.setFarm({ map: m.id })} className={`px-inner p-2 text-left ${f.map === m.id ? 'ring-2 ring-emerald-500' : ''} ${u.ok ? '' : 'opacity-50'}`} data-testid={`map-${m.id}`}>
-                <div className="text-sm font-semibold">{m.emoji} {m.name}</div>
+                <div className="text-sm font-semibold"><Emo e={m.emoji} size={16} /> {m.name}</div>
                 <div className="text-[10px] text-slate-500">{u.ok ? `พลังมอน ~${monPower(m.mons[0])} · ล่าแล้ว ${f.kills[m.id] || 0}` : <><Lock size={10} /> ปลดล็อก: {u.why}</>}</div>
               </button>
             )
@@ -141,7 +141,7 @@ function RaidLog({ rpg }) {
         const d = new Date(r.at)
         return (
           <div key={r.id} className="px-inner p-2 text-xs">
-            <div className="flex items-center gap-2"><b>{d.toLocaleDateString('th-TH', { day: 'numeric', month: 'short' })} {r.at.slice(11, 16)} น.</b><span className="text-slate-500">{MAP_BY_ID[r.map]?.emoji} {r.mons.length} ตัวบุก</span><span className={`ml-auto font-bold ${r.won === r.mons.length ? 'text-emerald-600' : r.won ? 'text-amber-600' : 'text-rose-500'}`}>ชนะ {r.won}/{r.mons.length}</span></div>
+            <div className="flex items-center gap-2"><b>{d.toLocaleDateString('th-TH', { day: 'numeric', month: 'short' })} {r.at.slice(11, 16)} น.</b><span className="text-slate-500"><Emo e={MAP_BY_ID[r.map]?.emoji} size={16} /> {r.mons.length} ตัวบุก</span><span className={`ml-auto font-bold ${r.won === r.mons.length ? 'text-emerald-600' : r.won ? 'text-amber-600' : 'text-rose-500'}`}>ชนะ {r.won}/{r.mons.length}</span></div>
             <div className="flex gap-0.5 my-1">{r.mons.map((m, i) => <Portrait key={i} sprite={`mon_${m}`} size={24} />)}</div>
             <div className="text-slate-600">{Object.keys(r.drops).length ? 'ได้: ' + Object.entries(r.drops).map(([k, v]) => `${itemName(k)}×${v}`).join(', ') : 'ไม่ได้ของ'}</div>
           </div>
@@ -166,7 +166,7 @@ function Bag({ rpg }) {
         ))}</div> : <div className="text-sm text-slate-400">ยังว่างเปล่า ไปล่ามอนสเตอร์กัน</div>}
       </Card>
       <Card icon={Hammer} title="MATERIALS · วัสดุ" testid="farm-mats">
-        <div className="text-[11px] text-slate-500 mb-2">ใช้ที่โรงช่าง หรือขายก็ได้</div>
+        <div className="text-[11px] text-slate-500 mb-2">ส่งให้ชาวเมืองทำของติดตัว หรือขายก็ได้</div>
         {mats.length ? <div className="space-y-1.5">{mats.map(([k, v]) => (
           <div key={k} className="px-inner p-1.5 flex items-center gap-2 text-xs"><ItemIcon k={k} /><div className="flex-1 min-w-0"><div className="font-semibold">{MATS[k]?.name} ×{v}</div><div className="text-slate-500 truncate">{MATS[k]?.use}</div></div>{k === 'shard' ? <button className="px-btn !py-1 text-xs shrink-0" disabled={v < SHARDS_PER_GOLD} onClick={() => { const n = rpg.combineShards(); if (n) showToast(`หลอมได้ ${n} GOLD`) }} data-testid="combine-shards">หลอม {Math.floor(v / SHARDS_PER_GOLD)} GOLD</button> : MATS[k]?.noSell ? null : <button className="text-[11px] ui-link shrink-0" onClick={() => sell([k])}>ขาย {(itemPrice(k) * v).toLocaleString()}</button>}</div>
         ))}</div> : <div className="text-sm text-slate-400">ยังไม่มีวัสดุ</div>}
@@ -266,7 +266,7 @@ function MonSheet({ mon, seen, onClose }) {
         <div className="flex gap-3 items-center">
           <div className="w-28 h-28 grid place-items-center border-2 border-slate-800 shrink-0" style={{ backgroundImage: `url(./sprites/map_${map.id}.png)`, backgroundSize: 'cover', backgroundPosition: 'center bottom', imageRendering: 'pixelated' }}><Portrait sprite={`mon_${mon.id}`} size={92} dim={!known} /></div>
           <div className="text-sm space-y-0.5">
-            <div><b>{KIND_TH[mon.kind]}</b> · {map.emoji} {map.name}</div>
+            <div><b>{KIND_TH[mon.kind]}</b> · <Emo e={map.emoji} size={16} /> {map.name}</div>
             <div>พลัง ~{monPower(mon)}</div>
             <div>ล่าได้แล้ว <b>{seen}</b> ตัว</div>
           </div>
@@ -299,14 +299,14 @@ function Story({ rpg }) {
         return (
           <section key={m.id} className="px-card overflow-hidden">
             <div className="h-20 relative" style={{ backgroundImage: `url(./sprites/map_${m.id}.png)`, backgroundSize: 'cover', backgroundPosition: 'center 70%', imageRendering: 'pixelated', filter: u ? 'none' : 'grayscale(1) brightness(.6)' }}>
-              <div className="absolute left-2 bottom-2 bg-slate-900/80 text-white px-2 py-1 text-sm font-bold">{m.emoji} {m.name}</div>
+              <div className="absolute left-2 bottom-2 bg-slate-900/80 text-white px-2 py-1 text-sm font-bold"><Emo e={m.emoji} size={16} /> {m.name}</div>
               <div className="absolute right-2 bottom-2 bg-white/85 px-1.5 py-0.5 text-[10px]">บท {open.filter(Boolean).length}/3</div>
             </div>
             <div className="p-3 space-y-2.5">
               <div className="text-[12px] text-slate-600 italic">{MAP_LORE[m.id]}</div>
               {STORY[m.id].map((text, i) => (
                 <div key={i} className={`px-inner p-2.5 ${open[i] ? '' : 'opacity-60'}`}>
-                  <div className="text-[11px] font-bold mb-1">บทที่ {i + 1} {open[i] ? '' : `· 🔒 ${i === 0 ? 'ปลดล็อกแผนที่ก่อน' : STORY_STEPS[i]}`}</div>
+                  <div className="text-[11px] font-bold mb-1">บทที่ {i + 1} {open[i] ? '' : <>· <PxIcon name="Lock" size={11} /> {i === 0 ? 'ปลดล็อกแผนที่ก่อน' : STORY_STEPS[i]}</>}</div>
                   {open[i] ? <div className="text-sm">{text}</div> : <div className="text-sm text-slate-400">…</div>}
                   <div className="flex gap-1 mt-1.5">{cast(i).map((x) => <div key={x.id} title={x.name}><Portrait sprite={`mon_${x.id}`} size={i === 2 ? 48 : 30} dim={!open[i] || !f.dex?.[x.id]} /></div>)}</div>
                 </div>

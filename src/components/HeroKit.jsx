@@ -67,7 +67,7 @@ export function HeroCard({ rpg }) {
           </div>
         </div>
       )}
-      <div className="text-[11px] text-slate-400 mt-2">ชุดแต่ละชิ้นมาจากชีวิตจริง: อาวุธ = จ่ายหนี้ · เสื้อคลุม = เงินสำรอง · รองเท้า = ออกกำลังกาย · กระเป๋า = ความรู้ · แหวน = เงินลงทุน ภาพตัวละครหน้าตาคุณจะมาพร้อมงานวาด PixelLab</div>
+      <div className="text-[11px] text-slate-400 mt-2">ชุดแต่ละชิ้นมาจากชีวิตจริง: อาวุธ = จ่ายหนี้ · เสื้อคลุม = เงินสำรอง · รองเท้า = ออกกำลังกาย · กระเป๋า = ความรู้ · แหวน = เงินที่ส่งเข้าลงทุนสะสม · ชุดเปลี่ยนตามยศ และเปลี่ยนลุคได้ด้วยสกินในร้านค้า</div>
     </Section>
   )
 }
@@ -90,7 +90,7 @@ export function ShadowRaceCard({ rpg, bare }) {
       <div className="space-y-1 mt-2">
         {s.lanes.map((l) => (
           <div key={l.id} className="flex items-center gap-2 text-xs">
-            <span className="w-5">{l.icon}</span>
+            <span className="w-5"><Emo e={l.icon} size={16} /></span>
             <span className="flex-1 text-slate-600">{l.name}{l.lower ? ' (น้อยกว่าชนะ)' : ''}</span>
             <span className="num">{l.money ? <Money value={l.you} decimals={false} /> : l.you}</span>
             <span className="text-slate-400">vs</span>

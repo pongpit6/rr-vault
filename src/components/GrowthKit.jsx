@@ -1,4 +1,4 @@
-import { Sparkles } from './px'
+import { Sparkles, Emo, EmoText } from './px'
 
 /** five-axis radar, pure SVG, pixel-ish (square points) */
 function Radar({ areas, size = 200 }) {
@@ -12,7 +12,7 @@ function Radar({ areas, size = 200 }) {
       {areas.map((_, i) => { const [x, y] = pt(i, 1); return <line key={i} x1={c} y1={c} x2={x} y2={y} stroke="rgba(15,23,42,.08)" /> })}
       <polygon points={shape} fill="rgba(20,184,166,.25)" stroke="#0d9488" strokeWidth="2" strokeLinejoin="round" />
       {areas.map((a, i) => { const [x, y] = pt(i, a.score ?? 0); return <rect key={a.id} x={x - 3} y={y - 3} width="6" height="6" fill={a.color} stroke="#1e293b" strokeWidth="1" /> })}
-      {areas.map((a, i) => { const [x, y] = pt(i, 1.2); return <text key={a.id} x={x} y={y + 4} textAnchor="middle" fontSize="11" fill="currentColor">{a.emoji} {a.score == null ? '—' : Math.round(a.score * 100)}</text> })}
+      {areas.map((a, i) => { const [x, y] = pt(i, 1.2); return <g key={a.id}><foreignObject x={x - 21} y={y - 8} width={16} height={16}><Emo e={a.emoji} size={16} /></foreignObject><text x={x + 6} y={y + 4} textAnchor="middle" fontSize="11" fill="currentColor">{a.score == null ? '—' : Math.round(a.score * 100)}</text></g> })}
     </svg>
   )
 }
@@ -33,7 +33,7 @@ export function LifeStatsCard({ rpg }) {
           <div className="space-y-2.5">
             {L.areas.map((a) => (
               <div key={a.id}>
-                <div className="flex items-baseline gap-2 text-sm"><span>{a.emoji}</span><span className="flex-1 font-semibold">{a.name}</span><span className="px-font text-[11px]">{a.score == null ? '—' : `${Math.round(a.score * 100)}%`}</span></div>
+                <div className="flex items-baseline gap-2 text-sm"><span><Emo e={a.emoji} size={16} /></span><span className="flex-1 font-semibold">{a.name}</span><span className="px-font text-[11px]">{a.score == null ? '—' : `${Math.round(a.score * 100)}%`}</span></div>
                 <div className="px-seg mt-1">{Array.from({ length: 20 }, (_, i) => <span key={i} className={i < Math.round((a.score || 0) * 20) ? 'on' : ''} />)}</div>
                 <div className="text-[10px] text-slate-500 mt-0.5 flex flex-wrap gap-x-3">
                   {a.parts.map((p) => <span key={p.id}>{p.name} {p.pct == null ? 'ยังไม่ทราบ' : p.target ? `${p.count}/${p.target}` : `${Math.round(p.pct * 100)}%`}</span>)}

@@ -1,3 +1,4 @@
+import { prop } from './propArt'
 /**
  * "ร่องรอยวันนี้": what you did today leaves a small mark in town until midnight.
  * If the matching building exists the mark sits on it, otherwise a little prop appears beside the town hall.
@@ -31,24 +32,27 @@ export function traceOnBuilding(g, type, x, G, now, night) {
   const blink = Math.floor(now / 400) % 2
   switch (type) {
     case 'gym': // orange pennant + sweat sparks
-      R('#1e293b', x + 34, G - 30, 1, 14); R('#f97316', x + 35, G - 30 + blink, 6, 3); R('#fdba74', x + 35, G - 29 + blink, 3, 1)
+      if (!prop(g, 'pr_pennant', x + 30, G - 16 + blink, 14)) { R('#1e293b', x + 34, G - 30, 1, 14); R('#f97316', x + 35, G - 30 + blink, 6, 3); R('#fdba74', x + 35, G - 29 + blink, 3, 1) }
       for (let k = 0; k < 3; k++) { const p = (now / 700 + k / 3) % 1; R('#7dd3fc', x + 8 + k * 9, G - 26 - p * 8, 1, 1) }
       break
-    case 'library': // warm reading lamp in the window + floating page
+    case 'library': // warm reading lamp by the door + floating page
       g.fillStyle = 'rgba(253,224,71,.35)'; g.fillRect(x + 4, G - 22, 8, 8)
-      { const p = (now / 1600) % 1; R('#fef3c7', x + 22 + Math.sin(p * 6) * 2, G - 30 - p * 10, 3, 2) }
+      prop(g, 'pr_lamp_r', x + 30, G + 1, 10)
+      { const p = (now / 1600) % 1; if (!prop(g, 'pr_page', x + 20 + Math.sin(p * 6) * 2, G - 26 - p * 10, 8)) R('#fef3c7', x + 22 + Math.sin(p * 6) * 2, G - 30 - p * 10, 3, 2) }
       break
     case 'temple': // incense smoke + small flag
       for (let k = 0; k < 4; k++) { const p = (now / 1500 + k / 4) % 1; g.fillStyle = `rgba(226,232,240,${0.7 - p * 0.6})`; g.fillRect(x + 32 + Math.sin(p * 5 + k) * 2, G - 6 - p * 18, 1, 2) }
-      R('#b45309', x + 32, G - 4, 2, 4)
+      if (!prop(g, 'pr_incense', x + 28, G + 1, 10)) R('#b45309', x + 32, G - 4, 2, 4)
       break
     case 'school': // "ABC" balloon
-      { const b = Math.sin(now / 600) * 1.5; R('#f43f5e', x + 26, G - 40 + b, 6, 6); R('#1e293b', x + 28, G - 34 + b, 1, 8); R('#fff', x + 27, G - 39 + b, 1, 1) }
+      { const b = Math.sin(now / 600) * 1.5; if (prop(g, 'pr_balloon', x + 22, G - 26 + b, 14)) break; R('#f43f5e', x + 26, G - 40 + b, 6, 6); R('#1e293b', x + 28, G - 34 + b, 1, 8); R('#fff', x + 27, G - 39 + b, 1, 1) }
       break
     case 'kitchen': // fresh veg basket at the door
+      if (prop(g, 'pr_vegbasket', x + 29, G + 1, 10)) break
       R('#92400e', x + 30, G - 4, 7, 4); R('#16a34a', x + 31, G - 6, 2, 2); R('#ef4444', x + 33, G - 6, 2, 2); R('#f97316', x + 35, G - 5, 1, 1)
       break
     case 'bank': // coins stacking up by the door
+      if (prop(g, 'pr_coins', x + 22, G + 1 - blink, 10)) break
       for (let k = 0; k < 3; k++) R(k % 2 ? '#f59e0b' : '#fbbf24', x + 24, G - 2 - k * 2 - (k === 2 ? blink : 0), 5, 2)
       break
     default: break
@@ -62,6 +66,8 @@ export function traceProps(g, kinds, x0, G, now) {
   let x = x0
   for (const k of kinds) {
     const y = G + 8
+    const PR = { exercise: 'pr_dumbbell', read: 'pr_books', meditate: 'pr_incense', vocab: 'pr_chalk', nocarb: 'pr_vegbasket', saved: 'pr_piggy', paid: 'pr_swordstone' }[k]
+    if (PR && prop(g, PR, x - 2, y + 1, 12)) { if (k === 'meditate') for (let i = 0; i < 2; i++) { const p = (now / 1500 + i / 2) % 1; g.fillStyle = `rgba(226,232,240,${0.8 - p * 0.7})`; g.fillRect(Math.round(x + 4 + Math.sin(p * 5 + i)), Math.round(y - 10 - p * 10), 1, 2) } x += 13; continue }
     switch (k) {
       case 'exercise': R('#334155', x, y - 3, 8, 1); R('#1e293b', x - 1, y - 5, 2, 5); R('#1e293b', x + 7, y - 5, 2, 5); break
       case 'read': R('#1d4ed8', x, y - 2, 7, 2); R('#dc2626', x + 1, y - 4, 6, 2); R('#16a34a', x, y - 6, 7, 2); R('#fef3c7', x + 6, y - 6, 1, 6); break
@@ -96,7 +102,7 @@ export function heroForm(g, form, hx, top, now) {
   } else if (form === 'sharp') { // sparkles around the head
     for (let k = 0; k < 3; k++) if (Math.sin(now / 220 + k * 2.1) > 0.2) { const x = hx + 4 + k * 12, y = top - 2 - (k % 2) * 6; R('#fde047', x, y, 2, 2); R('#fff', x - 1, y + 0.5, 4, 1) }
   } else if (form === 'rest') { // a steaming cup
-    R('#f8fafc', hx + 26, top + 2, 6, 5); R('#94a3b8', hx + 32, top + 3, 2, 2)
+    if (!prop(g, 'pr_cup', hx + 24, top + 9, 10)) { R('#f8fafc', hx + 26, top + 2, 6, 5); R('#94a3b8', hx + 32, top + 3, 2, 2) }
     for (let k = 0; k < 2; k++) { const p = (now / 1200 + k / 2) % 1; g.fillStyle = `rgba(241,245,249,${0.9 - p * 0.8})`; g.fillRect(hx + 28 + k * 2 + Math.sin(p * 6), top - p * 10, 1, 2) }
   }
 }

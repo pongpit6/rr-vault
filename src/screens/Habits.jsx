@@ -19,20 +19,20 @@ export default function Habits() {
       <section className="hero p-5 relative overflow-hidden" data-testid="life-card">
         <div className="text-xs text-white/75">ยศแห่งวินัย · เฉลี่ย 30 วันของ 6 นิสัย</div>
         <div className="flex items-end gap-3 mt-1">
-          <span className="text-4xl">{H.lifeRank.emoji}</span>
+          <span className="text-4xl"><Emo e={H.lifeRank.emoji} size={18} /></span>
           <div><div className="text-2xl font-bold leading-tight">{H.lifeRank.name}</div><div className="text-sm text-white/80 num">{Math.round(H.life * 100)}% ของวันทำครบ</div></div>
         </div>
         <div className="mt-4 grid grid-cols-3 gap-2 text-xs">
-          <div className="rounded-2xl bg-white/15 px-3 py-2"><div className="text-white/70">เควสต์สัปดาห์</div><b className="text-sm num">{Math.min(H.thisWeekGoal, H.thisWeek)}/{H.thisWeekGoal} วัน</b> <span className="text-white/70">→ 1 🪙</span></div>
+          <div className="rounded-2xl bg-white/15 px-3 py-2"><div className="text-white/70">เควสต์สัปดาห์</div><b className="text-sm num">{Math.min(H.thisWeekGoal, H.thisWeek)}/{H.thisWeekGoal} วัน</b> <span className="text-white/70">→ 1 <Emo e="🪙" size={13} /></span></div>
           <div className="rounded-2xl bg-white/15 px-3 py-2"><div className="text-white/70">FIAT วันนี้</div><b className="text-sm num">+{H.todayFiat}</b>{H.mult > 1.01 && <span className="text-white/70"> ×{H.mult.toFixed(1)}</span>}</div>
-          <div className="rounded-2xl bg-white/15 px-3 py-2"><div className="text-white/70">GOLD จากนิสัย</div><b className="text-sm num">{H.gold} 🪙</b></div>
+          <div className="rounded-2xl bg-white/15 px-3 py-2"><div className="text-white/70">GOLD จากนิสัย</div><b className="text-sm num">{H.gold} <Emo e="🪙" size={14} /></b></div>
         </div>
       </section>
 
       <HabitsToday />
 
       <button onClick={() => H.togglePause()} className={`w-full px-inner px-3 py-2.5 flex items-center gap-2 text-left text-xs ${H.paused ? 'bg-sky-50' : ''}`} data-testid="habit-pause">
-        <span className="text-lg">{H.paused ? '🛌' : '☕'}</span>
+        <Emo e={H.paused ? '🛌' : '☕'} size={20} />
         <span className="flex-1 min-w-0">{H.paused ? <><b>วันนี้เป็นวันพัก</b> · ทุก streak หยุดนิ่ง ไม่ขาด · แตะเพื่อยกเลิก</> : <><b>พักวันนี้</b> · ป่วยหรือติดธุระ ตั้งเป็นวันพักได้ streak จะไม่ขาด</>}</span>
       </button>
 
@@ -48,7 +48,7 @@ export default function Habits() {
                   return <span key={d} className="h-3.5 rounded-[2px]" style={{ background: v >= 1 ? h.color : v > 0 ? `${h.color}66` : 'rgba(15,23,42,.06)' }} />
                 })}
               </div>
-              <span className="w-10 text-right text-[11px] num" style={{ color: h.color }}>🔥{H.by[h.id].streak}</span>
+              <span className="w-10 text-right text-[11px] num" style={{ color: h.color }}><Emo e="🔥" size={11} />{H.by[h.id].streak}</span>
             </div>
           ))}
         </div>

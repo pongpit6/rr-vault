@@ -1,4 +1,4 @@
-import { Emo } from '../components/px'
+import { Emo, EmoText, PxIcon } from '../components/px'
 import { useState } from 'react'
 import { Flame, Swords, Check, Lock, Trophy, ScrollText, Sparkles, MapPin, Backpack, Users, Shield, Store, Map as MapIcon, BookOpen, Eye, Castle } from '../components/px'
 import { ItemSprite, AssetLogo } from '../components/Logos'
@@ -171,10 +171,10 @@ function DayLog({ rpg }) {
             {d.items.map((e, i) => (
               <div key={i} className="flex gap-2.5 items-start">
                 <div className={`w-9 h-9 grid place-items-center shrink-0 border-2 border-slate-800 ${e.tone === 'bad' ? 'bg-rose-50' : e.tone === 'gold' ? 'bg-amber-50' : 'bg-teal-50'}`}>
-                  {e.who === 'pet' ? <Portrait sprite={rpg.pet.sprite} size={28} /> : WHO_SPRITE[e.who] === 'dragon' ? <span className="text-lg">{e.icon}</span> : <Portrait sprite={WHO_SPRITE[e.who]} size={32} hue={e.who === 'knight' ? rpg.skin?.hue : 0} />}
+                  {e.who === 'pet' ? <Portrait sprite={rpg.pet.sprite} size={28} /> : WHO_SPRITE[e.who] === 'dragon' ? <Emo e={e.icon} size={22} /> : <Portrait sprite={WHO_SPRITE[e.who]} size={32} hue={e.who === 'knight' ? rpg.skin?.hue : 0} />}
                 </div>
                 <div className="flex-1 min-w-0 text-sm leading-snug pt-0.5">
-                  <span className="mr-1">{e.icon}</span>{e.text}
+                  <span className="mr-1"><Emo e={e.icon} size={16} /></span>{e.text}
                 </div>
                 {e.amount && <span className={`text-xs font-semibold num shrink-0 pt-1 ${e.tone === 'bad' ? 'text-rose-600' : e.tone === 'gold' ? 'text-amber-600' : 'text-emerald-700'}`}>{e.amount}</span>}
               </div>
@@ -183,7 +183,7 @@ function DayLog({ rpg }) {
         </section>
       ))}
       {rpg.log.length > n && <button onClick={() => setN(n + 7)} className="w-full py-2.5 text-sm font-semibold px-card">ย้อนดูวันก่อนหน้า</button>}
-      <div className="text-[11px] text-slate-400 px-1">ทุกบรรทัดมาจากรายการเงินจริงของคุณ: ชำระหนี้ = ฟันบอส · รูดบัตร = บอสฟื้นพลัง · กันเงินจ่ายหนี้ = โล่ · ส่งเงินลงทุน = เวทไฟ · บันทึกรายการ = ลาดตระเวน</div>
+      <div className="text-[11px] text-slate-400 px-1">ทุกบรรทัดมาจากรายการเงินจริงของคุณ: ชำระหนี้ = ฟันบอส · บิลบัตรเลยกำหนด = บอสบัตรตื่น · กันเงินจ่ายหนี้ = โล่ · ส่งเงินลงทุน = เวทไฟ · บันทึกรายการ = ลาดตระเวน</div>
     </div>
   )
 }
@@ -340,9 +340,10 @@ function ShopCard({ name, desc, art, price, owned, equipped, canBuy, onBuy, onEq
 
 /* ---------------- world map ---------------- */
 function MapTab({ rpg, onPreview, privacy }) {
-  const net = rpg.vault.summary.net
+  const net = rpg.realmNet ?? rpg.vault.summary.net
   return (
     <div className="space-y-0">
+      <div className="text-[11px] text-slate-500 mb-2 px-1">ดินแดนนับจากมูลค่าสุทธิสูงสุดที่คุณเคยทำได้ ตลาดลงชั่วคราวจะไม่ทำให้ถอยกลับ</div>
       {[...REALMS].reverse().map((r, i, arr) => {
         const here = r.tier === rpg.realm.tier
         const reached = r.tier <= rpg.realm.tier
@@ -382,7 +383,7 @@ function QuestsTab({ rpg, onAdd }) {
       <RankCard rpg={rpg} />
       <Section icon={Swords} title="BOSS · หนี้และเป้าหมาย">
         {rpg.bosses.length === 0 ? (
-          <div className="text-sm text-slate-500 py-2">ยังไม่มีบอส ตั้งเป้าหมายการออมในหน้าแผน หรือถ้ามีหนี้บัตรหรือเงินกู้ ให้ใส่ยอดในหน้า “เงิน” แล้วบอสจะปรากฏ</div>
+          <div className="text-sm text-slate-500 py-2">ยังไม่มีบอส ตั้งเป้าหมายการออมในหน้าแผน บอสเงินกู้มาจากยอดเงินกู้ในหน้า “เงิน” ส่วนบอสบัตรจะโผล่เฉพาะเมื่อบิลบัตรเลยกำหนดชำระ</div>
         ) : (
           <div className="space-y-3">
             {rpg.bosses.map((b) => (
@@ -413,7 +414,7 @@ function QuestsTab({ rpg, onAdd }) {
                   <div key={q.name} className={`px-inner p-2.5 flex items-center gap-3 ${q.done ? 'bg-emerald-50' : ''}`}>
                     <div className={`w-6 h-6 grid place-items-center shrink-0 ${q.done ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-slate-400'}`}>{q.done ? <Check size={14} strokeWidth={3} /> : <span className="w-1.5 h-1.5 bg-current" />}</div>
                     <div className="flex-1 min-w-0">
-                      <div className={`text-sm ${q.done ? 'text-emerald-700' : ''}`}>{q.name}</div>
+                      <div className={`text-sm ${q.done ? 'text-emerald-700' : ''}`}><EmoText text={q.name} size={14} /></div>
                       {q.hint && <div className="text-[10px] text-slate-400">{q.hint}</div>}
                       <div className="flex items-center gap-2 mt-1">
                         <div className="px-xp flex-1 !h-1.5"><div style={{ width: `${Math.min(100, (q.progress / q.goal) * 100)}%` }} /></div>
@@ -421,9 +422,9 @@ function QuestsTab({ rpg, onAdd }) {
                       </div>
                     </div>
                     {q.claimable ? (
-                      <button onClick={() => rpg.claim(q)} className="px-btn shrink-0 !py-1 !px-2 text-[11px] anim-pop" data-testid="claim-btn">รับ {q.gold ? `🪙${q.gold}` : `💵${q.fiat}`}</button>
+                      <button onClick={() => rpg.claim(q)} className="px-btn shrink-0 !py-1 !px-2 text-[11px] anim-pop" data-testid="claim-btn">รับ {q.gold ? <><PxIcon name="em_gold" size={12} />{q.gold}</> : <><PxIcon name="em_fiat" size={12} />{q.fiat}</>}</button>
                     ) : (
-                      <span className={`text-[11px] font-semibold shrink-0 num ${q.claimedAt ? 'text-slate-400 line-through' : q.gold ? 'text-amber-600' : 'text-emerald-700'}`}>{q.gold ? `🪙${q.gold}` : `💵${q.fiat}`}</span>
+                      <span className={`text-[11px] font-semibold shrink-0 num ${q.claimedAt ? 'text-slate-400 line-through' : q.gold ? 'text-amber-600' : 'text-emerald-700'}`}>{q.gold ? <><PxIcon name="em_gold" size={12} />{q.gold}</> : <><PxIcon name="em_fiat" size={12} />{q.fiat}</>}</span>
                     )}
                   </div>
                 ))}
@@ -492,7 +493,7 @@ function RankCard({ rpg }) {
   const pct = (x) => x == null ? '—' : `${Math.round(x * 100)}%`
   return (
     <div className="px-inner p-3 flex items-center gap-3" data-testid="rank-card">
-      <div className="w-12 h-12 grid place-items-center text-2xl bg-amber-50 shrink-0">{r.emoji}</div>
+      <div className="w-12 h-12 grid place-items-center text-2xl bg-amber-50 shrink-0"><Emo e={r.emoji} size={16} /></div>
       <div className="flex-1 min-w-0">
         <div className="flex items-baseline gap-2"><span className="font-semibold text-sm">{r.name}</span><span className="text-[11px] text-slate-500">ยศนักออม</span></div>
         <div className="text-xs text-slate-500">เดือนนี้ออม+ลงทุน <b className="num text-slate-700">{pct(r.thisMonth)}</b> ของรายรับ{r.lastMonth != null ? <> · เดือนก่อน {pct(r.lastMonth)}</> : null}</div>

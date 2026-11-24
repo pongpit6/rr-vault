@@ -1,3 +1,4 @@
+import { Emo } from './px'
 import { useEffect, useMemo, useState } from 'react'
 import { useSyncedPref } from '../lib/prefs'
 import { Fuel, Star, RefreshCw, ArrowLeftRight, Settings2 } from './px'
@@ -158,7 +159,7 @@ export default function FuelCard({ compact = false, onOpen }) {
         )}
         <div className="mt-4 rounded-xl p-3 bg-slate-900/[.03] text-xs text-slate-600">
           {spend.n > 0
-            ? <>⛽ 30 วันที่ผ่านมาคุณจ่ายค่าน้ำมัน <b className="num">฿{spend.sum.toLocaleString()}</b> ({spend.n} ครั้ง) ≈ <b className="num">{price ? (spend.sum / price).toFixed(1) : '—'} ลิตร</b> ถ้าคิดที่ราคา {sel?.name} วันนี้ {price ? <>· ประมาณ <b className="num">{(spend.sum / price / tank).toFixed(1)}</b> ถัง</> : null}</>
+            ? <><Emo e="⛽" size={14} /> 30 วันที่ผ่านมาคุณจ่ายค่าน้ำมัน <b className="num">฿{spend.sum.toLocaleString()}</b> ({spend.n} ครั้ง) ≈ <b className="num">{price ? (spend.sum / price).toFixed(1) : '—'} ลิตร</b> ถ้าคิดที่ราคา {sel?.name} วันนี้ {price ? <>· ประมาณ <b className="num">{(spend.sum / price / tank).toFixed(1)}</b> ถัง</> : null}</>
             : <>ยังไม่มีรายจ่ายหมวด “น้ำมัน” ใน 30 วันที่ผ่านมา · บันทึกค่าน้ำมันแล้วระบบจะประมาณให้ว่าเติมไปกี่ลิตร</>}
         </div>
       </section>

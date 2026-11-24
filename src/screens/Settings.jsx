@@ -1,3 +1,4 @@
+import { Emo } from '../components/px'
 import { previewSfx, sfx } from '../lib/sfx'
 import { AUTO_DARK_DEFAULT, useActiveTheme } from '../lib/theme'
 import { ACCENTS, DEFAULT_ACCENT, accentColors, applyAccent } from '../lib/accent'
@@ -304,7 +305,7 @@ function ThemePicker() {
       </div>
       <div className="rounded-2xl border border-slate-200 p-3 space-y-2.5" data-testid="auto-dark">
         <button onClick={() => setAuto({ on: !auto.on })} className="w-full flex items-center gap-3 text-left text-sm" data-testid="auto-dark-toggle" aria-pressed={auto.on}>
-          <span className="text-lg">🌙</span>
+          <Emo e="🌙" size={20} />
           <span className="flex-1">มืดอัตโนมัติ<span className="block text-[11px] text-slate-500">
             {auto.on ? (active === 'pixel-night' && theme !== 'pixel-night' ? `ตอนนี้เป็นโหมดกลางคืน · กลับเป็นธีมกลางวันเวลา ${auto.to} น.` : `จะเปลี่ยนเป็น Pixel Night เวลา ${auto.from} น.`) : 'สลับเป็น Pixel Night ตอนค่ำ แล้วกลับเป็นธีมเดิมตอนเช้า'}
           </span></span>

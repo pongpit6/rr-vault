@@ -3,6 +3,7 @@ import { still, drawStill, frame, skyFor, mix, GROUND } from './BattleScene'
 import { DECOR_BY_ID } from '../lib/town'
 import { NPC_BY_ID, RESIDENTS } from '../lib/town'
 import { worldBack, worldFront } from './WorldFx'
+import { prop } from './propArt'
 import { TRACE_HOME, traceOnBuilding, traceProps, traceNoSpend, heroForm, growthAura } from './TownTraces'
 
 const MEMBER_COLOR = { knight: '#f97316', mage: '#6366f1', healer: '#14b8a6', ranger: '#f59e0b' }
@@ -70,7 +71,7 @@ export function drawTown(g, t, now, o = {}) {
   }
 
   // gate / sign at the left
-  R(C.wood, 4, G - 22, 2, 22); R(C.wood, 13, G - 22, 2, 22); R(C.wood2, 2, G - 24, 15, 3)
+  if (!prop(g, 'pr_gate', 0, G + 1, 24)) { R(C.wood, 4, G - 22, 2, 22); R(C.wood, 13, G - 22, 2, 22); R(C.wood2, 2, G - 24, 15, 3) }
 
   // ---------- town hall ----------
   const big = (ax, fn) => { g.save(); g.translate(ax, G); g.scale(K, K); g.translate(-ax, -G); fn(); g.restore() }
@@ -103,6 +104,7 @@ export function drawTown(g, t, now, o = {}) {
   t.plots.forEach((b, i) => {
     const x = plotX(i) + 5, sel = o.selected === i
     big(x, () => { if (!b) {
+      if (prop(g, 'pr_plot', x + 8, G + 4, 20)) return
       R('#a16207', x + 2, G - 1, 32, 1)
       for (let k = 0; k < 4; k++) R('#78350f', x + 4 + k * 8, G - 3, 4, 2)
       R(C.wood, x + 16, G - 12, 1, 11); R('#fef3c7', x + 11, G - 15, 11, 5); R('#a16207', x + 16, G - 14, 1, 3); R('#a16207', x + 15, G - 13, 3, 1)

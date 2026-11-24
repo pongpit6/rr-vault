@@ -1,3 +1,4 @@
+import { Emo } from '../components/px'
 import { HomeInsightCard } from '../components/Insights'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Settings as Cog, Eye, EyeOff, ChevronRight, ChevronDown, Landmark, Cloud, CloudOff, RefreshCw, Plus, ScanLine, Check } from '../components/px'
@@ -139,7 +140,7 @@ export default function Home({ onAdd, onEdit, go }) {
       <header className="flex items-center gap-3 pt-2">
         <button onClick={() => go('settings')}><Avatar size={44} /></button>
         <div className="flex-1 min-w-0">
-          <div className="text-xs text-slate-500">{greeting()} 👋</div>
+          <div className="text-xs text-slate-500">{greeting()} <Emo e="👋" size={14} /></div>
           <div className="font-semibold truncate">{profile.name}</div>
         </div>
         <SyncDot />

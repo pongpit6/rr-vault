@@ -460,7 +460,7 @@ function computeRpg({ accounts, txns, settings, balances, summary, unlocked, por
     staminaLeft: Math.max(0, energy.stamina - used.runs), manaLeft: Math.max(0, energy.mana - used.mana),
     inventory: portfolio.open, portfolioValue: portfolio.value,
     xp, xpParts, ...lv, title: title[1], titleEn: title[2], stats, bosses, quests, achievements, newlyUnlocked,
-    streak, bestStreak, realm, nextRealm, weather, loggedToday: todayCount, debtFog, town, wallet, days,
+    streak, bestStreak, realm, nextRealm, realmNet, weather, loggedToday: todayCount, debtFog, town, wallet, days,
     noSpendStreak, noSpendTotal, noSpendToday: !!noSpendMarks[today], spentToday: spendDays.has(today),
     rank, goalBosses, world, habits, traces, monthBoss, chronicle, life, growth,
     ...party,

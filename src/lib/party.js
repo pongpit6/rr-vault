@@ -44,7 +44,7 @@ export const SKILLS = [
   { id: 'storm', member: 'knight', lv: 5, name: 'ฟันพายุ', icon: '🌪️', how: 'ชำระหนี้ครั้งละ 5,000 ขึ้นไป', does: 'คริติคอลสองครั้งติด' },
   { id: 'shield', member: 'healer', lv: 1, name: 'โล่ศักดิ์สิทธิ์', icon: '🛡️', how: 'โอนเงินเข้ากระเป๋า “กันชำระหนี้”', does: 'ครอบโล่ทั้งปาร์ตี้ กันเงินไว้จ่ายหนี้' },
   { id: 'heal', member: 'healer', lv: 2, name: 'แสงฟื้นฟู', icon: '💚', how: 'มีรายรับเข้า', does: 'ฟื้นพลังทั้งปาร์ตี้' },
-  { id: 'ward', member: 'healer', lv: 4, name: 'บาเรียดอกเบี้ย', icon: '✨', how: 'กันเงินจ่ายหนี้ครบ 100%', does: 'บอสรูดบัตรฟื้นพลังได้ แต่เงินถูกกันไว้แล้ว ไม่กระทบเงินใช้จ่าย' },
+  { id: 'ward', member: 'healer', lv: 4, name: 'บาเรียดอกเบี้ย', icon: '✨', how: 'กันเงินจ่ายหนี้ครบ 100%', does: 'รูดบัตรแล้วมีเงินกันจ่ายรออยู่ บิลไม่มีวันเลยกำหนด บอสบัตรจึงไม่ตื่น' },
   { id: 'fireball', member: 'mage', lv: 1, name: 'ลูกไฟทองคำ', icon: '🔥', how: 'ส่งเงินเข้าลงทุน หรือซื้อสินทรัพย์', does: 'เพิ่มพลังคลังสมบัติ' },
   { id: 'meteor', member: 'mage', lv: 4, name: 'อุกกาบาตกำไร', icon: '☄️', how: 'ส่งเข้าลงทุนครั้งละ 5,000 ขึ้นไป', does: 'เวทใหญ่เต็มจอ' },
   { id: 'arrow', member: 'ranger', lv: 1, name: 'ธนูลาดตระเวน', icon: '🏹', how: 'บันทึกรายการในวันนั้น', does: 'สอดส่องกระเป๋า สรุปว่าวันนี้ใช้อะไรไป' },
@@ -191,7 +191,7 @@ function buildLog({ txns, accById, catById, pm, gearBy, has, data, privacy, avgD
     } else if (t.kind === 'expense' && acc?.type === 'credit') {
       d.out += t.amount; d.cats[t.category] = (d.cats[t.category] || 0) + t.amount
       const ward = joined('healer', day) && has('ward')
-      push(day, { at, who: 'boss', icon: '🐉', tone: 'bad', text: `${BOSS_NAME.credit}ดูดพลังจากการรูดบัตร “${label || 'ไม่ระบุ'}”${ward ? ' — ลูน่ากางบาเรีย เงินถูกกันไว้จ่ายแล้ว' : ''}`, amount: `+${M(t.amount)} HP` })
+      push(day, { at, who: 'boss', icon: '🐉', tone: 'bad', text: `รูดบัตร “${label || 'ไม่ระบุ'}”${ward ? ' — ลูน่ากางบาเรีย เงินถูกกันไว้จ่ายแล้ว' : ' — จ่ายบิลให้ทันกำหนด ไม่งั้น' + BOSS_NAME.credit + 'จะตื่น'}`, amount: `-${M(t.amount)}` })
     } else if (t.kind === 'transfer' && to?.type === 'reserve' && acc?.type !== 'reserve') {
       const h = joined('healer', day)
       push(day, { at, who: h ? 'healer' : 'knight', icon: '🛡️', tone: 'good', text: h ? 'ลูน่าร่าย “โล่ศักดิ์สิทธิ์” กันเงินไว้จ่ายหนี้' : 'ฮีโร่เก็บเงินเข้าคลังกันหนี้', amount: M(t.amount) })
@@ -222,8 +222,8 @@ function buildLog({ txns, accById, catById, pm, gearBy, has, data, privacy, avgD
   for (const l of data.levels || []) push(localDay(l.at), { at: l.at, who: 'knight', icon: '⬆️', tone: 'gold', text: `เลเวลอัป! ปาร์ตี้ขึ้นเป็นเลเวล ${l.lv}` })
   for (const r of data.realms || []) push(localDay(r.at), { at: r.at, who: 'knight', icon: '🗺️', tone: 'gold', text: r.down ? `ถอยกลับไปที่ “${r.name}” — มูลค่าสุทธิลดลง` : `เดินทางถึง “${r.name}”!` })
   for (const [id, at] of Object.entries(data.unlocked || {})) push(localDay(at), { at, who: 'knight', icon: '🏅', tone: 'gold', text: `ได้รับฉายา “${ACH_NAMES[id] || id}”` })
-  for (const c of data.chestLog || []) push(localDay(c.at), { at: c.at, who: 'pet', icon: '🎁', tone: 'gold', text: `เปิดหีบสมบัติรายวัน${c.rare ? ' (หายาก!)' : ''}`, amount: c.ccy === 'fiat' ? `+${c.gain} FIAT` : `+${c.gain} เจม` })
-  for (const b of data.buyLog || []) push(localDay(b.at), { at: b.at, who: 'pet', icon: '🛒', tone: 'info', text: `ซื้อ “${b.name}” จากร้านพ่อค้า`, amount: `-${b.price} เจม` })
+  for (const c of data.chestLog || []) push(localDay(c.at), { at: c.at, who: 'pet', icon: '🎁', tone: 'gold', text: `เปิดหีบสมบัติรายวัน${c.rare ? ' (หายาก!)' : ''}`, amount: c.ccy === 'fiat' ? `+${c.gain} FIAT` : `+${c.gain * 10} FIAT` })
+  for (const b of data.buyLog || []) push(localDay(b.at), { at: b.at, who: 'pet', icon: '🛒', tone: 'info', text: `ซื้อ “${b.name}” จากร้านพ่อค้า`, amount: `-${b.ccy === 'fiat' ? b.price : b.price * 10} FIAT` })
   for (const e of data.econLog || []) {
     const amt = [e.fiat ? `${e.fiat > 0 ? '+' : ''}${e.fiat} FIAT` : '', e.gold ? `${e.gold > 0 ? '+' : ''}${e.gold} GOLD` : ''].filter(Boolean).join(' ')
     push(localDay(e.at), { at: e.at, who: 'pet', icon: e.icon || '🏘️', tone: (e.fiat || 0) + (e.gold || 0) * 100 >= 0 ? 'gold' : 'info', text: e.text, amount: amt || undefined })

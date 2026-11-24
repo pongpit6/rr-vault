@@ -1,4 +1,4 @@
-import { Emo } from './px'
+import { Emo, EmoText, PxIcon } from './px'
 import { useState, useEffect } from 'react'
 import TownFull from './TownFull'
 import { useActiveTheme } from '../lib/theme'
@@ -49,7 +49,7 @@ export function TownTalk({ rpg, className = '' }) {
   return (
     <button onClick={() => setI((x) => x + 1)} className={`w-full flex items-center gap-2 text-left ${className}`} data-testid="town-talk">
       <Portrait sprite={l.sprite} size={34} />
-      <div className="flex-1 min-w-0 text-[12px] leading-snug"><b className="text-[11px] text-teal-700">{l.name}</b><div key={i} className="anim-pop">“{l.text}”</div></div>
+      <div className="flex-1 min-w-0 text-[12px] leading-snug"><b className="text-[11px] text-teal-700">{l.name}</b><div key={i} className="anim-pop">“<EmoText text={l.text} size={13} />”</div></div>
       <MessageCircle size={14} className="text-slate-400 shrink-0" />
     </button>
   )
@@ -81,7 +81,7 @@ function TownStory({ rpg }) {
               <div className="text-[13px] text-slate-600 mt-1 leading-relaxed">{c.text}</div>
             </div>
           ))}
-          {st.next && <div className="px-inner p-3 text-xs text-slate-500">🔒 บทที่ {st.next.id} “{st.next.title}” · {st.next.need}</div>}
+          {st.next && <div className="px-inner p-3 text-xs text-slate-500"><PxIcon name="Lock" size={12} /> บทที่ {st.next.id} “{st.next.title}” · {st.next.need}</div>}
         </div>
       )}
     </Section>
@@ -89,8 +89,8 @@ function TownStory({ rpg }) {
 }
 
 /* ---------- money chips ---------- */
-export function FiatChip({ v, className = '' }) { return <span className={`px-chip text-emerald-700 ${className}`} title="FIAT — หาง่าย แต่เฟ้อ">💵 <b className="num">{Math.round(v).toLocaleString()}</b></span> }
-export function GoldChip({ v, className = '' }) { return <span className={`px-chip text-amber-600 ${className}`} title="GOLD — หายาก ไม่เฟ้อ">🪙 <b className="num">{Math.round(v).toLocaleString()}</b></span> }
+export function FiatChip({ v, className = '' }) { return <span className={`px-chip text-emerald-700 ${className}`} title="FIAT — หาง่าย แต่เฟ้อ"><PxIcon name="em_fiat" size={15} /> <b className="num">{Math.round(v).toLocaleString()}</b></span> }
+export function GoldChip({ v, className = '' }) { return <span className={`px-chip text-amber-600 ${className}`} title="GOLD — หายาก ไม่เฟ้อ"><PxIcon name="em_gold" size={15} /> <b className="num">{Math.round(v).toLocaleString()}</b></span> }
 export function Wallet({ rpg }) { return <><FiatChip v={rpg.fiat} /><GoldChip v={rpg.gold} /></> }
 
 /** "💵 120 · 🪙 2", red when you can't afford that part. */
@@ -98,8 +98,8 @@ export function Price({ p, rpg }) {
   if (!p) return null
   return (
     <span className="inline-flex items-center gap-1.5 num text-xs font-semibold">
-      {p.fiat > 0 && <span className={rpg.fiat >= p.fiat ? 'text-emerald-700' : 'text-rose'}>💵{p.fiat.toLocaleString()}</span>}
-      {p.gold > 0 && <span className={rpg.gold >= p.gold ? 'text-amber-600' : 'text-rose'}>🪙{p.gold}</span>}
+      {p.fiat > 0 && <span className={rpg.fiat >= p.fiat ? 'text-emerald-700' : 'text-rose'}><PxIcon name="em_fiat" size={13} className="mr-0.5" />{p.fiat.toLocaleString()}</span>}
+      {p.gold > 0 && <span className={rpg.gold >= p.gold ? 'text-amber-600' : 'text-rose'}><PxIcon name="em_gold" size={13} className="mr-0.5" />{p.gold}</span>}
       {!p.fiat && !p.gold && <span className="text-slate-500">ฟรี</span>}
     </span>
   )
@@ -159,7 +159,7 @@ export default function TownTab({ rpg }) {
 
       {/* daily collection */}
       <section className="px-card p-3.5 flex items-center gap-3" data-testid="town-collect">
-        <span className="text-3xl">🧺</span>
+        <PxIcon name="em_basket" size={36} />
         <div className="flex-1 min-w-0 text-sm">
           {res ? <div className="anim-pop font-semibold text-emerald-700">เก็บได้ +{res.fiat} FIAT ({res.days} วัน){res.interest ? ` · ดอกเบี้ย ${res.interest}` : ''}</div>
             : rpg.collectReady ? <div><b>รายได้เมืองสะสม {rpg.collectDays} วัน</b> <span className="num text-emerald-700">+{rpg.collectAmount}</span><div className="text-xs text-slate-500">ฟาร์ม ตลาด NPC{T.bankRate ? ' + ดอกเบี้ยธนาคาร' : ''} · เก็บไว้ได้สูงสุด 7 วัน ไม่หายไปไหน</div></div>
@@ -177,7 +177,7 @@ export default function TownTab({ rpg }) {
           </button>
           {T.plots.map((b, i) => (
             <button key={i} onClick={() => setSel(i)} className={`px-inner p-2 text-center hover:bg-teal-50 ${sel === i ? 'ring-2 ring-amber-400' : ''}`} data-testid={`plot-${i}`}>
-              {b ? <Art name={`bld_${b.type}_${b.lv}`} size={34} fallback={BUILDINGS[b.type].emoji} /> : <div className="text-2xl">➕</div>}
+              {b ? <Art name={`bld_${b.type}_${b.lv}`} size={34} fallback={BUILDINGS[b.type].emoji} /> : <Art name="pr_plot" size={34} fallback="➕" />}
               <div className="text-[11px] font-semibold truncate">{b ? BUILDINGS[b.type].name : `แปลง ${i + 1}`}</div>
               <div className="px-font text-[8px] text-amber-600 h-3">{b ? '★'.repeat(b.lv) : <span className="text-slate-400">ว่าง</span>}</div>
             </button>
@@ -187,7 +187,7 @@ export default function TownTab({ rpg }) {
       </Section>
 
       <Section icon={Users} title={`NPC · ชาวเมือง (${T.npcs.length}/${T.npcSlots})`}>
-        {!T.npcSlots && <div className="text-xs text-slate-500 mb-2">สร้าง 🍺 โรงเตี๊ยมก่อน เพื่อมีที่พักให้ NPC ที่จ้างมา</div>}
+        {!T.npcSlots && <div className="text-xs text-slate-500 mb-2">สร้าง <PxIcon name="Beer" size={13} /> โรงเตี๊ยมก่อน เพื่อมีที่พักให้ NPC ที่จ้างมา</div>}
         <div className="grid grid-cols-2 gap-2">
           {RESIDENTS.map((n) => (
             <div key={n.id} className="px-inner p-2.5 flex items-center gap-2">
@@ -220,7 +220,7 @@ export default function TownTab({ rpg }) {
             const own = T.decor.includes(d.id), p = rpg.decorPrice ? rpg.decorPrice(d) : priceOf(d.cost, rpg.econData)
             return (
               <div key={d.id} className={`px-inner p-2 text-center ${own ? 'bg-teal-50' : ''}`}>
-                {d.event && <div className="text-[9px] font-bold text-rose-600">⏳ เฉพาะ{d.event === 'sale' ? 'วันเลขเบิ้ล' : EVENTS[d.event]?.name || 'เทศกาล'}</div>}
+                {d.event && <div className="text-[9px] font-bold text-rose-600"><PxIcon name="em_hourglass" size={11} /> เฉพาะ{d.event === 'sale' ? 'วันเลขเบิ้ล' : EVENTS[d.event]?.name || 'เทศกาล'}</div>}
                 <Art name={DECOR_ART[d.id] || d.id} size={32} fallback={d.emoji} /><div className="text-[11px] font-semibold">{d.name}</div><div className="text-[10px] text-teal-700">ความสุข +{d.happy}</div>{d.scene && <div className="text-[10px] text-slate-500">+ {d.scene}</div>}
                 {own ? <div className="text-[10px] text-slate-500 mt-1">ติดตั้งแล้ว ✓</div> : (
                   <button className={`${btn} mt-1 w-full bg-white`} disabled={!rpg.afford(p)} onClick={() => ok(rpg.buyDecor(d.id), `ติดตั้ง${d.name}แล้ว`)}><Price p={p} rpg={rpg} /></button>
@@ -235,10 +235,10 @@ export default function TownTab({ rpg }) {
 
       <Section icon={Repeat} title="EXCHANGE · แลกเงิน">
         <div className="text-sm">แลก <b>FIAT → GOLD</b> เรต <b className="num">{rpg.exchangeRate}</b> : 1 · สัปดาห์นี้แลกแล้ว {rpg.exchangedThisWeek}/{EXCHANGE_WEEKLY}</div>
-        <div className="text-[11px] text-slate-500 mt-1">เรตอิงราคาทองโลก (XAUUSD){xauPrice() ? ` $${Math.round(xauPrice()).toLocaleString()}/ออนซ์` : ''} ÷ 8 · ต่ำสุด 300 สูงสุด 900 · GOLD ไม่ดรอปจากการล่ามอนสเตอร์</div>
+        <div className="text-[11px] text-slate-500 mt-1">เรตอิงราคาทองโลก (XAUUSD){xauPrice() ? ` $${Math.round(xauPrice()).toLocaleString()}/ออนซ์` : ''} ÷ 8 · ต่ำสุด 300 สูงสุด 900 · การล่าไม่ดรอป GOLD เป็นเหรียญ มีแค่เศษทองคำ (10 เศษ = 1 GOLD)</div>
         <div className="text-[11px] text-slate-500 mt-1 flex items-center gap-1"><TrendingUp size={12} className="text-rose" /> เงินเฟ้อสะสม +{Math.round((rpg.inflation - 1) * 100)}% · ราคาที่จ่ายด้วย FIAT ขึ้น 2% ทุกเดือน (สูงสุด +20%) — เก็บ FIAT ไว้เฉย ๆ ค่าจะลดลง ส่วน GOLD ไม่เฟ้อ{T.bankRate ? ` · ธนาคารให้ดอกเบี้ย ${T.bankRate}%/วัน` : ''}</div>
         <div className="mt-2 flex gap-2">
-          {[1, 2].map((n) => <button key={n} className={`${btn} bg-amber-400`} disabled={rpg.exchangedThisWeek + n > EXCHANGE_WEEKLY || rpg.fiat < rpg.exchangeRate * n} onClick={() => ok(rpg.exchange(n), `แลกได้ ${n} GOLD`)}>แลก {n} 🪙 ({(rpg.exchangeRate * n).toLocaleString()} 💵)</button>)}
+          {[1, 2].map((n) => <button key={n} className={`${btn} bg-amber-400`} disabled={rpg.exchangedThisWeek + n > EXCHANGE_WEEKLY || rpg.fiat < rpg.exchangeRate * n} onClick={() => ok(rpg.exchange(n), `แลกได้ ${n} GOLD`)}>แลก {n} <PxIcon name="em_gold" size={13} /> ({(rpg.exchangeRate * n).toLocaleString()} <PxIcon name="em_fiat" size={13} />)</button>)}
         </div>
       </Section>
 
@@ -264,7 +264,7 @@ function PlotSheet({ rpg, sel, onClose, ok }) {
   if (sel === 'hall') {
     const p = rpg.hallPrice(), lv = T.town.hall
     return (
-      <Sheet open onClose={close} title={`${HALL.emoji} ${HALL.name} ระดับ ${lv}`}>
+      <Sheet open onClose={close} title={`${HALL.name} ระดับ ${lv}`}>
         <div className="text-sm">ศูนย์กลางของเมือง ยิ่งระดับสูง ยิ่งมีที่ดินให้สร้างมากขึ้น</div>
         <div className="mt-3 px-inner p-3 text-sm">ตอนนี้: ที่ดิน {HALL.plots[lv - 1]} แปลง (+ โบนัสจากดินแดน {T.plotCount - HALL.plots[lv - 1]})</div>
         {p ? (
@@ -292,7 +292,7 @@ function PlotSheet({ rpg, sel, onClose, ok }) {
                   {B.max > 1 && T.count(type) > 0 && T.count(type) < B.max && <div className="text-[10px] text-slate-500">แต่ละหลังให้ผลแยกกัน รายได้รวมกัน · หรืออัปเกรดหลังเดิมได้ที่แปลงนั้น</div>}
                   <div className="text-[11px] text-slate-500">{B.desc}</div>
                   <div className="text-[11px] text-teal-700">{B.perkText(B.perk[0])}</div>
-                  {locked && <div className="text-[11px] text-amber-700">🔒 ต้อง: {B.reqText}</div>}
+                  {locked && <div className="text-[11px] text-amber-700"><PxIcon name="Lock" size={12} /> ต้อง: {B.reqText}</div>}
                 </div>
                 <div className="flex flex-col items-end gap-1"><Price p={p} rpg={rpg} />
                   <button className={`${btn} bg-teal-500 text-white`} disabled={full || locked || !rpg.afford(p)} onClick={() => { ok(rpg.build(sel, type), `สร้าง${B.name}แล้ว!`); close() }}>{full ? 'ครบแล้ว' : 'สร้าง'}</button>
@@ -306,7 +306,7 @@ function PlotSheet({ rpg, sel, onClose, ok }) {
   }
   const B = BUILDINGS[b.type], next = b.lv < 3 ? rpg.buildPrice(b.type, b.lv + 1) : null
   return (
-    <Sheet open onClose={close} title={`${B.emoji} ${B.name} · แปลงที่ ${sel + 1}`}>
+    <Sheet open onClose={close} title={`${B.name} · แปลงที่ ${sel + 1}`}>
       <div className="text-sm text-slate-600">{B.desc}</div>
       <div className="mt-3 grid grid-cols-3 gap-2 text-center">
         {B.perk.map((v, k) => (
@@ -342,7 +342,7 @@ function WorldStrip({ world, rank, bdayReady }) {
     <div className="col-span-full space-y-1.5" data-testid="world-strip">
       {world.event && (
         <div className="px-inner px-3 py-2 flex items-center gap-2 text-xs" style={{ background: 'linear-gradient(90deg, rgba(251,191,36,.18), rgba(244,114,182,.12))' }} data-testid="event-banner">
-          <span className="text-lg">{world.event.emoji}</span>
+          <span className="text-lg"><Emo e={world.event.emoji} size={16} /></span>
           <div className="flex-1 min-w-0"><b>{world.event.name}</b> · {world.event.line}<div className="text-[10px] text-slate-500">{world.event.bonus}</div></div>
         </div>
       )}
@@ -358,7 +358,7 @@ function WorldStrip({ world, rank, bdayReady }) {
           <div className="flex-1 min-w-0"><b>{world.birthday.isToday ? `สุขสันต์วันเกิดอายุ ${world.birthday.age}!` : `สัปดาห์วันเกิดอายุ ${world.birthday.age}`}</b> · ชาวเมืองจัดงานฉลองให้<div className="text-[10px] text-slate-500">{bdayReady ? 'รับชุดวันเกิดประจำปี + 1 GOLD ได้ที่แท็บสถานะ' : 'รับของขวัญปีนี้แล้ว 🎁'}</div></div>
         </div>
       )}
-      {parts.length > 0 && <div className="text-[11px] text-slate-500 px-1 flex flex-wrap gap-x-3 gap-y-0.5">{parts.map((p, i) => <span key={i}>{p}</span>)}</div>}
+      {parts.length > 0 && <div className="text-[11px] text-slate-500 px-1 flex flex-wrap gap-x-3 gap-y-0.5">{parts.map((p, i) => <span key={i}><EmoText text={p} size={13} /></span>)}</div>}
       {!world.sale && (() => { const n = nextDoubleDay(); return <div className="text-[10px] text-slate-400 px-1">วันเลขเบิ้ลถัดไป {n.label} · ร้านลด {n.pct}%</div> })()}
     </div>
   )
@@ -377,7 +377,7 @@ export function TownHomeCard({ rpg, onOpen }) {
       <div className="px-3 pt-3 pb-2 flex items-center gap-2">
         <button onClick={onOpen} className="flex-1 min-w-0 text-left">
           <div className="font-bold text-sm">เมืองของฉัน <span className="px-font text-[9px] text-teal-600">LV.{rpg.level}</span></div>
-          <div className="text-[11px] text-slate-500 truncate">{rpg.world.event ? `${rpg.world.event.emoji} ${rpg.world.event.name} · ` : ''}{rpg.world.wx ? `${W[rpg.world.weather] || ''} ${weatherTH(rpg.world.weather)}${rpg.world.temp != null ? ` ${Math.round(rpg.world.temp)}°` : ''} · ` : ''}{rpg.rank.emoji} {rpg.rank.name}</div>
+          <div className="text-[11px] text-slate-500 truncate"><EmoText size={12} text={(rpg.world.event ? `${rpg.world.event.emoji} ${rpg.world.event.name} · ` : '') + (rpg.world.wx ? `${W[rpg.world.weather] || ''} ${weatherTH(rpg.world.weather)}${rpg.world.temp != null ? ` ${Math.round(rpg.world.temp)}°` : ''} · ` : '')} /><Emo e={rpg.rank.emoji} size={16} /> {rpg.rank.name}</div>
         </button>
         <Wallet rpg={rpg} />
       </div>
@@ -387,7 +387,7 @@ export function TownHomeCard({ rpg, onOpen }) {
       <TodayTraces rpg={rpg} compact className="px-3 py-1.5 border-t-2 border-slate-800" />
       <TownTalk rpg={rpg} className="px-3 py-1.5 border-t-2 border-slate-800/10" />
       <div className="px-3 py-2.5 flex items-center gap-2 border-t-2 border-slate-800 text-xs">
-        <span className="flex-1 min-w-0 truncate text-slate-600">{rpg.collectReady ? `🧺 รายได้เมืองสะสม ${rpg.collectDays} วัน (+${rpg.collectAmount} FIAT)` : '🧺 รายได้เมืองสะสมทุกวันที่คุณทำอะไรสักอย่าง'}</span>
+        <span className="flex-1 min-w-0 truncate text-slate-600"><EmoText size={13} text={rpg.collectReady ? `🧺 รายได้เมืองสะสม ${rpg.collectDays} วัน (+${rpg.collectAmount} FIAT)` : '🧺 รายได้เมืองสะสมทุกวันที่คุณทำอะไรสักอย่าง'} /></span>
         <button className={`${btn} bg-emerald-500 text-white`} disabled={!rpg.collectReady} onClick={() => { const r = rpg.collect(); if (r) showToast(`🧺 +${r.fiat} FIAT`) }} data-testid="home-collect">เก็บ</button>
         <button className={`${btn} bg-white`} onClick={onOpen}>ไปเมือง</button>
       </div>
@@ -406,14 +406,14 @@ function FestivalCalendar({ T }) {
           const e = EVENTS[id], d = piece(id)
           return (
             <div key={id} className="flex items-start gap-2">
-              <span className="text-base leading-none">{e.emoji}</span>
-              <div className="flex-1 min-w-0"><b>{e.name}</b> <span className="text-slate-500">· {when}</span><div className="text-[10px] text-slate-500">{e.bonus}{d ? ` · ของเฉพาะเทศกาล: ${d.emoji} ${d.name}${T.decor.includes(d.id) ? ' ✓ มีแล้ว' : ''}` : ''}</div></div>
+              <span className="text-base leading-none"><Emo e={e.emoji} size={16} /></span>
+              <div className="flex-1 min-w-0"><b>{e.name}</b> <span className="text-slate-500">· {when}</span><div className="text-[10px] text-slate-500">{e.bonus}<EmoText size={12} text={d ? ` · ของเฉพาะเทศกาล: ${d.emoji} ${d.name}${T.decor.includes(d.id) ? ' ✓ มีแล้ว' : ''}` : ''} /></div></div>
             </div>
           )
         })}
         <div className="flex items-start gap-2">
-          <span className="text-base leading-none">🛍️</span>
-          <div className="flex-1 min-w-0"><b>วันเลขเบิ้ล</b> <span className="text-slate-500">· 1.1 ถึง 12.12</span><div className="text-[10px] text-slate-500">ร้านในเมืองลด 10–30% (11.11 ลดมากสุด) · ไม่ใช้เงินในวันนั้นรับ +1 GOLD · ของเฉพาะ: 🪧 ป้าย “ไม่ช้อปก็รวยได้”</div></div>
+          <PxIcon name="ShoppingBag" size={16} />
+          <div className="flex-1 min-w-0"><b>วันเลขเบิ้ล</b> <span className="text-slate-500">· 1.1 ถึง 12.12</span><div className="text-[10px] text-slate-500">ร้านในเมืองลด 10–30% (11.11 ลดมากสุด) · ไม่ใช้เงินในวันนั้นรับ +1 GOLD · ของเฉพาะ: <PxIcon name="em_sign" size={12} /> ป้าย “ไม่ช้อปก็รวยได้”</div></div>
         </div>
       </div>
     </Section>

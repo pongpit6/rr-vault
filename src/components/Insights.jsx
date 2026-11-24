@@ -1,3 +1,4 @@
+import { Emo } from './px'
 import { normPct } from '../lib/ledger'
 import { useEffect, useMemo, useState } from 'react'
 import { Sparkles, ChevronRight, TrendingUp, TrendingDown } from './px'
@@ -70,7 +71,7 @@ export function HomeInsightCard() {
   return (
     <>
       <button onClick={() => { setOpen(true); setUi({ reportUnseen: false }) }} className="w-full card p-4 text-left flex items-center gap-3 border-2 border-violet-200" data-testid="insight-report-card">
-        <div className="w-12 h-12 rounded-2xl bg-violet-50 grid place-items-center text-2xl shrink-0">{last.cls.icon}</div>
+        <div className="w-12 h-12 rounded-2xl bg-violet-50 grid place-items-center text-2xl shrink-0"><Emo e={last.cls.icon} size={28} /></div>
         <div className="flex-1 min-w-0">
           <div className="text-[11px] font-semibold text-violet-600">สรุป 30 วันพร้อมแล้ว</div>
           <div className="font-bold leading-tight">สไตล์ของคุณ: {last.cls.name}</div>
@@ -93,7 +94,7 @@ export function StyleCard({ onSuggest }) {
   return (
     <section className="card p-4 space-y-3" data-testid="style-card">
       <div className="flex items-center gap-3">
-        <div className="w-12 h-12 rounded-2xl bg-violet-50 grid place-items-center text-2xl shrink-0">{a.cls.icon}</div>
+        <div className="w-12 h-12 rounded-2xl bg-violet-50 grid place-items-center text-2xl shrink-0"><Emo e={a.cls.icon} size={28} /></div>
         <div className="flex-1 min-w-0">
           <div className="text-[11px] font-semibold text-violet-600">สไตล์การใช้เงิน 30 วันล่าสุด{a.ready ? '' : ` (ข้อมูล ${a.historyDays}/30 วัน)`}</div>
           <div className="font-bold">{a.cls.name}</div>
@@ -141,7 +142,7 @@ export function ReportSheet({ open, onClose }) {
           )}
           <div className="text-xs text-slate-500">{shortDate(r.from)} – {shortDate(r.to)}</div>
           <div className="flex items-center gap-3">
-            <div className="w-14 h-14 rounded-2xl bg-violet-50 grid place-items-center text-3xl">{r.cls.icon}</div>
+            <div className="w-14 h-14 rounded-2xl bg-violet-50 grid place-items-center text-3xl"><Emo e={r.cls.icon} size={34} /></div>
             <div><div className="text-xs text-violet-600 font-semibold">สไตล์ของคุณเดือนนี้</div><div className="text-lg font-bold">{r.cls.name}</div><div className="text-xs text-slate-500">{r.cls.good}</div></div>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">

@@ -71,7 +71,7 @@ export function HabitRow({ h, H, rpg, big = false }) {
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 text-sm font-semibold">
           <span className="truncate">{h.name}</span>
-          {s.streak > 0 && <span className="text-[10px] font-bold px-1.5 rounded" style={{ background: `${h.color}1a`, color: h.color }}>🔥{s.streak}</span>}
+          {s.streak > 0 && <span className="text-[10px] font-bold px-1.5 rounded" style={{ background: `${h.color}1a`, color: h.color }}><Emo e="🔥" size={11} />{s.streak}</span>}
         </div>
         <div className="text-[11px] text-slate-500 truncate">{status}</div>
         {partial && <div className="h-1 mt-1 rounded-full bg-slate-900/[.06] overflow-hidden"><div className="h-full" style={{ width: `${s.today * 100}%`, background: h.color }} /></div>}
@@ -274,7 +274,7 @@ function Shelf({ books }) {
         ))}
       </div>
       <div className="mt-2 space-y-1">
-        {books.slice(0, 5).map((b) => <div key={b.id} className="flex justify-between text-xs"><span className="truncate">✅ {b.title}</span><span className="text-slate-500 shrink-0 ml-2">{b.pages} หน้า · จบ {tDate(b.finishedAt)}</span></div>)}
+        {books.slice(0, 5).map((b) => <div key={b.id} className="flex justify-between text-xs"><span className="truncate"><Emo e="✅" size={12} /> {b.title}</span><span className="text-slate-500 shrink-0 ml-2">{b.pages} หน้า · จบ {tDate(b.finishedAt)}</span></div>)}
       </div>
     </div>
   )
@@ -411,7 +411,7 @@ function NoCarbSheet({ H }) {
   return (
     <>
       <button onClick={() => { H.toggleNoCarb(); sfx(d.nocarb ? 'click' : 'coin') }} className="w-full px-inner p-4 flex items-center gap-3 text-left" style={d.nocarb ? { background: 'rgba(22,163,74,.12)' } : undefined} data-testid="nocarb-toggle">
-        <span className="text-3xl">{d.nocarb ? '✅' : '🥗'}</span>
+        <Emo e={d.nocarb ? '✅' : '🥗'} size={34} />
         <div className="flex-1"><div className="font-semibold">{d.nocarb ? 'วันนี้ไม่กินแป้งและน้ำตาล' : 'วันนี้ไม่กินแป้งหรือน้ำตาลเลย?'}</div><div className="text-xs text-slate-500">{d.nocarb ? 'แตะอีกครั้งเพื่อยกเลิก' : 'แตะเพื่อยืนยัน · +20 FIAT · ติดกันหลายวันยิ่งดี'}</div></div>
       </button>
       <div className="px-inner p-4 space-y-3" data-testid="fasting">

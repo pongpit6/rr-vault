@@ -1,3 +1,4 @@
+import { Emo } from '../components/px'
 import { useMemo, useState } from 'react'
 import { Info, ChevronDown, ChevronUp, Lightbulb } from '../components/px'
 import { useStore } from '../store'
@@ -46,7 +47,7 @@ export default function Tax() {
       </section>
 
       <section className={`card p-4 flex gap-3 ${verdict.tone === 'ok' ? '' : ''}`} data-testid="tax-verdict">
-        <span className="text-2xl">{verdict.tone === 'ok' ? '✅' : '🧾'}</span>
+        <Emo e={verdict.tone === 'ok' ? '✅' : '🧾'} size={28} />
         <div><div className="font-semibold text-sm">{verdict.title}</div><div className="text-xs text-slate-500 mt-0.5">{verdict.text}</div></div>
       </section>
 
