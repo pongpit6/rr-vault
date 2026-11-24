@@ -8,6 +8,7 @@ import { money } from '../lib/format'
 import { useStore } from '../store'
 import { ACHIEVEMENTS } from '../lib/rpg'
 import { memberById } from '../lib/party'
+import { popDmg, drawDmg } from './dmgFx'
 
 /* ---------------- sprite sheets (PixelLab art) ---------------- */
 const imgs = {}
@@ -214,7 +215,7 @@ export default function BattleScene({
 
   const alive = useMemo(() => bosses.filter((b) => b.active).sort((a, b) => b.hp - a.hp), [bosses])
   const backRow = useMemo(() => ['healer', 'mage', 'ranger'].filter((id) => party.some((p) => p.id === id && p.joined)), [party])
-  const S = useRef({ queue: [], fx: [], hpShown: {}, focus: null, focusUntil: 0, cycleStart: 0, cycle: 0, current: null, dying: 0, heal: 0, shake: 0, flash: 0, heroFlash: 0, levelGlow: 0, petX: 40, petHop: 0, heroJump: 0, poke: 0, nextTalk: 0, smoke: [], drops: [], bolt: 0, act: null, proj: [], dome: 0, glow: 0 })
+  const S = useRef({ queue: [], fx: [], hpShown: {}, focus: null, focusUntil: 0, cycleStart: 0, cycle: 0, current: null, dying: 0, heal: 0, shake: 0, flash: 0, heroFlash: 0, levelGlow: 0, petX: 40, petHop: 0, heroJump: 0, poke: 0, nextTalk: 0, smoke: [], drops: [], bolt: 0, act: null, proj: [], dome: 0, glow: 0, dmg: [], anims: [] })
   const P = useRef({})
   P.current = { bosses, alive, tier: previewTier ?? tier, fog: previewTier != null ? (previewTier === 0 ? 0.4 : 0) : fog, privacy, weather, chest, backRow, gear, pet, skinHue, decos, storm, cheers }
 
@@ -366,8 +367,14 @@ export default function BattleScene({
           const crit = P.current.storm && ev.amount >= 5000
           s.flash = crit ? 520 : 320; s.shake = crit ? 14 : 10
           s.hpShown[ev.boss] = Math.max(0, (s.hpShown[ev.boss] ?? 0) - ev.amount)
-          addFloat(privacy ? 'CRITICAL!' : `-${money(ev.amount, { decimals: false })}`, ecx, etop + 18, 'crit')
-          if (crit) setTimeout(() => addFloat('ฟันพายุ!', ecx - 30, etop, 'gold'), 250)
+          // RO-style numbers on the canvas; a storm crit swings twice
+          const txt = privacy ? 'HIT!' : money(-ev.amount, { decimals: false })
+          if (crit) {
+            popDmg(s.dmg, txt, ecx, etop + 14, 'crit'); popDmg(s.dmg, privacy ? 'HIT!' : money(-Math.round(ev.amount * 0.4), { decimals: false }), ecx + 18, etop + 2, 'hit', 200)
+            s.anims.push({ name: 'fx_whirl_anim', x: ecx, y: gy, w: 80, h: 84, t: 0, dur: 700, foot: true })
+            setTimeout(() => addFloat('ฟันพายุ!', ecx - 30, etop - 10, 'gold'), 120)
+          } else popDmg(s.dmg, txt, ecx, etop + 14, 'hit')
+          s.anims.push({ still: 'fx_hit', x: ecx - 8, y: gy - sp.h / 2, w: 44, h: 44, t: 0, dur: 260 })
           for (let i = 0; i < 26; i++) s.fx.push({ x: ecx - 10, y: gy - sp.h / 2, vx: Math.random() * 4 - 1, vy: -Math.random() * 3.5, life: 700, c: i % 2 ? wcol : '#ffffff', z: 2 })
           buzz(ev.kill ? [40, 60, 40, 60, 120] : [25, 40, 50]); sfx('hit')
           tell(`⚔️ ฮีโร่ใช้${gear?.weapon?.name || 'ดาบ'}${crit ? ' ร่าย “ฟันพายุ”' : ''} ฟัน${enemy?.name || 'บอส'} −${M(ev.amount)} — มาจากการชำระ${enemy?.accName || 'หนี้'}จริง`)
@@ -386,7 +393,8 @@ export default function BattleScene({
       if (ev && ev.type === 'heal' && fire('_heal', 600)) {
         s.heal = 1000
         s.hpShown[ev.boss] = (s.hpShown[ev.boss] ?? 0) + ev.amount
-        addFloat(privacy ? 'REGEN' : `+${money(ev.amount, { decimals: false })}`, ecx, etop + 18, 'heal')
+        popDmg(s.dmg, privacy ? '+REGEN' : money(ev.amount, { decimals: false, sign: true }), ecx, etop + 14, 'heal')
+        s.anims.push({ name: 'fx_heal_anim', x: ecx, y: gy, w: 48, h: 48, t: 0, dur: 700, foot: true })
         tell(`🐉 ${enemy?.name || 'บอส'}ฟื้นพลัง +${M(ev.amount)} — จากยอดใหม่ใน${enemy?.accName || 'บัตร'}${backRow.includes('healer') ? ' (ลูน่ากันเงินไว้จ่ายแล้ว)' : ''}`)
         ev._done = true
       }
@@ -435,11 +443,15 @@ export default function BattleScene({
         if (act.skill === 'fireball' || act.skill === 'meteor' || act.skill === 'spark') s.proj.push({ kind: act.skill, x: px, y: py, tx: ecx - 8, ty: gy - sp.h / 2, t: 0, dur: act.skill === 'meteor' ? 700 : 520, amount: act.amount })
         if (act.skill === 'meteor') s.proj.push({ kind: 'meteor', x: ecx - 120, y: -20, tx: ecx - 4, ty: gy - sp.h / 2, t: 0, dur: 900, amount: null })
         if (act.skill === 'arrow') s.proj.push({ kind: 'arrow', x: px, y: py - 4, tx: ecx - 10, ty: gy - sp.h / 2 - 4, t: 0, dur: 380 })
-        if (act.skill === 'shield') { s.dome = 1600; addFloat(privacy ? 'SHIELD' : `🛡 ${money(act.amount, { decimals: false })}`, heroBaseX - 20, gy - 92, 'sky') }
+        if (act.skill === 'shield') { s.dome = 1600; popDmg(s.dmg, privacy ? 'SHIELD' : money(act.amount, { decimals: false }), heroBaseX - 4, gy - 88, 'sky') }
         if (act.skill === 'heal' || act.skill === 'bless') {
           s.glow = act.skill === 'heal' ? 1400 : 800
-          for (let i = 0; i < (act.skill === 'heal' ? 30 : 12); i++) s.fx.push({ x: 20 + Math.random() * (heroBaseX + 40), y: gy - Math.random() * 10, vx: 0, vy: -0.6 - Math.random() * 0.8, life: 1100, c: i % 2 ? '#86efac' : '#fef08a', z: 2, g: 0 })
-          if (act.skill === 'heal') addFloat('HEAL', heroBaseX + 10, gy - 90, 'heal')
+          // PixelLab heal sparkles over every member (+ a halo for the blessing)
+          ;[...backRow.map((id) => pos[id] + 27), hx + 32].forEach((x, i) => {
+            s.anims.push({ name: 'fx_heal_anim', x, y: gy, w: 44, h: 44, t: -i * 90, dur: 800, foot: true })
+            if (act.skill === 'bless') s.anims.push({ name: 'fx_halo_anim', x, y: gy - 56, w: 30, h: 30, t: -i * 90, dur: 900 })
+          })
+          if (act.skill === 'heal') popDmg(s.dmg, 'HEAL', heroBaseX + 20, gy - 86, 'heal')
         }
       }
 
@@ -544,11 +556,9 @@ export default function BattleScene({
         g.fillStyle = 'rgba(15,23,42,.16)'; g.beginPath(); g.ellipse(x + 27, gy - 1, 12, 2.5, 0, 0, Math.PI * 2); g.fill()
         if (img) g.drawImage(img, Math.round(x), gy - 54 + 1 + b, 54, 54)
       }
-      if (s.dome > 0) {
-        const a = Math.min(1, s.dome / 600)
-        g.strokeStyle = `rgba(125,211,252,${0.9 * a})`; g.lineWidth = 2
-        g.fillStyle = `rgba(186,230,253,${0.22 * a})`
-        g.beginPath(); g.ellipse((heroBaseX - 34 * backRow.length + heroBaseX + 64) / 2, gy, (34 * backRow.length + 70) / 2, 58, 0, Math.PI, 0); g.fill(); g.stroke()
+      if (s.dome > 0) { // PixelLab shield over the party
+        const sh = still('fx_shield'), a = Math.min(1, s.dome / 600), cx = (heroBaseX - 34 * backRow.length + heroBaseX + 64) / 2, wd = 34 * backRow.length + 90
+        if (sh) { g.globalAlpha = 0.55 * a + 0.1 * Math.sin(now / 90); g.drawImage(sh, Math.round(cx - wd / 2), gy - 76, wd, 80); g.globalAlpha = 1 }
         s.dome -= dt
       }
 
@@ -589,24 +599,34 @@ export default function BattleScene({
         p.t += dt
         const k = Math.min(1, p.t / p.dur)
         const x = p.x + (p.tx - p.x) * k, y = p.y + (p.ty - p.y) * k - (p.kind === 'arrow' ? Math.sin(k * Math.PI) * 10 : 0)
-        if (p.kind === 'arrow') { g.strokeStyle = '#78350f'; g.lineWidth = 2; g.beginPath(); g.moveTo(x - 10, y + 1); g.lineTo(x, y); g.stroke(); g.fillStyle = '#e2e8f0'; g.fillRect(Math.round(x), Math.round(y) - 1, 3, 3) }
-        else {
-          const r = p.kind === 'meteor' ? 7 : p.kind === 'spark' ? 3 : 5
-          g.fillStyle = p.kind === 'spark' ? '#bae6fd' : '#f97316'; g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); g.fill()
-          g.fillStyle = p.kind === 'spark' ? '#ffffff' : '#fde047'; g.beginPath(); g.arc(x, y, r * 0.5, 0, Math.PI * 2); g.fill()
-          if (Math.random() < 0.8) s.fx.push({ x, y, vx: -Math.random(), vy: Math.random() - 0.5, life: 300, c: p.kind === 'spark' ? '#e0f2fe' : '#fb923c', z: 2, g: 0 })
-        }
+        // PixelLab projectiles (same art as the hunt scene)
+        const pim = p.kind === 'arrow' ? still('fx_arrow') : p.kind === 'meteor' ? still('fx_meteor') : p.kind === 'spark' ? still('fx_orb') : frame('fx_fireball_anim', Math.floor(now / 70))
+        const psz = p.kind === 'meteor' ? 40 : p.kind === 'spark' ? 16 : 22
+        if (pim) g.drawImage(pim, Math.round(x - psz / 2), Math.round(y - psz / 2), psz, psz)
+        if (p.kind !== 'arrow' && Math.random() < 0.5) s.fx.push({ x, y, vx: -Math.random(), vy: Math.random() - 0.5, life: 260, c: p.kind === 'spark' ? '#e0f2fe' : '#fb923c', z: 2, g: 0 })
         if (k >= 1) {
           s.flash = Math.max(s.flash, p.kind === 'spark' || p.kind === 'arrow' ? 90 : 220); s.shake = Math.max(s.shake, p.kind === 'meteor' ? 12 : 3)
-          const n = p.kind === 'meteor' ? 40 : p.kind === 'fireball' ? 22 : 8
+          if (p.kind === 'meteor' || p.kind === 'fireball') s.anims.push({ name: 'fx_boom_anim', x: p.tx, y: p.ty + (p.kind === 'meteor' ? 40 : 20), w: p.kind === 'meteor' ? 90 : 48, h: p.kind === 'meteor' ? 90 : 48, t: 0, dur: 560, foot: true })
+          else s.anims.push({ still: 'fx_hit', x: p.tx, y: p.ty, w: 32, h: 32, t: 0, dur: 240 })
+          const n = p.kind === 'meteor' ? 16 : p.kind === 'fireball' ? 8 : 4
           for (let i = 0; i < n; i++) s.fx.push({ x: p.tx, y: p.ty, vx: Math.random() * 4 - 2, vy: -Math.random() * 3, life: 600, c: p.kind === 'spark' ? '#bae6fd' : i % 2 ? '#fde047' : '#f97316', z: 2 })
-          if (p.amount) addFloat(privacy ? '+MANA' : `+${money(p.amount, { decimals: false })} ลงทุน`, p.tx - 10, p.ty - 30, 'gold')
+          if (p.amount) popDmg(s.dmg, privacy ? '+MANA' : money(p.amount, { decimals: false, sign: true }), p.tx - 6, p.ty - 26, 'gold')
           else if (p.kind === 'arrow') addFloat('ฟิ้ว!', p.tx, p.ty - 26, 'block')
           return false
         }
         return true
       })
 
+      // one-shot PixelLab effect animations (booms, whirlwinds, heal sparkles, hit flashes)
+      s.anims = s.anims.filter((a) => {
+        a.t += dt
+        if (a.t < 0) return true
+        const k = a.t / a.dur
+        if (k >= 1) return false
+        const im = a.still ? still(a.still) : frame(a.name, Math.floor(k * (SHEETS[a.name]?.n || 7)))
+        if (im) { g.globalAlpha = a.still ? 1 - k : 1; g.drawImage(im, Math.round(a.x - a.w / 2), Math.round(a.foot ? a.y - a.h : a.y - a.h / 2), a.w, a.h); g.globalAlpha = 1 }
+        return true
+      })
       s.fx = s.fx.filter((p) => (p.life -= dt) > 0)
       for (const p of s.fx) { p.x += p.vx; p.y += p.vy; p.vy += p.g ?? 0.12; g.fillStyle = p.c; g.fillRect(Math.round(p.x), Math.round(p.y), p.z, p.z) }
 
@@ -640,6 +660,7 @@ export default function BattleScene({
         }
       }
       if (sky.night) { g.fillStyle = `rgba(15,23,60,${sky.night * 0.85})`; g.fillRect(-10, -10, W + 20, H + 20) }
+      drawDmg(g, s.dmg, dt) // numbers stay bright above the night tint
       g.setTransform(1, 0, 0, 1, 0, 0)
       raf = requestAnimationFrame(loop)
     }

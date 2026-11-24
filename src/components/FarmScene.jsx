@@ -1,7 +1,8 @@
 import { useEffect, useRef } from 'react'
 import { frame, still } from './BattleScene'
 import { MON_BY_ID, MAP_BY_ID } from '../lib/farmData'
-import { itemName } from '../lib/farm'
+import { itemName, TREE_BY_ID } from '../lib/farm'
+import { popDmg, drawDmg, fmtDmg } from './dmgFx'
 import { sfx } from '../lib/sfx'
 
 const W = 400, H = 180, GY = 168
@@ -59,6 +60,22 @@ function drawAmbient(g, mapId, layer, now) {
   }
 }
 const MON_H = { normal: 64, elite: 80, boss: 100 }
+/** which chance skill gets the cast animation when several fired in one fight */
+const CAST_ORDER = ['meteor', 'revive', 'storm', 'hawk', 'bless']
+/** a looping effect sheet frame (fx_*_anim) or a still */
+const fxFrame = (name, i) => frame(`${name}_anim`, i) || still(name)
+;['fx_slash', 'fx_hit', 'fx_arrow', 'fx_orb', 'fx_meteor', 'fx_aura', 'fx_star'].forEach(still)
+/** steady skill per member (drawn as a faint aura when ranked) */
+const STEADY = { knight: 'blade', mage: 'arcane', ranger: 'eye', healer: 'bless' }
+/** RO-style skill banner over the caster: pops in, holds, fades */
+function banner(g, text, x, y, a) {
+  const sc = a < 0.15 ? 0.6 + (a / 0.15) * 0.5 : a < 0.25 ? 1.1 - ((a - 0.15) / 0.1) * 0.1 : 1
+  g.save(); g.globalAlpha = a > 0.85 ? (1 - a) / 0.15 : 1; g.translate(Math.round(Math.max(60, Math.min(W - 60, x))), Math.round(y)); g.scale(sc, sc)
+  g.font = 'bold 13px sans-serif'; g.textAlign = 'center'; g.lineJoin = 'round'
+  g.lineWidth = 4; g.strokeStyle = '#1e1b4b'; g.strokeText(text, 0, 0)
+  const gr = g.createLinearGradient(0, -11, 0, 2); gr.addColorStop(0, '#fef9c3'); gr.addColorStop(1, '#f59e0b'); g.fillStyle = gr; g.fillText(text, 0, 0)
+  g.restore()
+}
 const SLOT = { ranger: 0, mage: 1, healer: 2, knight: 3 } // the hero stands at the front, facing the monster
 
 /**
@@ -66,11 +83,11 @@ const SLOT = { ranger: 0, mage: 1, healer: 2, knight: 3 } // the hero stands at 
  * (sword, staff light, fireball, arrow), the monster flashes and shakes, damage pops up,
  * then it falls and its drops float up (or it strikes back when the party loses).
  */
-export default function FarmScene({ mapId, party = [], shadows = [], recent = [], live = false, hue = 0, idleMon, onMon }) {
+export default function FarmScene({ mapId, party = [], shadows = [], recent = [], live = false, hue = 0, idleMon, onMon, power = 50, skills = {} }) {
   const cv = useRef(null)
   // fights already on record when the scene opens are not replayed as new; they feed the replay loop
-  const S = useRef({ queue: [], cur: null, seen: recent.length ? recent[recent.length - 1].seq : -1, fx: [], monId: idleMon, idleSince: 0, rp: 0, bg: null })
-  const P = useRef({}); P.current = { mapId, party, hue, shadows, recent, live, onMon }
+  const S = useRef({ dmg: [], queue: [], cur: null, seen: recent.length ? recent[recent.length - 1].seq : -1, fx: [], monId: idleMon, idleSince: 0, rp: 0, bg: null })
+  const P = useRef({}); P.current = { mapId, party, hue, shadows, recent, live, onMon, power, skills }
   // new fight results join the queue (newest last)
   useEffect(() => {
     const s = S.current
@@ -107,13 +124,17 @@ export default function FarmScene({ mapId, party = [], shadows = [], recent = []
     if (!s.cur && s.queue.length) {
       const e = s.queue.shift()
       const members = party.filter((p) => p.joined).map((p) => p.id)
-      s.cur = { ...e, shadow: shadows.length && Math.random() < 0.35 ? Math.floor(Math.random() * shadows.length) : -1, t: 0, dur: s.queue.length > 2 ? 650 : 1100, who: members[Math.floor(Math.random() * members.length)] || 'knight', dmg: 0, hitDone: false }
+      const cast = CAST_ORDER.find((id) => (e.skills || []).includes(id) && members.includes(TREE_BY_ID[id].member))
+      s.cur = { ...e, shadow: shadows.length && Math.random() < 0.35 ? Math.floor(Math.random() * shadows.length) : -1, t: 0, dur: cast ? 2200 : s.queue.length > 2 ? 650 : 1100, who: cast ? TREE_BY_ID[cast].member : members[Math.floor(Math.random() * members.length)] || 'knight', cast, dmg: 0, hitDone: false }
       s.monId = e.mon; s.bg = e.map || s.bg
       P.current.onMon?.(e.mon)
     }
     const c = s.cur
     if (c) c.t += dt
-    const k = c ? c.t / c.dur : 0 // 0..1 progress of this fight
+    const k0 = c ? c.t / c.dur : 0 // 0..1 progress of this fight
+    // a fight with a chance skill opens with a cast (circle + banner); the attack timeline then runs on k
+    const CP = 0.3, k = c && c.cast ? Math.max(0, (k0 - CP) / (1 - CP)) : k0, casting = c && c.cast && k0 < CP
+    const { power: pw, skills: sk } = P.current
 
     // background (map art, bottom-aligned), dimmed slightly at the edges
     g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, W, H)
@@ -131,27 +152,52 @@ export default function FarmScene({ mapId, party = [], shadows = [], recent = []
     })
     // party
     const members = party.filter((p) => p.joined).sort((a, b) => (SLOT[a.id] ?? 0) - (SLOT[b.id] ?? 0)) // back row first, the hero drawn last (in front)
+    const pos = {}
     members.forEach((p, i) => {
       const slot = SLOT[p.id] ?? i
       let x = 18 + slot * 46, sheet = `${p.sprite}_idle`, f = Math.floor(now / 160 + i)
-      if (c && c.who === p.id && k < 0.55) {
+      const h = p.id === 'knight' ? 64 : 56
+      pos[p.id] = { x: x + h / 2, top: GY - h }
+      // steady skills: a faint aura under whoever has one ranked
+      const steady = STEADY[p.id]
+      if (steady && (sk || {})[steady] > 0) { const au = still('fx_aura'); if (au) { g.globalAlpha = 0.28 + 0.12 * Math.sin(now / 300 + i); g.drawImage(au, Math.round(x + h / 2 - 26), GY - 22, 52, 26); g.globalAlpha = 1 } }
+      if (casting && c.who === p.id) {
+        const ci = fxFrame('fx_circle', Math.floor(now / 70)); if (ci) { g.globalAlpha = Math.min(1, k0 / 0.08); g.drawImage(ci, Math.round(x + h / 2 - 32), GY - 22, 64, 32); g.globalAlpha = 1 }
+        sheet = `${p.sprite}_atk`; f = Math.min(2, Math.floor(k0 / CP * 3)) // raises the weapon while casting
+      } else if (c && c.who === p.id && k < 0.55) {
         const a = Math.min(1, k / 0.55)
         sheet = `${p.sprite}_atk`; f = Math.floor(a * 8.99)
         if (p.id === 'knight') x += Math.sin(a * Math.PI) * 150 // the hero dashes in
         else x += Math.sin(a * Math.PI) * 18
       }
       const im = frame(sheet, f, c && !c.win && k > 0.55 && k < 0.8 ? 'flash' : 'normal', p.id === 'knight' ? hue : 0)
-      const h = p.id === 'knight' ? 64 : 56
       if (im) g.drawImage(im, Math.round(x), GY - h, h, h)
     })
 
-    // projectiles for ranged members
-    if (c && c.who !== 'knight' && k > 0.25 && k < 0.55) {
+    // the skill name over the caster while the circle glows
+    if (casting && pos[c.who]) banner(g, `${TREE_BY_ID[c.cast].name}!!`, pos[c.who].x, pos[c.who].top - 6, k0 / CP)
+    const mon0 = MON_BY_ID[s.monId] || MON_BY_ID[idleMon], mh = MON_H[mon0?.kind] || 64
+    const mx = W - mh / 2 - 14, my = GY - mh / 2 // monster centre
+    // normal attacks: PixelLab projectiles for ranged members
+    if (c && !c.cast && c.who !== 'knight' && k > 0.25 && k < 0.55) {
       const a = (k - 0.25) / 0.3, x0 = 40 + (SLOT[c.who] ?? 1) * 46, x1 = W - 70
       const x = x0 + (x1 - x0) * a, y = GY - 36 - Math.sin(a * Math.PI) * 18
-      if (c.who === 'mage') { g.fillStyle = '#f97316'; g.fillRect(x - 5, y - 5, 10, 10); g.fillStyle = '#fde047'; g.fillRect(x - 2, y - 2, 5, 5) }
-      else if (c.who === 'ranger') { g.fillStyle = '#78350f'; g.fillRect(x - 10, y, 14, 2); g.fillStyle = '#e2e8f0'; g.fillRect(x + 4, y - 1, 3, 4) }
-      else { g.fillStyle = 'rgba(253,224,71,.8)'; g.beginPath(); g.arc(x, y, 6, 0, 7); g.fill() }
+      const im = c.who === 'mage' ? fxFrame('fx_fireball', Math.floor(now / 70)) : c.who === 'ranger' ? still('fx_arrow') : still('fx_orb')
+      if (im) g.drawImage(im, Math.round(x - 12), Math.round(y - 12), 24, 24)
+    }
+    if (c && !c.cast && c.who === 'knight' && k > 0.42 && k < 0.62) { const im = still('fx_slash'); if (im) { g.globalAlpha = 1 - (k - 0.42) / 0.2; g.drawImage(im, Math.round(mx - 30), Math.round(my - 30), 60, 60); g.globalAlpha = 1 } }
+    // chance-skill effects
+    if (c && c.cast && !casting) {
+      const fi = (a, n = 7) => Math.min(n - 1, Math.floor(a * n))
+      if (c.cast === 'storm' && k > 0.3 && k < 0.85) { const im = fxFrame('fx_whirl', Math.floor(now / 60)); if (im) g.drawImage(im, Math.round(mx - 40), Math.round(GY - 84), 80, 84) }
+      if (c.cast === 'meteor') {
+        if (k < 0.5) { const a = k / 0.5, im = still('fx_meteor'); if (im) g.drawImage(im, Math.round(mx + 90 * (1 - a) - 24), Math.round(-40 + (my + 40) * a - 24), 48, 48) }
+        else if (k < 0.85) { const im = frame('fx_boom_anim', fi((k - 0.5) / 0.35)); if (im) g.drawImage(im, Math.round(mx - 48), Math.round(GY - 96), 96, 96) }
+      }
+      if (c.cast === 'hawk' && k < 0.75) { const a = k / 0.75, im = fxFrame('fx_hawk', Math.floor(now / 60)); const x = a < 0.6 ? -30 + (mx + 30) * (a / 0.6) : mx - (a - 0.6) / 0.4 * 200, y = a < 0.6 ? 30 + (my - 30) * (a / 0.6) : my - (a - 0.6) / 0.4 * 90; if (im) { g.save(); if (a >= 0.6) { g.translate(x, 0); g.scale(-1, 1); g.translate(-x, 0) } g.drawImage(im, Math.round(x - 20), Math.round(y - 20), 40, 40); g.restore() } }
+      if (c.cast === 'revive' && k < 0.8) Object.values(pos).forEach((q) => { const im = frame('fx_pillar_anim', fi(k / 0.8)); if (im) { g.globalAlpha = 0.85; g.drawImage(im, Math.round(q.x - 20), GY - 110, 40, 110); g.globalAlpha = 1 } })
+      if (c.cast === 'bless' && k < 0.9) Object.values(pos).forEach((q, i) => { const im = fxFrame('fx_halo', Math.floor(now / 80) + i); if (im) g.drawImage(im, Math.round(q.x - 18), Math.round(q.top - 14), 36, 36) })
+      if ((c.cast === 'revive' || c.cast === 'bless') && !c.healDone && k > 0.2) { c.healDone = true; Object.values(pos).forEach((q, i) => popDmg(s.dmg, `+${fmtDmg(pw * 0.2 * (0.8 + Math.random() * 0.4))}`, q.x, q.top, 'heal', i * 80)) }
     }
 
     // monster
@@ -170,8 +216,19 @@ export default function FarmScene({ mapId, party = [], shadows = [], recent = []
       // hit: damage number + sparks + sound once
       if (c && !c.hitDone && k > 0.5) {
         c.hitDone = true
-        const dmg = c.win ? 20 + Math.floor(Math.random() * 60) : 5 + Math.floor(Math.random() * 15)
-        s.fx.push({ kind: 'num', text: c.note ? `${c.note}!` : `-${dmg}`, x: x + h / 2, y: y + 6, life: 900, color: c.win ? '#fde047' : '#e2e8f0' })
+        // RO-style numbers: skills crit, the finishing blow on an elite or boss crits too
+        const base = Math.max(8, (c.train ? 30 : pw) * (0.7 + Math.random() * 0.6)), big = c.cast === 'storm' || c.cast === 'meteor' || c.cast === 'hawk'
+        const crit = !c.train && (big || (c.win && mon.kind !== 'normal' && Math.random() < 0.5))
+        const cx = x + h / 2, cy = y + 4
+        if (c.win || c.train) {
+          popDmg(s.dmg, fmtDmg(base * (crit ? 2 : 1)), cx, cy, crit ? 'crit' : 'hit')
+          if (c.cast === 'storm') popDmg(s.dmg, fmtDmg(base * 1.6), cx - 26, cy + 26, 'crit', 220) // the second slash
+        } else {
+          popDmg(s.dmg, fmtDmg(base * 0.4), cx, cy, 'hit')
+          if (pos.knight) popDmg(s.dmg, fmtDmg(base * 0.6), pos.knight.x, pos.knight.top + 4, 'hurt', 260)
+        }
+        if (c.note && !c.cast) s.fx.push({ kind: 'num', text: `${c.note}!`, x: cx, y: y - 18, life: 1000, color: '#fde047' })
+        { const im = still('fx_hit'); if (im) s.fx.push({ kind: 'img', im, x: cx, y: y + h / 2, life: 260 }) }
         for (let i = 0; i < 8; i++) s.fx.push({ kind: 'spark', x: x + h / 2, y: y + h / 2, vx: (Math.random() - 0.5) * 0.25, vy: -Math.random() * 0.25, life: 500 })
         if (!c.replay && !c.train) sfx('hit')
       }
@@ -187,9 +244,11 @@ export default function FarmScene({ mapId, party = [], shadows = [], recent = []
     // effects
     s.fx = s.fx.filter((p) => (p.life -= dt) > 0)
     for (const p of s.fx) {
-      if (p.kind === 'spark') { p.x += p.vx * dt; p.y += p.vy * dt; g.fillStyle = '#fde047'; g.fillRect(Math.round(p.x), Math.round(p.y), 3, 3) }
+      if (p.kind === 'img') { const a = p.life / 260; g.globalAlpha = a; g.drawImage(p.im, Math.round(p.x - 22 - (1 - a) * 6), Math.round(p.y - 22 - (1 - a) * 6), 44 + (1 - a) * 12, 44 + (1 - a) * 12); g.globalAlpha = 1 }
+      else if (p.kind === 'spark') { p.x += p.vx * dt; p.y += p.vy * dt; g.fillStyle = '#fde047'; g.fillRect(Math.round(p.x), Math.round(p.y), 3, 3) }
       else { p.y -= dt * 0.025; g.font = 'bold 13px sans-serif'; g.textAlign = 'center'; g.lineWidth = 3; g.strokeStyle = '#0f172a'; g.strokeText(p.text, p.x, p.y); g.fillStyle = p.color; g.fillText(p.text, p.x, p.y); g.textAlign = 'left' }
     }
+    drawDmg(g, s.dmg, dt)
     if (c && c.t >= c.dur) { s.cur = null; if (c.win) s.spawn = now } // a fresh monster walks in
   }
 

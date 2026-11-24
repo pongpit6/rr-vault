@@ -232,10 +232,10 @@ export const RARE_ODDS = { normal: 0.02, elite: 0.08, boss: 0.3 }
 export const LOOT = { trophy: 0.34, mat: 0.29, shard: { normal: 0.0045, elite: 0.009, boss: 0.015 }, mcrystal: { normal: 0.02, elite: 0.065, boss: 0.2 } }
 /** one fight. f = data.farm (mutated copy), day = today's usage (mana is spent here). returns a log entry */
 export function fight(f, day, ctx, mapId = f.map) {
-  const map = MAP_BY_ID[mapId] || MAP_BY_ID[f.map], sk = ctx.skills, fx = ctx.fx, procs = []
+  const map = MAP_BY_ID[mapId] || MAP_BY_ID[f.map], sk = ctx.skills, fx = ctx.fx, procs = [], used = []
   const has = (m) => m === 'knight' || ctx.joined.includes(m)
   const rank = (id) => (has(TREE_BY_ID[id].member) ? sk[id] || 0 : 0)
-  const proc = (id) => { const t = TREE_BY_ID[id], r = rank(id); if (!r || day.mana + t.mana > ctx.mana || rnd() >= t.chance(r) + (fx.shadowProc || 0) / 100) return false; day.mana += t.mana; procs.push(t.name); return true }
+  const proc = (id) => { const t = TREE_BY_ID[id], r = rank(id); if (!r || day.mana + t.mana > ctx.mana || rnd() >= t.chance(r) + (fx.shadowProc || 0) / 100) return false; day.mana += t.mana; procs.push(t.name); used.push(id); return true }
   const kills = f.kills[map.id] || 0, bossKills = f.bossKills?.[map.id] || 0
   const bossAfter = fx.rl_badge || BOSS_AFTER
   const norm = normalsOf(map)
@@ -244,7 +244,7 @@ export function fight(f, day, ctx, mapId = f.map) {
   let meteor = false
   if (mon.kind !== 'normal' && proc('meteor')) { win = true; meteor = true }
   if (!win && proc('revive')) win = true
-  if (!win && rank('bless') && rnd() < rank('bless') * 0.06) { win = true; procs.push('พรคุ้มครอง') }
+  if (!win && rank('bless') && rnd() < rank('bless') * 0.06) { win = true; procs.push('พรคุ้มครอง'); used.push('bless') }
   if (!win && (f.potions || 0) > 0) { win = true; f.potions--; procs.push('ยาฟื้นพลัง') }
   f.runs = (f.runs || 0) + 1
   if (fx.rl_flask && f.runs % fx.rl_flask === 0) { f.potions = (f.potions || 0) + 1; procs.push('ได้ยาใหม่') }
@@ -273,7 +273,7 @@ export function fight(f, day, ctx, mapId = f.map) {
     if (proc('storm')) for (const k of Object.keys(drops)) drops[k] *= 2
     for (const [k, v] of Object.entries(drops)) f.bag[k] = (f.bag[k] || 0) + v
   }
-  return { mon: mon.id, map: map.id, win, drops, note: procs.join(' · ') }
+  return { mon: mon.id, map: map.id, win, drops, note: procs.join(' · '), skills: used }
 }
 
 /** a raid on the town: each monster is fought by the town guard with part of the party's power (no stamina, no skills) */
