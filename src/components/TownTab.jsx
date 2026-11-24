@@ -142,9 +142,16 @@ function Section({ icon: I, title, right, children }) {
 }
 const btn = 'px-3 py-1.5 text-xs font-semibold border-2 border-slate-800 disabled:bg-slate-200 disabled:text-slate-400 disabled:border-slate-300'
 
+const DECOR_GROUPS = [
+  { key: 'basic', tab: 'ทั่วไป', note: 'ซื้อได้ตลอด', list: DECOR.filter((d) => !d.craft && !d.event) },
+  { key: 'craft', tab: 'จากวัสดุมอนสเตอร์', note: 'สร้างที่แท็บชาวเมือง (ล่า → ชาวเมือง) ไม่มีขายในร้าน', list: DECOR.filter((d) => d.craft) },
+  { key: 'event', tab: 'เทศกาล', note: 'วางขายเฉพาะช่วงเทศกาลนั้น ซื้อแล้วเก็บไว้ตลอดไป', list: DECOR.filter((d) => d.event) },
+]
+
 export default function TownTab({ rpg }) {
   useEffect(() => { loadCycle().then(shareWithTown).catch(() => {}) }, [])
   const T = rpg.town
+  const [decTab, setDecTab] = useState('basic')
   const showToast = useStore((s) => s.showToast)
   const theme = useActiveTheme()
   const [sel, setSel] = useState(null) // plot index | 'hall' | null
@@ -238,13 +245,12 @@ export default function TownTab({ rpg }) {
 
       <Section icon={Sparkles} title="DECOR · ตกแต่งเมือง">
         <div className="text-[11px] text-slate-500 mb-2">ของแต่งทุกชิ้นเพิ่มความสุขเมือง (สูงสุด 100%) · ติดตั้งแล้ว {T.decor.length} ชิ้น</div>
-        {[
-          { key: 'basic', title: 'ของแต่งทั่วไป', note: 'ซื้อได้ตลอด', list: DECOR.filter((d) => !d.craft && !d.event) },
-          { key: 'craft', title: 'ของแต่งจากวัสดุมอนสเตอร์', note: 'สร้างที่แท็บชาวเมือง (ล่า → ชาวเมือง) ไม่มีขายในร้าน', list: DECOR.filter((d) => d.craft) },
-          { key: 'event', title: 'ของแต่งเทศกาล', note: 'วางขายเฉพาะช่วงเทศกาลนั้น ซื้อแล้วเก็บไว้ตลอดไป', list: DECOR.filter((d) => d.event) },
-        ].map((grp) => (
+        <div className="flex gap-1.5 mb-2 flex-wrap" data-testid="decor-tabs">
+          {DECOR_GROUPS.map((g) => { const n = g.list.filter((d) => T.decor.includes(d.id)).length; return <button key={g.key} onClick={() => setDecTab(g.key)} className={`px-tab ${decTab === g.key ? 'on' : ''}`} data-testid={`decor-tab-${g.key}`}>{g.tab} <span className="opacity-70">{n}/{g.list.length}</span></button> })}
+        </div>
+        {DECOR_GROUPS.filter((g) => g.key === decTab).map((grp) => (
           <div key={grp.key} className="mb-3" data-testid={`decor-${grp.key}`}>
-            <div className="flex items-baseline gap-2 mb-1.5"><b className="text-sm">{grp.title}</b><span className="text-[10px] text-slate-500">{grp.note} · มีแล้ว {grp.list.filter((d) => T.decor.includes(d.id)).length}/{grp.list.length}</span></div>
+            <div className="text-[10px] text-slate-500 mb-1.5">{grp.note}</div>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               {grp.list.map((d) => {
                 const own = T.decor.includes(d.id), p = rpg.decorPrice ? rpg.decorPrice(d) : priceOf(d.cost, rpg.econData)
