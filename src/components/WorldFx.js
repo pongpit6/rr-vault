@@ -113,7 +113,14 @@ export function worldFront(g, now, { w, G, TH, night, world, hx, hallTop }) {
   }
   if (ev === 'newyear' && night) for (let i = 0; i < 3; i++) { const k = ((now / 1600) + i / 3) % 1, cx = w * (0.25 + i * 0.25), cy = 30 - i * 6; if (k < 0.5) R(g, '#fde047', cx, 70 - k * 80, 1, 2); else for (let q = 0; q < 10; q++) { const a = q / 10 * Math.PI * 2, r = (k - 0.5) * 40; R(g, ['#f472b6', '#fde047', '#7dd3fc'][i], cx + Math.cos(a) * r, cy + Math.sin(a) * r, 2, 2) } }
   if (ev === 'songkran') for (let i = 0; i < 14; i++) { const k = (now / 900 + i / 14) % 1, x = 30 + hash(i) * (w - 60); R(g, 'rgba(125,211,252,.9)', x + k * 14, G - 10 - Math.sin(k * Math.PI) * 18, 2, 2) }
-  if (ev === 'loy') { R(g, '#38bdf8', 0, G + 24, w, 8); for (let i = 0; i < w / 34; i++) { const x = (i * 34 + now / 90) % w, b = Math.sin(now / 500 + i) > 0 ? 1 : 0; if (!prop(g, 'pr_krathong', x, G + 30 - b, 12)) { R(g, '#16a34a', x, G + 25 - b, 5, 2); R(g, '#f472b6', x + 1, G + 23 - b, 3, 2) } } }
+  if (ev === 'loy') {
+    // Loy Krathong in town: a krathong stall, tables of krathongs and lotus pots along the street, sky lanterns drifting up
+    prop(g, 'pr_krathong_stall', Math.round(w * 0.14), G + 17, 24)
+    prop(g, 'pr_flower_stand', Math.round(w * 0.43), G + 15, 15)
+    for (const [k, fx] of [[0, 0.3], [1, 0.55], [2, 0.8]]) prop(g, k === 1 ? 'pr_lotus_pot' : 'pr_krathong_table', Math.round(w * fx), G + 15, 14)
+    const n = night ? 7 : 3
+    for (let i = 0; i < n; i++) { const k = (now / 26000 + i / n) % 1, x = (hash(i, 7) * w + Math.sin(now / 1800 + i) * 6 + k * 30) % w, y = G - 20 - k * (G - 10); g.globalAlpha = k > 0.8 ? (1 - k) * 5 : 1; if (night) { g.fillStyle = 'rgba(253,186,116,.18)'; g.fillRect(Math.round(x) - 2, Math.round(y) - 12, 13, 14) } prop(g, 'pr_khomloi', x, y, 9 - Math.round(k * 3)); g.globalAlpha = 1 }
+  }
   if (ev === 'xmas') { const x = w - 64; if (!prop(g, 'pr_xmas', x, G + 1, 30)) { R(g, '#92400e', x + 5, G - 4, 2, 4); for (let i = 0; i < 5; i++) R(g, '#15803d', x + i, G - 6 - i * 3, 12 - 2 * i, 3) } else for (let i = 0; i < 5; i++) if (Math.floor(now / 300 + i) % 3 === 0) R(g, ['#fde047', '#ef4444', '#7dd3fc'][i % 3], x + 9 + (i * 7) % 12, G - 8 - (i * 5) % 16, 1, 1) }
   if (ev === 'phansa') for (let i = 0; i < 3; i++) { const x = 40 + i * 70; if (!prop(g, 'pr_candle', x - 7, G + 1, 18)) R(g, '#fde047', x, G - 18, 1, 6); if (Math.floor(now / 500 + i) % 2) R(g, '#fff7ed', x + 1, G - 18, 1, 1) }
   if (ev === 'payday') for (let i = 0; i < 3; i++) { const x = w - 108 + i * 28; if (!prop(g, 'pr_stall', x, G + 1, 26)) { R(g, '#92400e', x, G - 8, 1, 8); R(g, '#92400e', x + 9, G - 8, 1, 8) } }

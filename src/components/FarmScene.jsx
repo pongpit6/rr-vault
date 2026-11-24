@@ -23,7 +23,7 @@ function flashOf(im, key) {
   return (flashCache[key] = c)
 }
 /** row of each map backdrop (200×120) where feet stand: the sand, grass, cave floor… */
-const MAP_GROUND = { meadow: 93, forest: 104, mine: 97, swamp: 110, desert: 86, snow: 112, volcano: 108, shadow: 101 }
+const MAP_GROUND = { meadow: 93, forest: 82, mine: 88, swamp: 95, desert: 95, snow: 112, volcano: 100, shadow: 102 }
 const MON_H = { normal: 64, elite: 80, boss: 100 }
 const SLOT = { knight: 0, healer: 1, mage: 2, ranger: 3 }
 
@@ -74,7 +74,7 @@ export default function FarmScene({ mapId, party = [], shadows = [], events = []
     // background (map art, bottom-aligned), dimmed slightly at the edges
     g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, W, H)
     const bg = still(`map_${mapId}`)
-    if (bg) g.drawImage(bg, 0, GY - 2 * (MAP_GROUND[mapId] || 114), 400, 240); else { g.fillStyle = '#bae6fd'; g.fillRect(0, 0, W, H) }
+    if (bg) { const top = GY - 2 * (MAP_GROUND[mapId] || 114); if (top > 0) g.drawImage(bg, 0, 0, 200, 1, 0, 0, 400, top + 2); g.drawImage(bg, 0, top, 400, 240) } else { g.fillStyle = '#bae6fd'; g.fillRect(0, 0, W, H) }
 
     // shadow soldiers stand behind the party in a dark aura; one lunges in now and then
     shadows.forEach((id, i) => {

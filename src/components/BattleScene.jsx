@@ -195,7 +195,7 @@ export function drawRealm(g, tier, gy, night, now, decos) {
 }
 
 /** the row of each PixelLab battle backdrop (200×120) where feet stand: the grass / road / wall top */
-const BT_GROUND = [98, 93, 106, 92, 93]
+const BT_GROUND = [95, 93, 97, 92, 93]
 
 /* ---------------- component ---------------- */
 export default function BattleScene({
