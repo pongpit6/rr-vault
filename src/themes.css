@@ -177,3 +177,19 @@ html[data-theme="pixel-night"] :is(button, label).bg-slate-900.text-white, html[
 html[data-theme="pixel-night"] .grad-bg.text-white, html[data-theme="pixel-night"] .grad-bg .text-white { color: #fff; }
 .pl-tile { background: rgba(148,163,184,.08); border: 1px solid rgba(148,163,184,.15); border-radius: 12px; }
 .pl-tile:hover { background: rgba(148,163,184,.14); }
+
+/* Always-dark panels (BTC card, fullscreen hunt/town) keep the day palette at night,
+   otherwise the night theme's inverted slate/white turns their light text dark. */
+html[data-theme="pixel-night"] :is(.pl-dark, .keep-day) {
+  --color-white: #fff;
+  --color-slate-50: #f8fafc; --color-slate-100: #f1f5f9; --color-slate-200: #e2e8f0; --color-slate-300: #cbd5e1;
+  --color-slate-400: #94a3b8; --color-slate-500: #64748b; --color-slate-600: #475569; --color-slate-700: #334155;
+  --color-slate-800: #1e293b; --color-slate-900: #0f172a; --color-slate-950: #020617;
+  --color-emerald-50: #ecfdf5; --color-emerald-100: #d1fae5; --color-emerald-200: #a7f3d0; --color-emerald-700: #047857; --color-emerald-800: #065f46;
+  --color-teal-50: #f0fdfa; --color-teal-100: #ccfbf1; --color-teal-700: #0f766e;
+  --color-sky-50: #f0f9ff; --color-sky-100: #e0f2fe; --color-sky-700: #0369a1;
+  --color-rose-50: #fff1f2; --color-rose-100: #ffe4e6; --color-rose-700: #be123c;
+  --color-amber-50: #fffbeb; --color-amber-100: #fef3c7; --color-amber-200: #fde68a; --color-amber-700: #b45309; --color-amber-800: #92400e;
+  --color-violet-50: #f5f3ff; --color-violet-100: #ede9fe; --color-violet-700: #6d28d9;
+  --color-orange-50: #fff7ed;
+}

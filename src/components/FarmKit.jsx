@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { Swords, Backpack, Hammer, BookOpen, Zap, Lock, Gift, Sparkles, ScrollText, Castle as Castle2, Ghost, Gem } from './px'
 import { Emo, PxIcon, hasPx } from './px'
 import { Portrait } from './RpgBits'
+import { SHEETS } from '../lib/spriteSheets'
 import FarmScene from './FarmScene'
 import CardAlbum from './CardAlbum'
 import HuntFull from './HuntFull'
@@ -11,6 +12,8 @@ import { useStore } from '../store'
 import { MAPS, MAP_BY_ID, MON_BY_ID, MATS, TREE, rankCost, RECIPES, mapUnlocked, itemName, itemPrice, itemIcon, RELICS, RELIC_BY_ID, NPC_INFO, SHADOWS, SHADOW_SLOT_LV, enhStep, ENH_FX, SHARDS_PER_GOLD, MAP_MODES, huntMaps, mapWinRate, LOOT, RARE_ODDS, rareOf, matUse, happyBonusChance, HUNT_XP_PER_WIN, HUNT_XP_DAY } from '../lib/farm'
 import { monPower, BOSS_AFTER, trophyPrice, bossOf, eliteOf, normalsOf, mirrorMon, toggleFaceFix, faceFixes, clearFaceFixes } from '../lib/farmData'
 import { MAP_LORE, MON_LORE, STORY, STORY_STEPS } from '../lib/farmLore'
+import { TROPHY_LORE, MAT_LORE } from '../lib/itemLore'
+import BagGrid from './BagGrid'
 import { Sheet } from './ui'
 import { todOf, isFullMoon, NIGHT } from '../lib/timeOfDay'
 import { MON_GLOW_LORE, MAP_NIGHT, MOON_LEGEND } from '../lib/glowLore'
@@ -179,26 +182,82 @@ function RaidLog({ rpg }) {
   )
 }
 
+const SORTS = [['type', 'ประเภท'], ['qty', 'จำนวน'], ['value', 'มูลค่า'], ['recent', 'ได้มาล่าสุด']]
+const MON_ORDER = Object.fromEntries(MAPS.flatMap((m) => m.mons).map((x, i) => [x.id, i]))
+const MAT_ORDER = Object.fromEntries(Object.keys(MATS).map((k, i) => [k, i]))
+/** where a material comes from, read from the live drop tables */
+function matSource(k) {
+  if (k === 'star') return 'หีบวินัย (จากวินัยในชีวิตจริง)'
+  if (k === 'mcrystal' || k === 'shard') return 'มอนสเตอร์ทุกตัว ทุกแผนที่ (บอสและหัวหน้าให้บ่อยกว่า)'
+  const as = MAPS.filter((m) => m.mats.includes(k)).map((m) => m.name), rare = MAPS.filter((m) => rareOf(m).includes(k) && !m.mats.includes(k)).map((m) => m.name)
+  return [as.length && `วัสดุจาก ${as.join(', ')}`, rare.length && `ของหายากจาก ${rare.join(', ')}`].filter(Boolean).join(' · ') || '—'
+}
+function useBagSort() {
+  const [sort, setSort] = useState(() => { try { return localStorage.getItem('lq_bag_sort') || 'type' } catch { return 'type' } })
+  const next = () => { const i = SORTS.findIndex((x) => x[0] === sort), v = SORTS[(i + 1) % SORTS.length][0]; setSort(v); try { localStorage.setItem('lq_bag_sort', v) } catch { /* */ } }
+  return [sort, next]
+}
+function sortBag(list, sort, price) {
+  const order = (k) => (k.startsWith('t:') ? MON_ORDER[k.slice(2)] ?? 999 : MAT_ORDER[k] ?? 999)
+  const out = list.map(([k, n], i) => ({ k, n, i, name: itemName(k) }))
+  if (sort === 'qty') out.sort((a, b) => b.n - a.n || order(a.k) - order(b.k))
+  else if (sort === 'value') out.sort((a, b) => price(b.k) * b.n - price(a.k) * a.n || order(a.k) - order(b.k))
+  else if (sort === 'recent') out.sort((a, b) => b.i - a.i)
+  else out.sort((a, b) => order(a.k) - order(b.k))
+  return out
+}
+
 function Bag({ rpg }) {
   const showToast = useStore((s) => s.showToast)
+  const [sort, nextSort] = useBagSort()
+  const [sel, setSel] = useState(null)
   const bag = Object.entries(rpg.farm.bag || {}).filter(([, v]) => v > 0)
-  const trophies = bag.filter(([k]) => k.startsWith('t:')), mats = bag.filter(([k]) => !k.startsWith('t:'))
-  const tm = 1 + (rpg.cardFx?.trophy || 0) / 100 // desert cards raise trophy prices
-  const value = Math.round(trophies.reduce((s, [k, v]) => s + itemPrice(k) * v * tm, 0))
-  const sell = (keys) => { const g = rpg.sellItems(keys); if (g) showToast(`ขายได้ ${g.toLocaleString()} FIAT`) }
+  const tm = 1 + (rpg.cardFx?.trophy || 0) / 100, sm = 1 + (rpg.cardFx?.sell || 0) / 100 // card abilities raise sale prices
+  const price = (k) => Math.round(itemPrice(k) * (k.startsWith('t:') ? tm : sm) * 100) / 100
+  const trophies = sortBag(bag.filter(([k]) => k.startsWith('t:')), sort, price), mats = sortBag(bag.filter(([k]) => !k.startsWith('t:')), sort, price)
+  const value = Math.round(trophies.reduce((s, it) => s + itemPrice(it.k) * it.n * tm, 0))
+  const sell = (keys, qty) => { const g = rpg.sellItems(keys, qty); if (g) showToast(`ขายได้ ${g.toLocaleString()} FIAT`) }
+  const icon = (k, size) => <ItemIcon k={k} size={size} />
+  const tip = (it) => {
+    const mon = it.k.startsWith('t:') ? MON_BY_ID[it.k.slice(2)] : null
+    return <><div className="font-bold">{it.name} ×{it.n}</div><div className="text-slate-500">{mon ? `ดรอปจาก${mon.name} · ${MAP_BY_ID[mon.map].name}` : matSource(it.k)}</div><div>{itemPrice(it.k) ? `ขายชิ้นละ ${price(it.k).toLocaleString()} FIAT` : 'ขายไม่ได้'}</div></>
+  }
+  const SortBtn = () => <button className="px-btn !py-1 text-[11px]" onClick={nextSort} data-testid="bag-sort" title="กดเพื่อเปลี่ยนการจัดเรียง"><PxIcon name="ListFilter" size={14} /> {SORTS.find((x) => x[0] === sort)[1]}</button>
+  const selIt = [...trophies, ...mats].find((x) => x.k === sel)
+  const Detail = ({ it }) => {
+    if (!it) return null
+    const mon = it.k.startsWith('t:') ? MON_BY_ID[it.k.slice(2)] : null, p = price(it.k)
+    return (
+      <div className="px-inner p-3 mt-2 space-y-2 text-xs" data-testid="bag-detail">
+        <div className="flex items-center gap-2"><ItemIcon k={it.k} size={36} /><div className="flex-1 min-w-0"><div className="font-bold text-sm">{it.name} <span className="text-slate-500 font-normal">×{it.n}</span></div><div className="text-slate-500">{mon ? `ของประจำตัว · ${p.toLocaleString()} FIAT/ชิ้น` : it.k === 'shard' ? 'ขายไม่ได้ · ใช้หลอม GOLD' : `วัสดุ · ${p.toLocaleString()} FIAT/ชิ้น`}</div></div>
+          <button className="text-slate-400 px-1" onClick={() => setSel(null)} aria-label="ปิด">✕</button></div>
+        <div className="leading-relaxed" data-testid="bag-lore">{mon ? TROPHY_LORE[mon.id] : MAT_LORE[it.k]}</div>
+        {mon ? <div className="flex items-center gap-2 text-slate-600"><Portrait sprite={`mon_${mon.id}`} size={28} /><span>ดรอปจาก <b>{mon.name}</b> ({KIND_TH[mon.kind]}) · {MAP_BY_ID[mon.map].name}</span></div>
+          : <><div className="text-slate-600"><b>ได้จาก:</b> {matSource(it.k)}</div><div className="text-slate-600">{matUse(it.k)}</div></>}
+        <div className="flex gap-2">
+          {it.k === 'shard'
+            ? <button className="px-btn flex-1 justify-center text-xs" disabled={it.n < SHARDS_PER_GOLD} onClick={() => { const n = rpg.combineShards(); if (n) showToast(`หลอมได้ ${n} GOLD`) }} data-testid="combine-shards">หลอม {Math.floor(it.n / SHARDS_PER_GOLD)} GOLD</button>
+            : itemPrice(it.k) > 0 && <>
+              <button className="px-btn flex-1 justify-center text-xs" onClick={() => { sell([it.k], 1); if (it.n <= 1) setSel(null) }} data-testid="bag-sell1">ขาย 1 ชิ้น · {Math.round(p).toLocaleString()}</button>
+              {it.n > 1 && <button className="px-btn flex-1 justify-center text-xs" onClick={() => { sell([it.k]); setSel(null) }} data-testid="bag-sellall">ขายทั้งหมด · {Math.round(p * it.n).toLocaleString()}</button>}
+            </>}
+        </div>
+      </div>
+    )
+  }
   return (
     <div className="space-y-3">
-      <Card icon={Backpack} title="TROPHIES · ของประจำตัวมอนสเตอร์" testid="farm-trophies" right={trophies.length > 0 && <button className="px-btn !py-1 text-xs" onClick={() => sell(trophies.map(([k]) => k))} data-testid="sell-trophies">ขายทั้งหมด {value.toLocaleString()} FIAT</button>}>
-        <div className="text-[11px] text-slate-500 mb-2">ขายคืนร้านได้อย่างเดียว</div>
-        {trophies.length ? <div className="grid grid-cols-2 gap-1.5">{trophies.map(([k, v]) => (
-          <div key={k} className="px-inner p-1.5 flex items-center gap-2 text-xs"><ItemIcon k={k} /><div className="flex-1 min-w-0"><div className="truncate font-semibold">{itemName(k)}</div><div className="text-slate-500">×{v} · {itemPrice(k)} FIAT</div></div></div>
-        ))}</div> : <div className="text-sm text-slate-400">ยังว่างเปล่า ไปล่ามอนสเตอร์กัน</div>}
+      <Card icon={Backpack} title="TROPHIES · ของประจำตัวมอนสเตอร์" testid="farm-trophies" right={<div className="flex gap-1.5"><SortBtn />{trophies.length > 0 && <button className="px-btn !py-1 text-xs" onClick={() => { sell(trophies.map((x) => x.k)); setSel(null) }} data-testid="sell-trophies">ขายทั้งหมด {value.toLocaleString()}</button>}</div>}>
+        <div className="text-[11px] text-slate-500 mb-2">ขายคืนร้านได้อย่างเดียว · ชี้หรือแตะช่องเพื่อดูรายละเอียด</div>
+        <BagGrid items={trophies} icon={icon} tip={tip} selected={sel} onSelect={setSel} testid="bag-trophies" />
+        {selIt?.k.startsWith('t:') && <Detail it={selIt} />}
+        {!trophies.length && <div className="text-xs text-slate-400 mt-2">ยังว่างเปล่า ไปล่ามอนสเตอร์กัน</div>}
       </Card>
-      <Card icon={Hammer} title="MATERIALS · วัสดุ" testid="farm-mats">
+      <Card icon={Hammer} title="MATERIALS · วัสดุ" testid="farm-mats" right={<SortBtn />}>
         <div className="text-[11px] text-slate-500 mb-2">ส่งให้ชาวเมืองทำของติดตัว หรือขายก็ได้</div>
-        {mats.length ? <div className="space-y-1.5">{mats.map(([k, v]) => (
-          <div key={k} className="px-inner p-1.5 flex items-center gap-2 text-xs"><ItemIcon k={k} /><div className="flex-1 min-w-0"><div className="font-semibold">{MATS[k]?.name} ×{v}</div><div className="text-slate-500 truncate">{k.startsWith("t:") ? "ขายร้านได้อย่างเดียว" : matUse(k)}</div></div>{k === 'shard' ? <button className="px-btn !py-1 text-xs shrink-0" disabled={v < SHARDS_PER_GOLD} onClick={() => { const n = rpg.combineShards(); if (n) showToast(`หลอมได้ ${n} GOLD`) }} data-testid="combine-shards">หลอม {Math.floor(v / SHARDS_PER_GOLD)} GOLD</button> : MATS[k]?.noSell ? null : <button className="text-[11px] ui-link shrink-0" onClick={() => sell([k])}>ขาย {(itemPrice(k) * v).toLocaleString()}</button>}</div>
-        ))}</div> : <div className="text-sm text-slate-400">ยังไม่มีวัสดุ</div>}
+        <BagGrid items={mats} icon={icon} tip={tip} selected={sel} onSelect={setSel} minRows={2} testid="bag-mats" />
+        {selIt && !selIt.k.startsWith('t:') && <Detail it={selIt} />}
+        {!mats.length && <div className="text-xs text-slate-400 mt-2">ยังไม่มีวัสดุ</div>}
       </Card>
     </div>
   )
@@ -264,6 +323,7 @@ function Craft({ rpg }) {
   )
 }
 
+const ALL_MONS = MAPS.flatMap((m) => m.mons)
 function Dex({ rpg }) {
   const dex = rpg.farm.dex || {}, gdex = rpg.farm.glowDex || {}
   const glowAll = Object.values(gdex).filter((v) => v > 0).length
@@ -273,7 +333,9 @@ function Dex({ rpg }) {
       <button onClick={() => setFace(true)} className="px-btn w-full text-[12px]" data-testid="face-open">ตรวจทิศหน้ามอนสเตอร์ (แตะตัวที่หันผิด)</button>
       {face && <FacingCheck onClose={() => setFace(false)} />}
       <div className="px-inner p-3 text-[12px] text-indigo-100" style={{ background: '#1e1b4b' }} data-testid="glow-dex"><div className="flex items-center gap-1.5 font-semibold text-amber-200 mb-1"><Emo k="em_glowbook" size={18} /> สมุดตัวเรืองแสง {glowAll}/{MAPS.reduce((n, m) => n + m.mons.length, 0)}</div>{MOON_LEGEND}<div className="mt-1 text-indigo-300 flex items-center gap-1"><Emo k="em_nighthunt" size={14} /> ออก 19:00–05:00 โอกาส {pct(NIGHT.glow)} · <Emo k="em_fullmoon" size={14} /> คืนเพ็ญ {pct(NIGHT.glow * NIGHT.moonMult)}</div></div>
-      <MonSheet mon={open} seen={open ? dex[open.id] || 0 : 0} glow={open ? rpg.farm.glowDex?.[open.id] || 0 : 0} onClose={() => setOpen(null)} />
+      <MonSheet mon={open} seen={open ? dex[open.id] || 0 : 0} glow={open ? rpg.farm.glowDex?.[open.id] || 0 : 0} onClose={() => setOpen(null)}
+        pos={open ? `${MAP_BY_ID[open.map].name} · ตัวที่ ${ALL_MONS.indexOf(open) + 1}/${ALL_MONS.length}` : ''}
+        onNav={(d) => setOpen((o) => ALL_MONS[(ALL_MONS.indexOf(o) + d + ALL_MONS.length) % ALL_MONS.length])} />
       {MAPS.map((m) => {
         const seen = m.mons.filter((x) => dex[x.id]).length, glowN = m.mons.filter((x) => gdex[x.id]).length
         return (
@@ -346,7 +408,13 @@ function PhaseBadge() {
   return <div className={`absolute left-2 top-7 text-[10px] px-1.5 py-0.5 flex items-center gap-1 ${tod.id === 'night' ? 'bg-indigo-950/85 text-amber-200' : 'bg-white/85'}`} data-testid="phase-badge"><Emo k={icon} size={14} />{text}</div>
 }
 
-function MonSheet({ mon, seen, glow = 0, onClose }) {
+/** the monster moving (8-frame PixelLab strip), facing the same way as in the hunt; silhouette when unknown */
+function MonAnim({ id, glow, size, dim }) {
+  const name = `mon_${id}${glow ? '_glow' : ''}`, moving = !dim && !!SHEETS[`${name}_anim`]
+  return <div className={moving ? 'card-anim' : ''} data-testid="mon-anim" style={{ width: size, height: size, backgroundImage: `url(./sprites/${name}${moving ? '_anim' : ''}.png)`, backgroundSize: moving ? '800% 100%' : '100% 100%', backgroundRepeat: 'no-repeat', imageRendering: 'pixelated', transform: mirrorMon(id, glow) ? 'scaleX(-1)' : undefined, filter: dim ? 'brightness(0)' : undefined, opacity: dim ? 0.55 : 1 }} />
+}
+
+function MonSheet({ mon, seen, glow = 0, onClose, onNav, pos }) {
   const [form, setForm] = useState('normal')
   useEffect(() => setForm('normal'), [mon?.id])
   if (!mon) return null
@@ -354,12 +422,17 @@ function MonSheet({ mon, seen, glow = 0, onClose }) {
   return (
     <Sheet open onClose={onClose} title={g ? (gKnown ? `${mon.name} (เรืองแสง)` : '??? (ร่างเรืองแสง)') : known ? mon.name : '??? (ยังไม่เคยเจอ)'}>
       <div className="space-y-3" data-testid="mon-sheet">
+        {onNav && <div className="flex items-center gap-2">
+          <button className="px-btn px-3 py-1 text-xs" onClick={() => onNav(-1)} aria-label="ตัวก่อนหน้า" data-testid="mon-prev">◀</button>
+          <div className="flex-1 text-center text-[11px] text-slate-500">{pos}</div>
+          <button className="px-btn px-3 py-1 text-xs" onClick={() => onNav(1)} aria-label="ตัวถัดไป" data-testid="mon-next">▶</button>
+        </div>}
         <div className="flex gap-1 text-xs" data-testid="mon-form">
           <button onClick={() => setForm('normal')} className={`px-btn px-2 py-1 ${!g ? 'ring-2 ring-slate-900' : 'opacity-50'}`}>ร่างปกติ</button>
           <button onClick={() => setForm('glow')} className={`px-btn px-2 py-1 flex items-center gap-1 ${g ? 'ring-2 ring-slate-900' : 'opacity-50'}`} data-testid="mon-form-glow"><Emo k="em_glow" size={14} /> ร่างเรืองแสง</button>
         </div>
         <div className="flex gap-3 items-center">
-          <div className="w-28 h-28 grid place-items-center border-2 border-slate-800 shrink-0" style={{ backgroundImage: `url(./sprites/map_${map.id}${g && NIGHT_BG.includes(map.id) ? '_night' : ''}.png)`, backgroundSize: 'cover', backgroundPosition: 'center bottom', imageRendering: 'pixelated' }}><Portrait sprite={g ? `mon_${mon.id}_glow` : `mon_${mon.id}`} size={92} dim={g ? !gKnown : !known} /></div>
+          <div className="w-28 h-28 grid place-items-center border-2 border-slate-800 shrink-0" style={{ backgroundImage: `url(./sprites/map_${map.id}${g && NIGHT_BG.includes(map.id) ? '_night' : ''}.png)`, backgroundSize: 'cover', backgroundPosition: 'center bottom', imageRendering: 'pixelated' }}><MonAnim id={mon.id} glow={g} size={92} dim={g ? !gKnown : !known} /></div>
           <div className="text-sm space-y-0.5">
             <div><b>{KIND_TH[mon.kind]}</b> · <Emo e={map.emoji} size={16} /> {map.name}</div>
             <div>พลัง ~{g ? Math.round(monPower(mon) * NIGHT.monPow) : monPower(mon)}{g ? ' (กลางคืน +10%)' : ''}</div>
@@ -383,7 +456,7 @@ function MonSheet({ mon, seen, glow = 0, onClose }) {
         <div>
           <div className="text-[11px] text-slate-500 mb-1">ของที่ดรอป</div>
           <div className="space-y-1.5">
-            <div className="px-inner p-2 flex items-center gap-2 text-xs"><ItemIcon k={`t:${mon.id}`} /><div className="flex-1"><b>{mon.trophy}</b> · ของประจำตัว (ขายร้านได้อย่างเดียว)<div className="text-slate-500">{mon.kind === 'normal' ? `โอกาส ${pct(LOOT.trophy)}` : 'ดรอปทุกครั้ง'} · {trophyPrice(mon)} FIAT</div></div></div>
+            <div className="px-inner p-2 flex items-center gap-2 text-xs"><ItemIcon k={`t:${mon.id}`} /><div className="flex-1"><b>{mon.trophy}</b> · ของประจำตัว (ขายร้านได้อย่างเดียว)<div className="text-slate-500">{mon.kind === 'normal' ? `โอกาส ${pct(LOOT.trophy)}` : 'ดรอปทุกครั้ง'} · {trophyPrice(mon)} FIAT</div>{known && <div className="mt-0.5 italic text-slate-600" data-testid="dex-trophy-lore">{TROPHY_LORE[mon.id]}</div>}</div></div>
             {map.mats.map((k) => <div key={k} className="px-inner p-2 flex items-center gap-2 text-xs"><ItemIcon k={k} /><div className="flex-1"><b>{MATS[k].name}</b> · วัสดุ{mon.kind === 'boss' ? ' ×4' : mon.kind === 'elite' ? ' ×2' : ''}<div className="text-slate-500">โอกาส {pct(LOOT.mat)}+ (สุ่ม 1 ใน {map.mats.length} ชนิด) · {matUse(k)}</div></div></div>)}
             <div className="px-inner p-2 flex items-center gap-2 text-xs bg-indigo-50"><ItemIcon k={`t:${mon.id}`} /><div className="flex-1"><b className="inline-flex items-center gap-1">ตัวเรืองแสง <Emo k="em_glow" size={12} /></b> · ออกเฉพาะกลางคืน (ดูแท็บร่างเรืองแสง)<div className="text-slate-500">โอกาส {pct(NIGHT.glow)} ต่อตัว (คืนเพ็ญ {pct(NIGHT.glow * NIGHT.moonMult)}) · ดรอป{mon.trophy} 100% ทีละ {NIGHT.glowTrophy} ชิ้น ของอื่นโอกาสสูงขึ้น</div></div></div>
             {rareOf(map).map((k) => <div key={k} className="px-inner p-2 flex items-center gap-2 text-xs"><ItemIcon k={k} /><div className="flex-1"><b>{MATS[k].name}</b> · ของหายาก<div className="text-slate-500">โอกาส {pct(RARE_ODDS[mon.kind] / 2)} (กลางคืน ×{NIGHT.rare}, คืนเพ็ญ ×{1 + (NIGHT.rare - 1) * NIGHT.moonMult}) · {matUse(k)}</div></div></div>)}

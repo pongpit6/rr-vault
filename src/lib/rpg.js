@@ -791,10 +791,16 @@ export function useRpg() {
     if (!(f.shadows || {})[id] || worn.length >= rpg.shadowSlots) return false
     saveFarm({ ...f, shadowWorn: [...worn, id] }); return true
   }
-  const sellItems = (keys) => {
+  /** sell whole stacks, or only `qty` of each key when given */
+  const sellItems = (keys, qty = null) => {
     const f = F(), bag = { ...f.bag }; let got = 0
     const cf = cardFx(f), tm = 1 + (cf.trophy || 0) / 100, sm = 1 + (cf.sell || 0) / 100 // card abilities raise sale prices
-    for (const k of keys) { got += Math.round(itemPrice(k) * (k.startsWith('t:') ? tm : sm) * (bag[k] || 0)); delete bag[k] }
+    for (const k of keys) {
+      if (!itemPrice(k)) continue // unsellable (gold shards)
+      const have = bag[k] || 0, n = qty == null ? have : Math.min(have, qty)
+      got += Math.round(itemPrice(k) * (k.startsWith('t:') ? tm : sm) * n)
+      if (n >= have) delete bag[k]; else bag[k] = have - n
+    }
     if (!got) return 0
     pay(got, 0, { icon: '💰', text: `ขายของจากการล่ามอนสเตอร์` }, { farm: { ...f, bag } }); sfx('coin'); return got
   }

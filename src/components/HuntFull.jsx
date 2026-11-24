@@ -26,7 +26,7 @@ export default function HuntFull({ onClose, title, ...scene }) {
   const W = sideways ? vw.h : vw.w, H = sideways ? vw.w : vw.h
   const sw = Math.min(W, Math.round(((H - 48) * 400) / 180)) // keep the scene's 400×180 shape
   return createPortal(
-    <div className="fixed inset-0 z-[80] bg-slate-950" data-testid="hunt-full">
+    <div className="fixed inset-0 z-[80] bg-slate-950 keep-day" data-testid="hunt-full">
       <div style={sideways ? { position: 'absolute', width: W, height: H, left: (vw.w - W) / 2, top: (vw.h - H) / 2, transform: 'rotate(90deg)' } : { position: 'absolute', inset: 0 }}>
         <div className="flex items-center gap-2 px-3 h-12 text-white">
           <div className="font-bold flex-1 truncate">{title}</div>

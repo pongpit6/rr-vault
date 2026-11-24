@@ -1,8 +1,9 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useStore } from '../../store'
 import { Sheet } from '../ui'
 import { PxIcon } from '../px'
 import { useFortune, saveFortune } from './FortuneKit'
+import { TAROT_LORE } from '../../lib/fortune/tarotLore'
 import { CARDS, CARD_BY_ID, SUITS, suitOf, cardArt, drawCard, bkkDate, effectOf, effectLines, LUCK_TEXT, LUCK_COLOR } from '../../lib/fortune/tarot'
 
 const BACK = './sprites/tarot/back.png'
@@ -57,23 +58,40 @@ function Reading({ id, rev }) {
 /** popup for any card: picture, what the picture shows, reading and game effect (both orientations from the deck list) */
 export function CardSheet({ open, onClose, id, rev = false, both = false, day }) {
   const [r, setR] = useState(rev)
-  if (!open || !id) return null
-  const c = CARD_BY_ID[id], s = suitOf(id), showRev = both ? r : rev
+  const [cur, setCur] = useState(id)
+  const [all, setAll] = useState(both)
+  useEffect(() => { setCur(id); setAll(both); setR(rev) }, [id, both, rev])
+  if (!open || !cur) return null
+  const c = CARD_BY_ID[cur], s = suitOf(cur), showRev = all ? r : rev
+  const k = CARDS.findIndex((x) => x.id === cur)
+  const go = (d) => { setCur(CARDS[(k + d + CARDS.length) % CARDS.length].id); if (!all) { setAll(true); setR(false) } }
+  const lore = TAROT_LORE[cur]
   return (
     <Sheet open onClose={onClose} title={`${c.en} · ${c.th}`}>
       <div className="space-y-3" data-testid="tarot-sheet">
+        <div className="flex items-center gap-2">
+          <button className="px-btn px-3 py-1 text-xs" onClick={() => go(-1)} aria-label="ไพ่ก่อนหน้า" data-testid="tarot-prev">◀</button>
+          <div className="flex-1 text-center text-[11px] text-slate-500">ใบที่ {k + 1} / {CARDS.length}</div>
+          <button className="px-btn px-3 py-1 text-xs" onClick={() => go(1)} aria-label="ไพ่ถัดไป" data-testid="tarot-next">▶</button>
+        </div>
         <div className="flex gap-3 items-start">
-          <TarotCard id={id} rev={showRev} w={110} />
+          <TarotCard id={cur} rev={showRev} w={110} />
           <div className="flex-1 min-w-0 space-y-1.5 text-xs">
             <div className="flex items-center gap-1.5"><PxIcon name={SUITS[s].icon} size={18} /> {SUITS[s].name}{SUITS[s].el ? ` · ธาตุ${SUITS[s].el}` : ''}</div>
-            <div>{showRev ? 'กลับหัว' : 'ตั้งตรง'} · <Luck id={id} rev={showRev} /></div>
-            {day && <div className="text-slate-500">จั่ววันที่ {thDay(day)}</div>}
+            <div>{showRev ? 'กลับหัว' : 'ตั้งตรง'} · <Luck id={cur} rev={showRev} /></div>
+            {day && cur === id && <div className="text-slate-500">จั่ววันที่ {thDay(day)}</div>}
             <div className="text-slate-500">ภาพบนไพ่: {c.img}</div>
           </div>
         </div>
-        {both && <div className="flex gap-2">{[false, true].map((v) => <button key={String(v)} onClick={() => setR(v)} className={`px-btn flex-1 justify-center text-xs ${r === v ? '' : 'opacity-50'}`}>{v ? 'กลับหัว' : 'ตั้งตรง'}</button>)}</div>}
-        <Reading id={id} rev={showRev} />
-        <Effect id={id} rev={showRev} />
+        {all && <div className="flex gap-2">{[false, true].map((v) => <button key={String(v)} onClick={() => setR(v)} className={`px-btn flex-1 justify-center text-xs ${r === v ? '' : 'opacity-50'}`}>{v ? 'กลับหัว' : 'ตั้งตรง'}</button>)}</div>}
+        <Reading id={cur} rev={showRev} />
+        {lore && (
+          <div className="space-y-2" data-testid="tarot-lore">
+            <div className="px-inner p-2.5 text-xs leading-relaxed"><div className="flex items-center gap-1.5 font-bold mb-1"><PxIcon name="BookOpen" size={16} /> ตำนานดั้งเดิม</div>{lore[0]}</div>
+            <div className="px-inner p-2.5 text-xs leading-relaxed"><div className="flex items-center gap-1.5 font-bold mb-1"><PxIcon name="Castle" size={16} /> ตำนานในโลก LifeQuest</div>{lore[1]}</div>
+          </div>
+        )}
+        <Effect id={cur} rev={showRev} />
       </div>
     </Sheet>
   )
@@ -96,9 +114,6 @@ export default function TarotTab() {
     setPhase('shuffle'); setTimeout(() => setPhase('down'), 1400)
   }
   const review = (v) => saveFortune((cur) => ({ tarot: { ...cur.tarot, [today]: { ...cur.tarot[today], review: { v, note } } } }))
-  const days = useMemo(() => Object.keys(tarot).sort().reverse(), [tarot])
-  const counts = useMemo(() => { const m = {}; for (const x of Object.values(tarot)) m[x.id] = (m[x.id] || 0) + 1; return Object.entries(m).sort((a, b) => b[1] - a[1]).slice(0, 3) }, [tarot])
-  const hits = Object.values(tarot).filter((x) => x.review)
   return (
     <div className="space-y-4" data-testid="tarot-tab">
       <section className="px-card p-4">
@@ -139,19 +154,6 @@ export default function TarotTab() {
           </div>
         )}
       </section>
-
-      {days.length > 0 && (
-        <section className="px-card p-4" data-testid="tarot-history">
-          <div className="flex items-center gap-2 mb-2"><PxIcon name="History" size={20} /><b className="text-sm">ไพ่ที่ผ่านมา</b>
-            <span className="ml-auto text-[11px] text-slate-500">จั่ว {days.length} วัน{hits.length ? ` · ทบทวน ${hits.length} · ตรง ${hits.filter((x) => x.review.v === 'hit').length}` : ''}</span></div>
-          <div className="flex gap-2 overflow-x-auto pb-1">{days.slice(0, 30).map((day) => { const x = tarot[day]; return (
-            <div key={day} className="text-center shrink-0">
-              <TarotCard id={x.id} rev={x.rev} w={56} onClick={() => setSheet({ id: x.id, rev: x.rev, day })} />
-              <div className="text-[10px] text-slate-500 mt-0.5">{thDay(day)}{x.review ? ` · ${REVIEW.find((r) => r[0] === x.review.v)?.[1] || ''}` : ''}</div>
-            </div>) })}</div>
-          {counts.length > 0 && counts[0][1] > 1 && <div className="text-[11px] text-slate-500 mt-2">ออกบ่อย: {counts.map(([id, n]) => `${CARD_BY_ID[id].en} ×${n}`).join(' · ')} (โอกาสแต่ละใบเท่ากัน 1/78 ไพ่ซ้ำไม่ได้แปลว่าเตือนแรงขึ้น)</div>}
-        </section>
-      )}
 
       <section className="px-card p-4" data-testid="tarot-deck">
         <div className="flex items-center gap-2 mb-2"><PxIcon name="BookOpen" size={20} /><b className="text-sm">ไพ่ทั้งสำรับ 78 ใบ</b><span className="ml-auto text-[11px] text-slate-500">แตะดูความหมายและพลังทั้งสองด้าน</span></div>

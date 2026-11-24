@@ -32,7 +32,7 @@ export default function TownFull({ onClose, ...scene }) {
   const W = sideways ? vw.h : vw.w, H = sideways ? vw.w : vw.h
   const height = Math.round((H - 56) * zoom)
   return createPortal(
-    <div className="fixed inset-0 z-[80] bg-slate-950" data-testid="town-full">
+    <div className="fixed inset-0 z-[80] bg-slate-950 keep-day" data-testid="town-full">
       <div style={sideways ? { position: 'absolute', width: W, height: H, left: (vw.w - W) / 2, top: (vw.h - H) / 2, transform: 'rotate(90deg)' } : { position: 'absolute', inset: 0 }}>
         <div className="flex items-center gap-2 px-3 h-12 text-white">
           <div className="font-bold flex-1 truncate">เมืองของฉัน</div>
