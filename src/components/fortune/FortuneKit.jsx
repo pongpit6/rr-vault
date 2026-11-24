@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useStore } from '../../store'
 import { Sheet } from '../ui'
 import { PxIcon } from '../px'
+import MorningPush from './MorningPush'
 
 /** the fortune record: { id:'fortune', birth:{date,time,unknownTime,place,sex}, tarot:{ 'YYYY-MM-DD': {id, rev, at, review} } } */
 export function useFortune() {
@@ -30,6 +31,7 @@ export function BirthSheet({ open, onClose }) {
         <label className="flex items-center gap-2 text-xs"><input type="checkbox" checked={!!f.unknownTime} onChange={(e) => setF({ ...f, unknownTime: e.target.checked })} /> ไม่ทราบเวลาเกิด (เสาเวลาจะเว้นไว้ และดาววันเกิดอาจมีสองแบบ)</label>
         <label className="block"><span className={L}>สถานที่เกิด</span><input className="field w-full" value={f.place || ''} onChange={(e) => setF({ ...f, place: e.target.value })} /></label>
         <label className="flex items-center gap-2 text-xs"><input type="checkbox" checked={f.alerts !== false} onChange={(e) => setF({ ...f, alerts: e.target.checked })} data-testid="birth-alerts" /> แจ้งเตือนดวงประจำวัน (วันพิเศษของ BaZi, ดาวแทรกใกล้เปลี่ยน, ยังไม่จั่วไพ่)</label>
+        <MorningPush />
         <div><span className={L}>เพศ (ใช้หาทิศเดินเสาโชค BaZi ตามสูตรดั้งเดิม)</span>
           <div className="flex gap-2">{[['m', 'ชาย'], ['f', 'หญิง'], ['', 'ไม่ระบุ']].map(([v, t]) => (
             <button key={v} onClick={() => setF({ ...f, sex: v })} className={`px-btn flex-1 justify-center ${f.sex === v ? '' : 'opacity-50'}`} data-testid={`birth-sex-${v || 'x'}`}>{t}</button>))}</div>

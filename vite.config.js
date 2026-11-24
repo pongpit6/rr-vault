@@ -39,7 +39,7 @@ export default defineConfig({
         // precache only the app shell so a new version installs fast and reliably on phones;
         // sprites and the icon atlas are cached at runtime the first time they are shown
         globPatterns: ['**/*.{js,css,html,woff2}', '*.{png,jpg,svg}'],
-        globIgnores: ['icons-px.png'],
+        globIgnores: ['icons-px.png', 'push/**'],
         navigateFallback: 'index.html',
         importScripts: ['share-target.js'],
         runtimeCaching: [

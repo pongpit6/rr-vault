@@ -25,3 +25,12 @@ self.addEventListener('notificationclick', (event) => {
     return self.clients.openWindow(target)
   })())
 })
+
+// server push (06:00 fortune digest) — shows even when the app is closed
+self.addEventListener('push', (event) => {
+  let d = {}
+  try { d = event.data ? event.data.json() : {} } catch { d = { body: event.data?.text() } }
+  event.waitUntil(self.registration.showNotification(d.title || 'LifeQuest', {
+    body: d.body || '', tag: d.tag || 'push', renotify: true, icon: './icon-192.png', badge: './favicon.png', data: { url: d.url || './' },
+  }))
+})
