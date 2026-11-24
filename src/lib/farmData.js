@@ -128,9 +128,14 @@ export const BOSS_AFTER = 30 // kills in a map before its boss shows up
 
 /** monsters whose PixelLab art faces right; the hunt scene mirrors them so every monster faces the party (left) */
 export const FACES_RIGHT = new Set([
-  'rabbit', 'bee', 'boar', 'crow', 'snail', 'frog_g', 'goblin', 'fox_fire', 'beetle', 'deer', 'raccoon', 'pixie',
-  'bandit', 'mole', 'skeleton', 'worm', 'kobold', 'drill', 'dwarf', 'crystal_wyrm', 'leech', 'croc', 'lizard', 'turtle_s',
-  'bog_zombie', 'dragonfly', 'scorpion', 'mummy', 'vulture', 'djinn', 'jackal', 'camel', 'lizard_d', 'frost_bird', 'seal', 'owl_s',
-  'walrus', 'salamander', 'imp', 'hellhound', 'phoenix_s', 'rock_turtle', 'red_dragon', 'ghost', 'gargoyle', 'armor', 'shadow_cat', 'chest_mimic',
-  'shadow_lord', 'cobra', 'sphinx', 'ice_imp', 'ice_dragon', 'fox_s', 'snow_wolf', 'owlbear', 'skull_mage', 'penguin', 'eel',
+  'rabbit', 'bee', 'boar', 'crow', 'snail', 'goblin', 'fox_fire', 'beetle', 'deer', 'raccoon', 'pixie', 'bandit',
+  'mole', 'skeleton', 'worm', 'kobold', 'drill', 'dwarf', 'crystal_wyrm', 'leech', 'croc', 'lizard', 'turtle_s', 'bog_zombie',
+  'dragonfly', 'scorpion', 'mummy', 'vulture', 'jackal', 'camel', 'lizard_d', 'frost_bird', 'seal', 'owl_s', 'walrus', 'salamander',
+  'imp', 'hellhound', 'phoenix_s', 'rock_turtle', 'red_dragon', 'ghost', 'gargoyle', 'armor', 'shadow_cat', 'chest_mimic', 'shadow_lord', 'cobra',
+  'sphinx', 'ice_imp', 'ice_dragon', 'fox_s', 'snow_wolf', 'owlbear', 'skull_mage', 'penguin', 'eel', 'wolf', 'spider_c', 'frog',
+  'toad_king', 'hydra_jr', 'sandworm', 'beetle_s', 'yeti_jr', 'snowman', 'mammoth', 'efreet', 'death_knight',
 ])
+/** glowing forms whose art faces the other way from the normal form (flip toggled for the glowing one) */
+export const GLOW_FACES_OTHER = new Set(['fire_snake'])
+/** true when a monster must be mirrored to face the party */
+export const mirrorMon = (id, glow = false) => FACES_RIGHT.has(id) !== (glow && GLOW_FACES_OTHER.has(id))

@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { frame, still } from './BattleScene'
-import { MON_BY_ID, MAP_BY_ID, FACES_RIGHT } from '../lib/farmData'
+import { MON_BY_ID, MAP_BY_ID, mirrorMon } from '../lib/farmData'
 import { itemName, TREE_BY_ID } from '../lib/farm'
 import { popDmg, drawDmg, fmtDmg } from './dmgFx'
 import { todOf, drawPhased } from '../lib/timeOfDay'
@@ -221,7 +221,7 @@ export default function FarmScene({ mapId, party = [], shadows = [], recent = []
       if (im) {
         const pic = mode && Math.floor(now / 60) % 2 ? flashOf(im, `${mon.id}${gl ? '_g' : ''}:${g8}`) : im
         g.globalAlpha = alpha
-        if (FACES_RIGHT.has(mon.id)) { g.save(); g.translate(x + h, y); g.scale(-1, 1); g.drawImage(pic, 0, 0, h, h); g.restore() } // face the party
+        if (mirrorMon(mon.id, !!gl)) { g.save(); g.translate(x + h, y); g.scale(-1, 1); g.drawImage(pic, 0, 0, h, h); g.restore() } // face the party
         else g.drawImage(pic, x, y, h, h)
         g.globalAlpha = 1
       }
