@@ -31,7 +31,7 @@ export function sceneProps(rpg) {
   return {
     bosses: rpg.bosses, tier: rpg.realm.tier, fog: rpg.debtFog, level: rpg.level, weather: rpg.weather, chest: rpg.chestReady,
     party: rpg.party, gear: rpg.gearBy, pet: rpg.pet.sprite, skinHue: rpg.skin?.hue || 0, decos: rpg.decos,
-    storm: rpg.skills.find((k) => k.id === 'storm')?.unlocked, captions: statusLines(rpg), cheers: sceneCheers(rpg),
+    storm: rpg.skills.find((k) => k.id === 'storm')?.unlocked, captions: statusLines(rpg), cheers: sceneCheers(rpg), shadows: (rpg.farm?.shadowWorn || []).filter((id) => rpg.farm?.shadows?.[id]),
   }
 }
 

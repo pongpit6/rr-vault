@@ -10,6 +10,17 @@ import { ACHIEVEMENTS } from '../lib/rpg'
 import { memberById } from '../lib/party'
 import { popDmg, drawDmg } from './dmgFx'
 import { todOf, drawPhased, phaseArt } from '../lib/timeOfDay'
+import { drawAmbientList } from './ambient'
+
+/* ambient creatures per realm (bt_0 graveyard … bt_4 golden palace) and time of day — same format as the hunt scene */
+const BT_AMBIENT = [
+  [['am_mist', 3, 40, 'low', 'front', 'm'], ['am_crow', 2, 20, 'fly', 'back', 'mde'], ['am_bat', 3, 22, 'fly', 'back', 'en'], ['am_candle', 3, 13, 'ground', 'back', 'en'], ['am_wisp', 3, 20, 'flutter', 'back', 'en'], ['am_ghost', 2, 20, 'flutter', 'back', 'n'], ['am_firefly', 4, 12, 'flutter', 'back', 'n']],
+  [['am_mist', 3, 40, 'low', 'front', 'm'], ['am_bird', 2, 20, 'fly', 'back', 'md'], ['am_butterfly', 3, 16, 'flutter', 'back', 'md'], ['am_dandelion', 3, 12, 'flutter', 'back', 'd'], ['am_chicken', 1, 20, 'crawl', 'back', 'md'], ['am_chick', 1, 12, 'crawl', 'back', 'md'], ['am_duck', 1, 18, 'crawl', 'back', 'md'], ['am_sheep', 1, 24, 'crawl', 'back', 'mde'],
+    ['am_crow', 2, 20, 'fly', 'back', 'e'], ['am_firefly', 7, 12, 'flutter', 'back', 'n'], ['am_owl', 1, 24, 'fly', 'back', 'n'], ['am_shoot', 1, 28, 'shoot', 'back', 'n']],
+  [['am_pigeon', 3, 20, 'fly', 'back', 'mde'], ['am_petal', 4, 10, 'fall', 'front', 'd'], ['am_rat', 1, 14, 'crawl', 'back', 'en'], ['am_cat', 1, 18, 'crawl', 'back', 'n'], ['am_moth', 2, 14, 'flutter', 'back', 'n'], ['am_shoot', 1, 28, 'shoot', 'back', 'n']],
+  [['am_mist', 2, 40, 'low', 'front', 'm'], ['am_eagle', 1, 30, 'soar', 'back', 'md'], ['am_bird', 2, 18, 'fly', 'back', 'md'], ['am_crow', 2, 20, 'fly', 'back', 'e'], ['am_bat', 2, 20, 'fly', 'back', 'n'], ['am_firefly', 4, 12, 'flutter', 'back', 'n'], ['am_shoot', 1, 28, 'shoot', 'back', 'n']],
+  [['am_dove', 3, 20, 'fly', 'back', 'md'], ['am_goldfly', 3, 16, 'flutter', 'back', 'mde'], ['am_goldspark', 6, 12, 'twinkle', 'back'], ['am_petal', 5, 10, 'fall', 'front', 'md'], ['am_crow', 1, 20, 'fly', 'back', 'e'], ['am_firefly', 6, 12, 'flutter', 'back', 'n'], ['am_shoot', 1, 28, 'shoot', 'back', 'n']],
+]
 
 /* ---------------- sprite sheets (PixelLab art) ---------------- */
 const imgs = {}
@@ -19,6 +30,16 @@ function sheet(name) {
 }
 Object.keys(SHEETS).forEach(sheet) // preload
 const statics = {}
+const shTintCache = {}
+/** a shadow soldier's look: purple glow + dark tint (same as the hunt scene) */
+function shadowTint(im, key) {
+  if (shTintCache[key]) return shTintCache[key]
+  const c = document.createElement('canvas'); c.width = im.width + 6; c.height = im.height + 6
+  const x = c.getContext('2d')
+  x.filter = 'drop-shadow(0 0 3px rgba(124,58,237,1)) drop-shadow(0 0 2px rgba(30,0,60,1))'; x.drawImage(im, 3, 3); x.filter = 'none'
+  x.globalCompositeOperation = 'source-atop'; x.fillStyle = 'rgba(46,16,101,.35)'; x.fillRect(0, 0, c.width, c.height)
+  return (shTintCache[key] = c)
+}
 export function still(name) {
   if (!statics[name]) { const im = new Image(); im.src = `./sprites/${name}.png`; statics[name] = im }
   const im = statics[name]
@@ -203,7 +224,7 @@ const BT_GROUND = [95, 93, 97, 92, 93]
 /* ---------------- component ---------------- */
 export default function BattleScene({
   bosses, events = [], onConsumed, tier = 1, fog = 0, big = false, level = 1, hud = true, weather = 'sun', chest = false, onChest,
-  party = [], gear = null, pet = 'pet_fox', skinHue = 0, decos = {}, storm = false, captions = [], previewTier = null, previewName = '', cheers = [],
+  party = [], gear = null, pet = 'pet_fox', skinHue = 0, decos = {}, storm = false, captions = [], previewTier = null, previewName = '', cheers = [], shadows = [],
 }) {
   const W = 400, H = big ? 220 : 176
   const canvasRef = useRef(null)
@@ -219,7 +240,7 @@ export default function BattleScene({
   const backRow = useMemo(() => ['healer', 'mage', 'ranger'].filter((id) => party.some((p) => p.id === id && p.joined)), [party])
   const S = useRef({ queue: [], fx: [], hpShown: {}, focus: null, focusUntil: 0, cycleStart: 0, cycle: 0, current: null, dying: 0, heal: 0, shake: 0, flash: 0, heroFlash: 0, levelGlow: 0, petX: 40, petHop: 0, heroJump: 0, poke: 0, nextTalk: 0, smoke: [], drops: [], bolt: 0, act: null, proj: [], dome: 0, glow: 0, dmg: [], anims: [] })
   const P = useRef({})
-  P.current = { bosses, alive, tier: previewTier ?? tier, fog: previewTier != null ? (previewTier === 0 ? 0.4 : 0) : fog, privacy, weather, chest, backRow, gear, pet, skinHue, decos, storm, cheers }
+  P.current = { bosses, alive, tier: previewTier ?? tier, fog: previewTier != null ? (previewTier === 0 ? 0.4 : 0) : fog, privacy, weather, chest, backRow, gear, pet, skinHue, decos, storm, cheers, shadows }
 
   // ingest real events: rewind displayed HP to the pre-event value, then replay them as attacks
   useEffect(() => {
@@ -548,6 +569,16 @@ export default function BattleScene({
       s.flash = Math.max(0, s.flash - dt); s.heal = Math.max(0, s.heal - dt)
       if (s.dying > 0) { s.dying -= dt; if (s.dying <= 0) { s.dying = 0; s.focus = null } }
 
+      // realm creatures behind the party, by the time of day
+      const phase = todOf().id
+      drawAmbientList(g, BT_AMBIENT[P.current.tier] || [], 'back', now, phase, { W, GY: gy, still })
+      // shadow soldiers: a dim back row on the far ground (purple-tinted copies of their idle frames)
+      ;(P.current.shadows || []).slice(0, 5).forEach((id, i) => {
+        const im = frame(`${id}_idle`, Math.floor(now / 200 + i) % 5); if (!im) return
+        const SZ = 38, x = heroBaseX - 34 * (i + 1) + 2 // in the gaps of the party, a step further back
+        g.fillStyle = 'rgba(46,16,101,.3)'; g.beginPath(); g.ellipse(x + SZ / 2, gy - 9, 10, 2.5, 0, 0, Math.PI * 2); g.fill()
+        g.globalAlpha = 0.8; g.drawImage(shadowTint(im, `${id}:${Math.floor(now / 200 + i) % 5}`), x - 2, gy - 9 - SZ - 2, SZ + 4, SZ + 4); g.globalAlpha = 1
+      })
       // back row: healer, mage, ranger (smaller, behind the knight)
       for (let k = backRow.length - 1; k >= 0; k--) {
         const id = backRow[k]
@@ -662,6 +693,7 @@ export default function BattleScene({
         }
       }
       if (sky.night) { g.fillStyle = `rgba(15,23,60,${sky.night * (btArt ? 0.45 : 0.85)})`; g.fillRect(-10, -10, W + 20, H + 20) } // painted night backdrops are already dark
+      drawAmbientList(g, BT_AMBIENT[P.current.tier] || [], 'front', now, todOf().id, { W, GY: gy, still })
       drawDmg(g, s.dmg, dt) // numbers stay bright above the night tint
       g.setTransform(1, 0, 0, 1, 0, 0)
       raf = requestAnimationFrame(loop)

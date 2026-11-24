@@ -726,7 +726,7 @@ export function useRpg() {
     if (away && logs.length >= 2) {
       const drops = {}
       for (const l of logs) for (const [k, v] of Object.entries(l.drops)) drops[k] = (drops[k] || 0) + v
-      f.away = { from: away, to: f.last, n: logs.length, wins: logs.filter((l) => l.win).length, drops }
+      f.away = { from: away, to: f.last, n: logs.length, wins: logs.filter((l) => l.win).length, drops, night: logs.filter((l) => l.night).length, moon: logs.some((l) => l.moon), glow: logs.filter((l) => l.glow && l.win).map((l) => l.mon) }
     }
     saveFarm(f)
     return logs

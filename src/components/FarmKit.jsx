@@ -9,6 +9,8 @@ import { monPower, BOSS_AFTER, trophyPrice, bossOf, eliteOf, normalsOf } from '.
 import { MAP_LORE, MON_LORE, STORY, STORY_STEPS } from '../lib/farmLore'
 import { Sheet } from './ui'
 import { todOf, isFullMoon, NIGHT } from '../lib/timeOfDay'
+import { MON_GLOW_LORE, MAP_NIGHT, MOON_LEGEND } from '../lib/glowLore'
+const NIGHT_BG = ['meadow', 'forest', 'swamp', 'desert', 'snow', 'volcano'] // maps with a painted night backdrop
 
 const Bar = ({ pct, color = '#14b8a6' }) => <div className="px-xp !h-2"><div style={{ width: `${Math.max(0, Math.min(1, pct)) * 100}%`, background: color }} /></div>
 function Card({ icon: I, title, right, children, testid }) {
@@ -73,6 +75,7 @@ function AwayCard({ rpg }) {
     <section className="px-card p-3 bg-amber-50" data-testid="away-card">
       <div className="flex items-center gap-2"><PxIcon name="em_moneybag" size={22} /><b className="text-sm flex-1">ระหว่างที่คุณไม่อยู่ ({fmtAgo(a.from)})</b><button className="px-btn !py-0.5 !px-2 text-[11px]" onClick={() => rpg.setFarm({ away: null })} data-testid="away-ok">รับทราบ</button></div>
       <div className="text-xs mt-1">ทีมออกล่า <b>{a.n}</b> รอบ ชนะ <b>{a.wins}</b> · ได้ {Object.keys(a.drops).length ? Object.entries(a.drops).map(([k, v]) => `${itemName(k)}×${v}`).join(', ') : 'ไม่ได้ของ'}</div>
+      {a.night > 0 && <div className="text-xs mt-1 flex items-center gap-1 flex-wrap"><Emo k={a.moon ? 'em_fullmoon' : 'em_night'} size={14} /> ล่ายามราตรี <b>{a.night}</b> รอบ{a.moon ? ' (คืนเพ็ญ)' : ''}{a.glow?.length ? <> · <Emo k="em_glow" size={14} /> เจอตัวเรืองแสง: {a.glow.map((id) => MON_BY_ID[id]?.name).join(', ')}</> : ''}</div>}
     </section>
   )
 }
@@ -119,7 +122,7 @@ function Hunt({ rpg }) {
           <div className="absolute left-2 top-2 px-font text-[10px] bg-white/85 px-1.5 py-0.5">พลังทีม {rpg.power}</div>
           <PhaseBadge />
           <div className="absolute right-2 top-2 text-[11px] bg-white/85 px-1.5 py-0.5"><b>{last.name}</b> · พลัง {monPower(last)}{last.kind !== 'normal' && <span className="text-rose-600"> · {last.kind === 'boss' ? 'บอส' : 'หัวหน้า'}</span>}</div>
-          {!rpg.staminaLeft && <div className="absolute left-1/2 -translate-x-1/2 bottom-1 whitespace-nowrap text-[10px] bg-slate-900/80 text-white px-1.5 py-0.5" data-testid="replay-badge">{recent.length ? '▶ รีเพลย์การล่าล่าสุด' : 'ซ้อมกับหุ่นฝึก'} · พลังกายหมด +1 ในอีก {Math.ceil(rpg.nextHourIn / 60000)} นาที</div>}
+          {!rpg.staminaLeft && <div className="absolute left-2 top-[50px] whitespace-nowrap text-[10px] bg-slate-900/80 text-white px-1.5 py-0.5" data-testid="replay-badge">{recent.length ? '▶ รีเพลย์การล่าล่าสุด' : 'ซ้อมกับหุ่นฝึก'} · พลังกายหมด +1 ในอีก {Math.ceil(rpg.nextHourIn / 60000)} นาที</div>}
         </div>
         <div className="p-3 space-y-2">
           <div className="text-[11px] text-slate-500">{map.name}: บอส “{bossOf(map).name}” จะออกมาเมื่อล่าครบ {bossNext} ตัว (ตอนนี้ {kills})</div>
@@ -133,7 +136,7 @@ function Hunt({ rpg }) {
           <div className="space-y-0.5 text-[11px]" data-testid="farm-log">
             {[...recent].reverse().slice(0, 12).map((l) => {
               const m = MON_BY_ID[l.mon]
-              return <div key={l.seq} className={l.win ? 'text-slate-700' : 'text-rose-500'}><span className="text-slate-400">{l.at ? new Date(l.at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) : ''}</span> <Emo e={l.win ? '⚔️' : '💥'} size={12} /> {l.night && <Emo e={l.moon ? '🌕' : '🌙'} size={12} />}{l.glow && <span className="text-amber-500 font-semibold">✨เรืองแสง </span>}{l.win ? 'ชนะ' : 'แพ้'} {m?.name}{l.note ? ` (${l.note})` : ''}{Object.keys(l.drops).length ? ' → ' + Object.entries(l.drops).map(([k, v]) => `${itemName(k)}×${v}`).join(', ') : ''}</div>
+              return <div key={l.seq} className={l.win ? 'text-slate-700' : 'text-rose-500'}><span className="text-slate-400">{l.at ? new Date(l.at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) : ''}</span> <Emo e={l.win ? '⚔️' : '💥'} size={12} /> {l.night && <Emo k={l.moon ? 'em_fullmoon' : 'em_night'} size={12} />}{l.glow && <span className="text-amber-500 font-semibold"><Emo k="em_glow" size={12} />เรืองแสง </span>}{l.win ? 'ชนะ' : 'แพ้'} {m?.name}{l.note ? ` (${l.note})` : ''}{Object.keys(l.drops).length ? ' → ' + Object.entries(l.drops).map(([k, v]) => `${itemName(k)}×${v}`).join(', ') : ''}</div>
             })}
             {!recent.length && <div className="text-slate-400">ยังไม่มีการล่า ทีมจะเริ่มเองเมื่อมีพลังกาย</div>}
           </div>
@@ -249,17 +252,19 @@ function Craft({ rpg }) {
 }
 
 function Dex({ rpg }) {
-  const dex = rpg.farm.dex || {}
+  const dex = rpg.farm.dex || {}, gdex = rpg.farm.glowDex || {}
+  const glowAll = Object.values(gdex).filter((v) => v > 0).length
   const [open, setOpen] = useState(null)
   return (
     <div className="space-y-3">
+      <div className="px-inner p-3 text-[12px] text-indigo-100" style={{ background: '#1e1b4b' }} data-testid="glow-dex"><div className="flex items-center gap-1.5 font-semibold text-amber-200 mb-1"><Emo k="em_glowbook" size={18} /> สมุดตัวเรืองแสง {glowAll}/{MAPS.reduce((n, m) => n + m.mons.length, 0)}</div>{MOON_LEGEND}<div className="mt-1 text-indigo-300 flex items-center gap-1"><Emo k="em_nighthunt" size={14} /> ออก 19:00–05:00 โอกาส {pct(NIGHT.glow)} · <Emo k="em_fullmoon" size={14} /> คืนเพ็ญ {pct(NIGHT.glow * NIGHT.moonMult)}</div></div>
       <MonSheet mon={open} seen={open ? dex[open.id] || 0 : 0} glow={open ? rpg.farm.glowDex?.[open.id] || 0 : 0} onClose={() => setOpen(null)} />
       {MAPS.map((m) => {
-        const seen = m.mons.filter((x) => dex[x.id]).length
+        const seen = m.mons.filter((x) => dex[x.id]).length, glowN = m.mons.filter((x) => gdex[x.id]).length
         return (
-          <Card key={m.id} icon={BookOpen} title={`${m.name}`} right={<span className="text-[11px] text-slate-500">{seen}/{m.mons.length}{seen === m.mons.length ? ' 🏅' : ''}</span>}>
+          <Card key={m.id} icon={BookOpen} title={`${m.name}`} right={<span className="text-[11px] text-slate-500 flex items-center gap-1">{seen}/{m.mons.length}{seen === m.mons.length ? ' 🏅' : ''} · <Emo k="em_glow" size={12} />{glowN}/{m.mons.length}</span>}>
             <div className="grid grid-cols-5 gap-1.5">
-              {m.mons.map((x) => <button key={x.id} onClick={() => setOpen(x)} className="px-inner p-1 text-center" title={x.name} data-testid={`dex-${x.id}`}><Portrait sprite={`mon_${x.id}`} size={44} dim={!dex[x.id]} /><div className="text-[9px] truncate">{dex[x.id] ? x.name : '???'}</div></button>)}
+              {m.mons.map((x) => <button key={x.id} onClick={() => setOpen(x)} className="px-inner p-1 text-center" title={x.name} data-testid={`dex-${x.id}`}><div className="relative"><Portrait sprite={`mon_${x.id}`} size={44} dim={!dex[x.id]} />{gdex[x.id] > 0 && <span className="absolute -top-1 -right-1" title="เคยเจอตัวเรืองแสง"><Emo k="em_glow" size={14} /></span>}</div><div className="text-[9px] truncate">{dex[x.id] ? x.name : '???'}</div></button>)}
             </div>
           </Card>
         )
@@ -276,27 +281,45 @@ function PhaseBadge() {
   const [, tick] = useState(0)
   useEffect(() => { const iv = setInterval(() => tick((x) => x + 1), 60000); return () => clearInterval(iv) }, [])
   const tod = todOf(), moon = tod.id === 'night' && isFullMoon()
+  const icon = tod.id === 'night' ? (moon ? 'em_fullmoon' : 'em_nighthunt') : { morning: 'em_dawn', day: 'em_day', evening: 'em_dusk' }[tod.id]
   const text = tod.id === 'night'
-    ? `${moon ? '🌕 คืนเพ็ญ' : '🌙 ล่ายามราตรี'} · ของแรร์ ×${moon ? 1 + (NIGHT.rare - 1) * NIGHT.moonMult : NIGHT.rare} · ตัวเรืองแสง ${Math.round(NIGHT.glow * (moon ? NIGHT.moonMult : 1) * 100)}% · มอนแกร่ง +${Math.round((NIGHT.monPow - 1) * 100)}%`
-    : `${tod.emoji} ${tod.name} · โบนัสล่ายามราตรีเริ่ม 19:00`
-  return <div className={`absolute left-2 top-7 text-[10px] px-1.5 py-0.5 ${tod.id === 'night' ? 'bg-indigo-950/85 text-amber-200' : 'bg-white/85'}`} data-testid="phase-badge">{text}</div>
+    ? `${moon ? 'คืนเพ็ญ' : 'ล่ายามราตรี'} · ของแรร์ ×${moon ? 1 + (NIGHT.rare - 1) * NIGHT.moonMult : NIGHT.rare} · ตัวเรืองแสง ${Math.round(NIGHT.glow * (moon ? NIGHT.moonMult : 1) * 100)}% · มอนแกร่ง +${Math.round((NIGHT.monPow - 1) * 100)}%`
+    : `${tod.name} · โบนัสล่ายามราตรีเริ่ม 19:00`
+  return <div className={`absolute left-2 top-7 text-[10px] px-1.5 py-0.5 flex items-center gap-1 ${tod.id === 'night' ? 'bg-indigo-950/85 text-amber-200' : 'bg-white/85'}`} data-testid="phase-badge"><Emo k={icon} size={14} />{text}</div>
 }
 
 function MonSheet({ mon, seen, glow = 0, onClose }) {
+  const [form, setForm] = useState('normal')
+  useEffect(() => setForm('normal'), [mon?.id])
   if (!mon) return null
-  const map = MAP_BY_ID[mon.map], known = seen > 0
+  const map = MAP_BY_ID[mon.map], known = seen > 0, g = form === 'glow', gKnown = glow > 0
   return (
-    <Sheet open onClose={onClose} title={known ? mon.name : '??? (ยังไม่เคยเจอ)'}>
+    <Sheet open onClose={onClose} title={g ? (gKnown ? `${mon.name} (เรืองแสง)` : '??? (ร่างเรืองแสง)') : known ? mon.name : '??? (ยังไม่เคยเจอ)'}>
       <div className="space-y-3" data-testid="mon-sheet">
+        <div className="flex gap-1 text-xs" data-testid="mon-form">
+          <button onClick={() => setForm('normal')} className={`px-btn px-2 py-1 ${!g ? 'ring-2 ring-slate-900' : 'opacity-50'}`}>ร่างปกติ</button>
+          <button onClick={() => setForm('glow')} className={`px-btn px-2 py-1 flex items-center gap-1 ${g ? 'ring-2 ring-slate-900' : 'opacity-50'}`} data-testid="mon-form-glow"><Emo k="em_glow" size={14} /> ร่างเรืองแสง</button>
+        </div>
         <div className="flex gap-3 items-center">
-          <div className="w-28 h-28 grid place-items-center border-2 border-slate-800 shrink-0" style={{ backgroundImage: `url(./sprites/map_${map.id}.png)`, backgroundSize: 'cover', backgroundPosition: 'center bottom', imageRendering: 'pixelated' }}><Portrait sprite={`mon_${mon.id}`} size={92} dim={!known} /></div>
+          <div className="w-28 h-28 grid place-items-center border-2 border-slate-800 shrink-0" style={{ backgroundImage: `url(./sprites/map_${map.id}${g && NIGHT_BG.includes(map.id) ? '_night' : ''}.png)`, backgroundSize: 'cover', backgroundPosition: 'center bottom', imageRendering: 'pixelated' }}><Portrait sprite={g ? `mon_${mon.id}_glow` : `mon_${mon.id}`} size={92} dim={g ? !gKnown : !known} /></div>
           <div className="text-sm space-y-0.5">
             <div><b>{KIND_TH[mon.kind]}</b> · <Emo e={map.emoji} size={16} /> {map.name}</div>
-            <div>พลัง ~{monPower(mon)}</div>
-            <div>ล่าได้แล้ว <b>{seen}</b> ตัว</div>
-            {glow > 0 && <div className="text-amber-600">✨ เจอตัวเรืองแสง <b>{glow}</b> ครั้ง</div>}
+            <div>พลัง ~{g ? Math.round(monPower(mon) * NIGHT.monPow) : monPower(mon)}{g ? ' (กลางคืน +10%)' : ''}</div>
+            {g ? <div>เจอตัวเรืองแสง <b>{glow}</b> ครั้ง</div> : <div>ล่าได้แล้ว <b>{seen}</b> ตัว</div>}
+            {!g && glow > 0 && <div className="text-amber-600 flex items-center gap-1"><Emo k="em_glow" size={14} /> เจอตัวเรืองแสง <b>{glow}</b> ครั้ง</div>}
           </div>
         </div>
+        {g ? <>
+          <div className="px-inner p-3 text-sm bg-indigo-50"><div className="text-[11px] text-slate-500 mb-0.5">ตำนานตัวเรืองแสง</div>{gKnown ? MON_GLOW_LORE[mon.id] : 'ล่ามันในยามค่ำคืนให้เจอร่างเรืองแสงสักครั้งเพื่ออ่านตำนาน'}</div>
+          <div className="px-inner p-3 text-sm"><div className="text-[11px] text-slate-500 mb-0.5">{map.name} ยามราตรี</div>{MAP_NIGHT[map.id]}</div>
+          <div>
+            <div className="text-[11px] text-slate-500 mb-1">ของที่ดรอปจากร่างเรืองแสง</div>
+            <div className="space-y-1.5">
+              <div className="px-inner p-2 flex items-center gap-2 text-xs bg-indigo-50"><ItemIcon k={`t:${mon.id}`} /><div className="flex-1"><b>{mon.trophy} ×{NIGHT.glowTrophy}</b> · ดรอปทุกครั้ง<div className="text-slate-500">พบได้ 19:00–05:00 โอกาส {pct(NIGHT.glow)} ต่อตัว (คืนเพ็ญ {pct(NIGHT.glow * NIGHT.moonMult)}) · {trophyPrice(mon) * NIGHT.glowTrophy} FIAT</div></div></div>
+              <div className="text-[11px] text-slate-500">ของอื่น ๆ ดรอปเหมือนร่างปกติ แต่ช่องของหายากได้ ×{NIGHT.rare} ตลอดคืน (คืนเพ็ญ ×{1 + (NIGHT.rare - 1) * NIGHT.moonMult})</div>
+            </div>
+          </div>
+        </> : <>
         <div className="px-inner p-3 text-sm"><div className="text-[11px] text-slate-500 mb-0.5">ตำนานของมอนสเตอร์</div>{known ? MON_LORE[mon.id] : 'ล่ามันให้ได้สักครั้งเพื่ออ่านตำนาน'}</div>
         <div className="px-inner p-3 text-sm"><div className="text-[11px] text-slate-500 mb-0.5">ดินแดน: {map.name}</div>{MAP_LORE[map.id]}</div>
         <div>
@@ -304,12 +327,13 @@ function MonSheet({ mon, seen, glow = 0, onClose }) {
           <div className="space-y-1.5">
             <div className="px-inner p-2 flex items-center gap-2 text-xs"><ItemIcon k={`t:${mon.id}`} /><div className="flex-1"><b>{mon.trophy}</b> · ของประจำตัว (ขายร้านได้อย่างเดียว)<div className="text-slate-500">{mon.kind === 'normal' ? `โอกาส ${pct(LOOT.trophy)}` : 'ดรอปทุกครั้ง'} · {trophyPrice(mon)} FIAT</div></div></div>
             {map.mats.map((k) => <div key={k} className="px-inner p-2 flex items-center gap-2 text-xs"><ItemIcon k={k} /><div className="flex-1"><b>{MATS[k].name}</b> · วัสดุ{mon.kind === 'boss' ? ' ×4' : mon.kind === 'elite' ? ' ×2' : ''}<div className="text-slate-500">โอกาส {pct(LOOT.mat)}+ (สุ่ม 1 ใน {map.mats.length} ชนิด) · {matUse(k)}</div></div></div>)}
-            <div className="px-inner p-2 flex items-center gap-2 text-xs bg-indigo-50"><ItemIcon k={`t:${mon.id}`} /><div className="flex-1"><b>ตัวเรืองแสง ✨</b> · ออกเฉพาะกลางคืน<div className="text-slate-500">โอกาส {pct(NIGHT.glow)} ต่อตัว (คืนเพ็ญ {pct(NIGHT.glow * NIGHT.moonMult)}) · ดรอป{mon.trophy}ทุกครั้ง ×{NIGHT.glowTrophy}</div></div></div>
+            <div className="px-inner p-2 flex items-center gap-2 text-xs bg-indigo-50"><ItemIcon k={`t:${mon.id}`} /><div className="flex-1"><b className="inline-flex items-center gap-1">ตัวเรืองแสง <Emo k="em_glow" size={12} /></b> · ออกเฉพาะกลางคืน (ดูแท็บร่างเรืองแสง)<div className="text-slate-500">โอกาส {pct(NIGHT.glow)} ต่อตัว (คืนเพ็ญ {pct(NIGHT.glow * NIGHT.moonMult)}) · ดรอป{mon.trophy}ทุกครั้ง ×{NIGHT.glowTrophy}</div></div></div>
             {rareOf(map).map((k) => <div key={k} className="px-inner p-2 flex items-center gap-2 text-xs"><ItemIcon k={k} /><div className="flex-1"><b>{MATS[k].name}</b> · ของหายาก<div className="text-slate-500">โอกาส {pct(RARE_ODDS[mon.kind] / 2)} (กลางคืน ×{NIGHT.rare}, คืนเพ็ญ ×{1 + (NIGHT.rare - 1) * NIGHT.moonMult}) · {matUse(k)}</div></div></div>)}
             <div className="px-inner p-2 flex items-center gap-2 text-xs"><ItemIcon k="mcrystal" /><div className="flex-1"><b>{MATS.mcrystal.name}</b> · ใช้ตีบวก<div className="text-slate-500">โอกาส {pct(LOOT.mcrystal[mon.kind])} · {matUse('mcrystal')}</div></div></div>
             <div className="px-inner p-2 flex items-center gap-2 text-xs bg-amber-50"><ItemIcon k="shard" /><div className="flex-1"><b>{MATS.shard.name}</b> · หายากมาก<div className="text-slate-500">โอกาส {pct(LOOT.shard[mon.kind])} · {matUse('shard')}</div></div></div>
           </div>
         </div>
+        </>}
       </div>
     </Sheet>
   )
@@ -341,6 +365,12 @@ function Story({ rpg }) {
                   <div className="flex flex-wrap gap-1 mt-1.5">{cast(i).map((x) => <div key={x.id} title={x.name}><Portrait sprite={`mon_${x.id}`} size={i === 2 ? 48 : 30} dim={!open[i] || !f.dex?.[x.id]} /></div>)}</div>
                 </div>
               ))}
+              {(() => { const gl = m.mons.filter((x) => f.glowDex?.[x.id]); const on = gl.length > 0
+                return <div style={{ background: '#1e1b4b' }} className={`px-inner p-2.5 text-indigo-100 ${on ? '' : 'opacity-80'}`} data-testid={`story-night-${m.id}`}>
+                  <div className="text-[11px] font-bold mb-1 flex items-center gap-1 text-amber-200"><Emo k="em_night" size={14} /> บทพิเศษ: ยามราตรี {on ? '' : <>· <PxIcon name="Lock" size={11} /> เจอตัวเรืองแสงในแผนที่นี้สักตัว</>}</div>
+                  {on ? <div className="text-sm">{MAP_NIGHT[m.id]}</div> : <div className="text-sm text-indigo-300">…</div>}
+                  <div className="flex flex-wrap gap-1 mt-1.5">{gl.map((x) => <div key={x.id} title={`${x.name} (เรืองแสง)`}><Portrait sprite={`mon_${x.id}_glow`} size={30} /></div>)}</div>
+                </div> })()}
             </div>
           </section>
         )

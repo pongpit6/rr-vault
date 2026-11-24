@@ -4,6 +4,7 @@ import { MON_BY_ID, MAP_BY_ID } from '../lib/farmData'
 import { itemName, TREE_BY_ID } from '../lib/farm'
 import { popDmg, drawDmg, fmtDmg } from './dmgFx'
 import { todOf, drawPhased } from '../lib/timeOfDay'
+import { drawAmbientList } from './ambient'
 import { sfx } from '../lib/sfx'
 
 const W = 400, H = 180, GY = 168
@@ -42,36 +43,8 @@ const AMBIENT = {
   volcano: [['am_ember', 10, 14, 'rise', 'front'], ['am_ember', 6, 14, 'rise', 'front', 'en'], ['am_bat', 1, 23, 'fly', 'back', 'md'], ['am_crow', 2, 22, 'fly', 'back', 'e'], ['am_bat', 3, 23, 'fly', 'back', 'n']],
   shadow: [['am_wisp', 4, 23, 'flutter', 'back'], ['am_wisp', 3, 23, 'flutter', 'back', 'n'], ['am_bat', 3, 23, 'fly', 'back'], ['am_glint', 3, 12, 'twinkle', 'back'], ['am_eyes', 2, 18, 'blink', 'back', 'en']],
 }
-const PH_LETTER = { morning: 'm', day: 'd', evening: 'e', night: 'n' }
-const hsh = (i, k = 0) => { const x = Math.sin(i * 127.1 + k * 311.7) * 43758.5453; return x - Math.floor(x) }
-function drawAmbient(g, mapId, layer, now, phase = 'day') {
-  const L = PH_LETTER[phase]
-  for (const [sp, n, sz, mo, ly, ph = 'mden'] of AMBIENT[mapId] || []) {
-    if (ly !== layer || !ph.includes(L)) continue
-    const im = still(sp); if (!im) continue
-    for (let i = 0; i < n; i++) {
-      const r1 = hsh(i, sp.length), r2 = hsh(i + 7, sp.length), t = now / 1000
-      let x = 0, y = 0, a = 1, flip = false, sy = 1, rot = 0
-      if (mo === 'drift') { x = ((t * 6 + r1 * W) % (W + 80)) - 60; y = 10 + r2 * 30 }
-      else if (mo === 'fly') { const sp2 = 40 + r1 * 30, dir = r2 > 0.5 ? 1 : -1, p = ((t * sp2 + r1 * 900) % (W + 140)) - 70; x = dir > 0 ? p : W - p; flip = dir < 0; y = 18 + r2 * 45 + Math.sin(t * 3 + i) * 5; sy = 0.75 + Math.abs(Math.sin(t * 9 + i)) * 0.25 }
-      else if (mo === 'soar') { x = W / 2 + Math.cos(t * 0.4 + i * 3) * (90 + r1 * 60); y = 22 + i * 12 + Math.sin(t * 0.8 + i) * 6; flip = Math.sin(t * 0.4 + i * 3) > 0 }
-      else if (mo === 'flutter') { x = (r1 * W + Math.sin(t * 0.7 + i * 2) * 40 + W) % W; y = 40 + r2 * (GY - 70) + Math.sin(t * 1.6 + i) * 10; flip = Math.cos(t * 0.7 + i * 2) < 0; if (sp === 'am_firefly' || sp === 'am_wisp') a = 0.55 + 0.45 * Math.sin(t * 3 + i * 1.7); else sy = 0.6 + Math.abs(Math.sin(t * 10 + i)) * 0.4 }
-      else if (mo === 'fall') { const per = 5 + r1 * 4, k = ((t + r2 * per) % per) / per; x = (r1 * W + Math.sin(t * 1.5 + i) * 14 + k * 30) % W; y = -10 + k * (GY + 10); rot = Math.sin(t * 2 + i) * 0.6; a = k > 0.9 ? (1 - k) * 10 : 1 }
-      else if (mo === 'rise') { const per = 3 + r1 * 3, k = ((t + r2 * per) % per) / per; x = r1 * W + Math.sin(t * 2 + i) * 6; y = GY - 6 - k * (sp === 'am_bubble' ? 40 : 120); a = 1 - k }
-      else if (mo === 'twinkle') { x = 20 + r1 * (W - 40); y = 20 + r2 * (GY - 60); a = Math.max(0, Math.sin(t * 2.2 + i * 2.3)); if (a < 0.05) continue }
-      else if (mo === 'drip') { const per = 2.5 + r1 * 2, k = ((t + r2 * per) % per) / per; x = 30 + r1 * (W - 60); y = 4 + k * k * (GY - 4); a = k > 0.92 ? (1 - k) * 12 : 1 }
-      else if (mo === 'roll') { const p = ((t * 26 + r1 * 400) % (W + 60)) - 30; x = p; y = GY - sz + 2 - Math.abs(Math.sin(t * 4)) * 4; rot = t * 4 }
-      else if (mo === 'hop') { x = 120 + r1 * 40 + Math.sin(t * 0.3 + r2 * 6) * 30; y = GY - 46 - Math.max(0, Math.sin(t * 2.4 + i)) * 8; flip = Math.cos(t * 0.3 + r2 * 6) < 0; a = 0.9 }
-      else if (mo === 'low') { x = ((t * 4 + r1 * W) % (W + 80)) - 60; y = GY - 30 - r2 * 16; a = 0.35 + 0.15 * Math.sin(t * 0.5 + i) }
-      else if (mo === 'crawl') { const p = ((t * 9 + r1 * 300) % (W + 60)) - 30, dir = r2 > 0.5; x = dir ? p : W - p; flip = !dir; y = GY - 44 }
-      else if (mo === 'ground') { x = 14 + r1 * (W - 160); y = GY - 40 - r2 * 6; a = 0.6 + 0.4 * Math.sin(t * 1.5 + i * 2) }
-      else if (mo === 'blink') { x = 10 + r1 * (W - 170); y = GY - 70 - r2 * 30; const k = (t * 0.25 + r2 * 3) % 3; a = k < 1.6 ? (Math.sin(t * 7) > -0.95 ? 1 : 0) : 0; if (a < 0.05) continue }
-      else if (mo === 'shoot') { const per = 9 + r1 * 6, k = ((t + r2 * per) % per) / 1.1; if (k > 1) continue; x = W * (0.25 + r1 * 0.5) + k * 120; y = 6 + k * 38; a = 1 - k; rot = 0 }
-      g.save(); g.globalAlpha = Math.max(0, Math.min(1, a)); g.translate(Math.round(x + sz / 2), Math.round(y + sz / 2)); if (rot) g.rotate(rot); g.scale(flip ? -1 : 1, sy)
-      g.drawImage(im, -sz / 2, -sz / 2, sz, sz); g.restore()
-    }
-  }
-}
+/** ambient creatures (shared with the boss scene in ./ambient.js) */
+const drawAmbient = (g, mapId, layer, now, phase) => drawAmbientList(g, AMBIENT[mapId], layer, now, phase, { W, GY, still })
 const MON_H = { normal: 64, elite: 80, boss: 100 }
 /** which chance skill gets the cast animation when several fired in one fight */
 const CAST_ORDER = ['meteor', 'revive', 'storm', 'hawk', 'bless']
@@ -157,13 +130,21 @@ export default function FarmScene({ mapId, party = [], shadows = [], recent = []
     if (!drawPhased(g, `map_${bgId}`, still, (im) => { if (top > 0) g.drawImage(im, 0, 0, 200, 1, 0, 0, 400, top + 2); g.drawImage(im, 0, top, 400, 240) }, tod)) { g.fillStyle = '#bae6fd'; g.fillRect(0, 0, W, H) }
 
     drawAmbient(g, bgId, 'back', now, tod.id)
-    // shadow soldiers stand behind the party in a dark aura; one lunges in now and then
+    // shadow soldiers: a back row on the far ground between the party members (smaller, purple aura); one lunges in now and then
     shadows.forEach((id, i) => {
-      const lunge = c && c.shadow === i && k > 0.2 && k < 0.6
-      const x = 4 + i * 34 + (lunge ? Math.sin(((k - 0.2) / 0.4) * Math.PI) * 170 : 0), y = GY - 74
-      const fi = lunge ? Math.floor(((k - 0.2) / 0.4) * 8.99) : Math.floor(now / 200 + i) % 6
+      const lunge = c && c.shadow === i && k > 0.2 && k < 0.6, SZ = 46
+      const x0 = 40 + i * 46, mx0 = W - 120
+      const a = lunge ? (k - 0.2) / 0.4 : 0
+      const x = x0 + (lunge ? Math.sin(a * Math.PI) * (mx0 - x0) : 0), y = GY - 8 - SZ
+      const fi = lunge ? Math.floor(a * 8.99) : Math.floor(now / 200 + i) % 6
+      g.fillStyle = 'rgba(46,16,101,.35)'; g.beginPath(); g.ellipse(x + SZ / 2, GY - 9, SZ * 0.32, 3, 0, 0, 7); g.fill() // a dark pool under its feet
       const im = frame(lunge ? `${id}_atk` : `${id}_idle`, fi, 'normal', 0)
-      if (im) { g.globalAlpha = 0.75; g.drawImage(shadowOf(im, `${id}:${lunge ? 'a' : 'i'}:${fi}`), x - 3, y - 3, 62, 62); g.globalAlpha = 1 }
+      if (im) { g.globalAlpha = lunge ? 0.9 : 0.72; g.drawImage(shadowOf(im, `${id}:${lunge ? 'a' : 'i'}:${fi}`), Math.round(x - 2), y - 2, SZ + 4, SZ + 4); g.globalAlpha = 1 }
+      if (lunge && !c.shadowHit && a > 0.45) {
+        c.shadowHit = true
+        const sl = still('fx_slash'); if (sl) s.fx.push({ kind: 'img', im: sl, x: mx0 + 40, y: GY - 40, life: 260 })
+        popDmg(s.dmg, fmtDmg((P.current.power || 50) * (0.3 + Math.random() * 0.2)), mx0 + 46, GY - 70, 'sky', 60)
+      }
     })
     // party
     const members = party.filter((p) => p.joined).sort((a, b) => (SLOT[a.id] ?? 0) - (SLOT[b.id] ?? 0)) // back row first, the hero drawn last (in front)
@@ -218,7 +199,7 @@ export default function FarmScene({ mapId, party = [], shadows = [], recent = []
     // monster
     const mon = MON_BY_ID[s.monId] || MON_BY_ID[idleMon]
     if (mon) {
-      const im = still(`mon_${mon.id}`)
+      const im = (c && c.glow && still(`mon_${mon.id}_glow`)) || still(`mon_${mon.id}`) // a glowing night monster has its own PixelLab art
       const h = MON_H[mon.kind] || 64
       let x = W - h - 14, y = GY - h + (Math.floor(now / 400) % 2), alpha = 1, mode = false
       if (!c && s.spawn && now - s.spawn < 450) { const a = (now - s.spawn) / 450; x += (1 - a) * 140; alpha = a }
@@ -235,7 +216,7 @@ export default function FarmScene({ mapId, party = [], shadows = [], recent = []
         if (Math.random() < dt / 90) s.fx.push({ kind: 'spark', x: x + Math.random() * h, y: y + Math.random() * h, vx: 0, vy: -0.03, life: 600 })
         if (!c.glowSaid) { c.glowSaid = true; s.fx.push({ kind: 'num', text: '✨ตัวเรืองแสง!', x: x + h / 2, y: y - 10, life: 1500, color: '#fde047' }) }
       }
-      if (im) { g.globalAlpha = alpha; g.drawImage(mode && Math.floor(now / 60) % 2 ? flashOf(im, mon.id) : im, x, y, h, h); g.globalAlpha = 1 }
+      if (im) { g.globalAlpha = alpha; g.drawImage(mode && Math.floor(now / 60) % 2 ? flashOf(im, c && c.glow ? `${mon.id}_g` : mon.id) : im, x, y, h, h); g.globalAlpha = 1 }
       // hit: damage number + sparks + sound once
       if (c && !c.hitDone && k > 0.5) {
         c.hitDone = true
