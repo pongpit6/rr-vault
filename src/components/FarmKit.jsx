@@ -3,6 +3,8 @@ import { Swords, Backpack, Hammer, BookOpen, Zap, Lock, Gift, Sparkles, ScrollTe
 import { Emo, PxIcon, hasPx } from './px'
 import { Portrait } from './RpgBits'
 import FarmScene from './FarmScene'
+import CardAlbum from './CardAlbum'
+import { GLOW_CARD_MULT, GLOW_CARD, CARD_DROP } from '../lib/cards'
 import { useStore } from '../store'
 import { MAPS, MAP_BY_ID, MON_BY_ID, MATS, TREE, rankCost, RECIPES, mapUnlocked, itemName, itemPrice, itemIcon, RELICS, RELIC_BY_ID, NPC_INFO, SHADOWS, SHADOW_SLOT_LV, enhStep, ENH_FX, SHARDS_PER_GOLD, MAP_MODES, huntMaps, mapWinRate, LOOT, RARE_ODDS, rareOf, matUse, happyBonusChance, HUNT_XP_PER_WIN, HUNT_XP_DAY } from '../lib/farm'
 import { monPower, BOSS_AFTER, trophyPrice, bossOf, eliteOf, normalsOf } from '../lib/farmData'
@@ -28,12 +30,14 @@ const ItemIcon = ({ k, size = 28 }) => {
   return <span style={{ fontSize: size * 0.7 }}>📦</span>
 }
 
+const CardIco = ({ size = 14 }) => <PxIcon name="em_card" size={size} />
+
 export default function FarmTab({ rpg }) {
   const [sub, setSub] = useState('hunt')
   return (
     <div className="space-y-3" data-testid="farm-tab">
       <div className="flex gap-1.5 flex-wrap">
-        {[['hunt', 'ล่า', Swords], ['bag', 'กระเป๋า', Backpack], ['craft', 'ชาวเมือง', Hammer], ['dex', 'สมุดมอนสเตอร์', BookOpen], ['story', 'เรื่องราว', ScrollText]].map(([id, label, I]) => (
+        {[['hunt', 'ล่า', Swords], ['bag', 'กระเป๋า', Backpack], ['craft', 'ชาวเมือง', Hammer], ['dex', 'สมุดมอนสเตอร์', BookOpen], ['cards', 'การ์ด', CardIco], ['story', 'เรื่องราว', ScrollText]].map(([id, label, I]) => (
           <button key={id} onClick={() => setSub(id)} className={`px-tab ${sub === id ? 'on' : ''}`} data-testid={`farm-sub-${id}`}><I size={14} /> {label}{id === 'craft' && rpg.chests.length > 0 && <span className="dot" />}</button>
         ))}
       </div>
@@ -41,6 +45,7 @@ export default function FarmTab({ rpg }) {
       {sub === 'bag' && <Bag rpg={rpg} />}
       {sub === 'craft' && <Craft rpg={rpg} />}
       {sub === 'dex' && <Dex rpg={rpg} />}
+      {sub === 'cards' && <CardAlbum rpg={rpg} />}
       {sub === 'story' && <Story rpg={rpg} />}
     </div>
   )
@@ -75,6 +80,7 @@ function AwayCard({ rpg }) {
     <section className="px-card p-3 bg-amber-50" data-testid="away-card">
       <div className="flex items-center gap-2"><PxIcon name="em_moneybag" size={22} /><b className="text-sm flex-1">ระหว่างที่คุณไม่อยู่ ({fmtAgo(a.from)})</b><button className="px-btn !py-0.5 !px-2 text-[11px]" onClick={() => rpg.setFarm({ away: null })} data-testid="away-ok">รับทราบ</button></div>
       <div className="text-xs mt-1">ทีมออกล่า <b>{a.n}</b> รอบ ชนะ <b>{a.wins}</b> · ได้ {Object.keys(a.drops).length ? Object.entries(a.drops).map(([k, v]) => `${itemName(k)}×${v}`).join(', ') : 'ไม่ได้ของ'}</div>
+      {a.cards?.length > 0 && <div className="text-xs mt-1 flex items-center gap-1 flex-wrap"><Emo k="em_card" size={14} /> ได้การ์ด: {a.cards.map((c) => `${MON_BY_ID[c.id]?.name}${c.glow ? ' (เรืองแสง)' : ''}`).join(', ')}</div>}
       {a.night > 0 && <div className="text-xs mt-1 flex items-center gap-1 flex-wrap"><Emo k={a.moon ? 'em_fullmoon' : 'em_night'} size={14} /> ล่ายามราตรี <b>{a.night}</b> รอบ{a.moon ? ' (คืนเพ็ญ)' : ''}{a.glow?.length ? <> · <Emo k="em_glow" size={14} /> เจอตัวเรืองแสง: {a.glow.map((id) => MON_BY_ID[id]?.name).join(', ')}</> : ''}</div>}
     </section>
   )
@@ -98,7 +104,7 @@ function Hunt({ rpg }) {
       <AwayCard rpg={rpg} />
       <Energy rpg={rpg} />
       <Card icon={Swords} title="HUNT · ล่าอัตโนมัติ" testid="farm-maps">
-        <div className="text-[11px] text-slate-500 mb-2">ทีมออกล่าเองเมื่อมีพลังกาย ไม่ต้องกดอะไร · ตอนเปิดหน้านี้สู้ทุก 8 วินาที · ปิดแอปไว้ก็ยังล่าต่อ (ราว 5 นาทีต่อรอบ) · ชนะได้ XP ตัวละ {HUNT_XP_PER_WIN} สูงสุดวันละ {HUNT_XP_DAY} (วันนี้ {rpg.huntXpToday}/{HUNT_XP_DAY}) · กลางคืน 19:00–05:00 มอนแกร่งขึ้น {Math.round((NIGHT.monPow - 1) * 100)}% แต่ของแรร์ ×{NIGHT.rare} และมีตัวเรืองแสง {Math.round(NIGHT.glow * 100)}% (ถ้วยรางวัล ×{NIGHT.glowTrophy}) · คืนพระจันทร์เต็มดวงโบนัสคูณ {NIGHT.moonMult} · ทีมล่าให้ตอนคุณหลับ ไม่ต้องอดนอน</div>
+        <div className="text-[11px] text-slate-500 mb-2">ทีมออกล่าเองเมื่อมีพลังกาย ไม่ต้องกดอะไร · ตอนเปิดหน้านี้สู้ทุก 8 วินาที · ปิดแอปไว้ก็ยังล่าต่อ (ราว 5 นาทีต่อรอบ) · ชนะได้ XP ตัวละ {HUNT_XP_PER_WIN} สูงสุดวันละ {HUNT_XP_DAY} (วันนี้ {rpg.huntXpToday}/{HUNT_XP_DAY}) · กลางคืน 19:00–05:00 มอนแกร่งขึ้น {Math.round((NIGHT.monPow - 1) * 100)}% แต่ของแรร์ ×{NIGHT.rare} และมีตัวเรืองแสง {Math.round(NIGHT.glow * 100)}% (ของประจำตัว 100% ×{NIGHT.glowTrophy} ของอื่นดรอปง่ายขึ้น) · คืนพระจันทร์เต็มดวงโบนัสคูณ {NIGHT.moonMult} · ทีมล่าให้ตอนคุณหลับ ไม่ต้องอดนอน</div>
         <div className="flex flex-wrap gap-1.5 mb-2" data-testid="map-mode">
           {MAP_MODES.map((m) => <button key={m.id} onClick={() => rpg.setFarm({ mapMode: m.id })} className={`px-tab ${mode === m.id ? 'on' : ''}`} title={m.text} data-testid={`mode-${m.id}`}>{m.name}</button>)}
         </div>
@@ -136,7 +142,7 @@ function Hunt({ rpg }) {
           <div className="space-y-0.5 text-[11px]" data-testid="farm-log">
             {[...recent].reverse().slice(0, 12).map((l) => {
               const m = MON_BY_ID[l.mon]
-              return <div key={l.seq} className={l.win ? 'text-slate-700' : 'text-rose-500'}><span className="text-slate-400">{l.at ? new Date(l.at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) : ''}</span> <Emo e={l.win ? '⚔️' : '💥'} size={12} /> {l.night && <Emo k={l.moon ? 'em_fullmoon' : 'em_night'} size={12} />}{l.glow && <span className="text-amber-500 font-semibold"><Emo k="em_glow" size={12} />เรืองแสง </span>}{l.win ? 'ชนะ' : 'แพ้'} {m?.name}{l.note ? ` (${l.note})` : ''}{Object.keys(l.drops).length ? ' → ' + Object.entries(l.drops).map(([k, v]) => `${itemName(k)}×${v}`).join(', ') : ''}</div>
+              return <div key={l.seq} className={l.win ? 'text-slate-700' : 'text-rose-500'}><span className="text-slate-400">{l.at ? new Date(l.at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) : ''}</span> <Emo e={l.win ? '⚔️' : '💥'} size={12} /> {l.night && <Emo k={l.moon ? 'em_fullmoon' : 'em_night'} size={12} />}{l.glow && <span className="text-amber-500 font-semibold"><Emo k="em_glow" size={12} />เรืองแสง </span>}{l.win ? 'ชนะ' : 'แพ้'} {m?.name}{l.card && <span className="text-indigo-600 font-semibold"> <Emo k="em_card" size={12} />การ์ด{l.card.res === 'new' ? 'ใหม่' : l.card.res === 'up' ? ' อัปขั้น' : 'ซ้ำ'}!</span>}{l.glowCard && <span className="text-fuchsia-600 font-semibold"> <Emo k="em_cardglow" size={12} />การ์ดเรืองแสง!</span>}{l.note ? ` (${l.note})` : ''}{Object.keys(l.drops).length ? ' → ' + Object.entries(l.drops).map(([k, v]) => `${itemName(k)}×${v}`).join(', ') : ''}</div>
             })}
             {!recent.length && <div className="text-slate-400">ยังไม่มีการล่า ทีมจะเริ่มเองเมื่อมีพลังกาย</div>}
           </div>
@@ -171,7 +177,8 @@ function Bag({ rpg }) {
   const showToast = useStore((s) => s.showToast)
   const bag = Object.entries(rpg.farm.bag || {}).filter(([, v]) => v > 0)
   const trophies = bag.filter(([k]) => k.startsWith('t:')), mats = bag.filter(([k]) => !k.startsWith('t:'))
-  const value = trophies.reduce((s, [k, v]) => s + itemPrice(k) * v, 0)
+  const tm = 1 + (rpg.cardFx?.trophy || 0) / 100 // desert cards raise trophy prices
+  const value = Math.round(trophies.reduce((s, [k, v]) => s + itemPrice(k) * v * tm, 0))
   const sell = (keys) => { const g = rpg.sellItems(keys); if (g) showToast(`ขายได้ ${g.toLocaleString()} FIAT`) }
   return (
     <div className="space-y-3">
@@ -316,7 +323,7 @@ function MonSheet({ mon, seen, glow = 0, onClose }) {
             <div className="text-[11px] text-slate-500 mb-1">ของที่ดรอปจากร่างเรืองแสง</div>
             <div className="space-y-1.5">
               <div className="px-inner p-2 flex items-center gap-2 text-xs bg-indigo-50"><ItemIcon k={`t:${mon.id}`} /><div className="flex-1"><b>{mon.trophy} ×{NIGHT.glowTrophy}</b> · ดรอปทุกครั้ง<div className="text-slate-500">พบได้ 19:00–05:00 โอกาส {pct(NIGHT.glow)} ต่อตัว (คืนเพ็ญ {pct(NIGHT.glow * NIGHT.moonMult)}) · {trophyPrice(mon) * NIGHT.glowTrophy} FIAT</div></div></div>
-              <div className="text-[11px] text-slate-500">ของอื่น ๆ ดรอปเหมือนร่างปกติ แต่ช่องของหายากได้ ×{NIGHT.rare} ตลอดคืน (คืนเพ็ญ ×{1 + (NIGHT.rare - 1) * NIGHT.moonMult})</div>
+              <div className="px-inner p-2 text-xs space-y-0.5"><div>ของอื่นดรอปเหมือนร่างปกติทุกอย่าง แต่โอกาสสูงขึ้น:</div><div className="text-slate-500">วัสดุ ×{NIGHT.glowDrop} · ของหายาก ×{NIGHT.glowDrop} (รวมกลางคืนเป็น ×{NIGHT.glowDrop * NIGHT.rare}) · ผลึกเวท ×{NIGHT.glowDrop} · เศษทอง ×{NIGHT.glowShard} · การ์ด ×{GLOW_CARD_MULT} และโอกาส {pct(GLOW_CARD)} ได้การ์ดเรืองแสง</div></div>
             </div>
           </div>
         </> : <>
@@ -327,10 +334,11 @@ function MonSheet({ mon, seen, glow = 0, onClose }) {
           <div className="space-y-1.5">
             <div className="px-inner p-2 flex items-center gap-2 text-xs"><ItemIcon k={`t:${mon.id}`} /><div className="flex-1"><b>{mon.trophy}</b> · ของประจำตัว (ขายร้านได้อย่างเดียว)<div className="text-slate-500">{mon.kind === 'normal' ? `โอกาส ${pct(LOOT.trophy)}` : 'ดรอปทุกครั้ง'} · {trophyPrice(mon)} FIAT</div></div></div>
             {map.mats.map((k) => <div key={k} className="px-inner p-2 flex items-center gap-2 text-xs"><ItemIcon k={k} /><div className="flex-1"><b>{MATS[k].name}</b> · วัสดุ{mon.kind === 'boss' ? ' ×4' : mon.kind === 'elite' ? ' ×2' : ''}<div className="text-slate-500">โอกาส {pct(LOOT.mat)}+ (สุ่ม 1 ใน {map.mats.length} ชนิด) · {matUse(k)}</div></div></div>)}
-            <div className="px-inner p-2 flex items-center gap-2 text-xs bg-indigo-50"><ItemIcon k={`t:${mon.id}`} /><div className="flex-1"><b className="inline-flex items-center gap-1">ตัวเรืองแสง <Emo k="em_glow" size={12} /></b> · ออกเฉพาะกลางคืน (ดูแท็บร่างเรืองแสง)<div className="text-slate-500">โอกาส {pct(NIGHT.glow)} ต่อตัว (คืนเพ็ญ {pct(NIGHT.glow * NIGHT.moonMult)}) · ดรอป{mon.trophy}ทุกครั้ง ×{NIGHT.glowTrophy}</div></div></div>
+            <div className="px-inner p-2 flex items-center gap-2 text-xs bg-indigo-50"><ItemIcon k={`t:${mon.id}`} /><div className="flex-1"><b className="inline-flex items-center gap-1">ตัวเรืองแสง <Emo k="em_glow" size={12} /></b> · ออกเฉพาะกลางคืน (ดูแท็บร่างเรืองแสง)<div className="text-slate-500">โอกาส {pct(NIGHT.glow)} ต่อตัว (คืนเพ็ญ {pct(NIGHT.glow * NIGHT.moonMult)}) · ดรอป{mon.trophy} 100% ทีละ {NIGHT.glowTrophy} ชิ้น ของอื่นโอกาสสูงขึ้น</div></div></div>
             {rareOf(map).map((k) => <div key={k} className="px-inner p-2 flex items-center gap-2 text-xs"><ItemIcon k={k} /><div className="flex-1"><b>{MATS[k].name}</b> · ของหายาก<div className="text-slate-500">โอกาส {pct(RARE_ODDS[mon.kind] / 2)} (กลางคืน ×{NIGHT.rare}, คืนเพ็ญ ×{1 + (NIGHT.rare - 1) * NIGHT.moonMult}) · {matUse(k)}</div></div></div>)}
             <div className="px-inner p-2 flex items-center gap-2 text-xs"><ItemIcon k="mcrystal" /><div className="flex-1"><b>{MATS.mcrystal.name}</b> · ใช้ตีบวก<div className="text-slate-500">โอกาส {pct(LOOT.mcrystal[mon.kind])} · {matUse('mcrystal')}</div></div></div>
             <div className="px-inner p-2 flex items-center gap-2 text-xs bg-amber-50"><ItemIcon k="shard" /><div className="flex-1"><b>{MATS.shard.name}</b> · หายากมาก<div className="text-slate-500">โอกาส {pct(LOOT.shard[mon.kind])} · {matUse('shard')}</div></div></div>
+            <div className="px-inner p-2 flex items-center gap-2 text-xs bg-indigo-50"><PxIcon name="em_card" size={28} /><div className="flex-1"><b>การ์ด{mon.name}</b> · ใส่สมุดสะสมการ์ด<div className="text-slate-500">โอกาส {pct(CARD_DROP[mon.kind])} (เท่าเศษทอง) · ตัวเรืองแสง ×{GLOW_CARD_MULT} · ดูในแท็บ “การ์ด”</div></div></div>
           </div>
         </div>
         </>}
@@ -419,7 +427,7 @@ export function EnhanceCard({ rpg }) {
           const n = enh[g.slot] || 0, st = enhStep(n)
           return (
             <div key={g.slot} className="px-inner p-2 flex items-center gap-2" data-testid={`enh-${g.slot}`}>
-              <div className="relative"><PxIcon name={SLOT_KEY[g.slot]} size={30} />{n >= 7 && <span className="absolute -inset-1 rounded-full animate-pulse" style={{ boxShadow: '0 0 10px 2px rgba(250,204,21,.7)' }} />}</div>
+              <div className="relative"><PxIcon name={`gr_${g.slot}${g.tier}`} size={30} />{n >= 7 && <span className="absolute -inset-1 rounded-full animate-pulse" style={{ boxShadow: '0 0 10px 2px rgba(250,204,21,.7)' }} />}</div>
               <div className="flex-1 min-w-0 text-xs">
                 <div className="font-semibold text-sm">{g.name} <span className="text-amber-600">+{n}</span></div>
                 <div className="text-slate-600">{ENH_FX[g.slot]} +{n}%{st ? ` · ต่อไป +${n + 1}: โอกาส ${Math.round(st.p * 100)}% · คริสตัล ${st.c} · ${st.fiat} FIAT${st.down ? ' · พลาดลด 1 ขั้น' : ''}` : ' · สูงสุดแล้ว'}</div>

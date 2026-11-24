@@ -199,7 +199,9 @@ export default function FarmScene({ mapId, party = [], shadows = [], recent = []
     // monster
     const mon = MON_BY_ID[s.monId] || MON_BY_ID[idleMon]
     if (mon) {
-      const im = (c && c.glow && still(`mon_${mon.id}_glow`)) || still(`mon_${mon.id}`) // a glowing night monster has its own PixelLab art
+      // PixelLab idle animation (8-frame strip) when it exists, else the still; a glowing night monster has its own art
+      const g8 = Math.floor(now / 140) % 8, gl = c && c.glow
+      const im = (gl && (frame(`mon_${mon.id}_glow_anim`, g8) || still(`mon_${mon.id}_glow`))) || frame(`mon_${mon.id}_anim`, g8) || still(`mon_${mon.id}`)
       const h = MON_H[mon.kind] || 64
       let x = W - h - 14, y = GY - h + (Math.floor(now / 400) % 2), alpha = 1, mode = false
       if (!c && s.spawn && now - s.spawn < 450) { const a = (now - s.spawn) / 450; x += (1 - a) * 140; alpha = a }
@@ -216,7 +218,7 @@ export default function FarmScene({ mapId, party = [], shadows = [], recent = []
         if (Math.random() < dt / 90) s.fx.push({ kind: 'spark', x: x + Math.random() * h, y: y + Math.random() * h, vx: 0, vy: -0.03, life: 600 })
         if (!c.glowSaid) { c.glowSaid = true; s.fx.push({ kind: 'num', text: '✨ตัวเรืองแสง!', x: x + h / 2, y: y - 10, life: 1500, color: '#fde047' }) }
       }
-      if (im) { g.globalAlpha = alpha; g.drawImage(mode && Math.floor(now / 60) % 2 ? flashOf(im, c && c.glow ? `${mon.id}_g` : mon.id) : im, x, y, h, h); g.globalAlpha = 1 }
+      if (im) { g.globalAlpha = alpha; g.drawImage(mode && Math.floor(now / 60) % 2 ? flashOf(im, `${mon.id}${gl ? '_g' : ''}:${g8}`) : im, x, y, h, h); g.globalAlpha = 1 }
       // hit: damage number + sparks + sound once
       if (c && !c.hitDone && k > 0.5) {
         c.hitDone = true

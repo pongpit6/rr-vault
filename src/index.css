@@ -172,3 +172,7 @@ html[data-theme^="pixel"] .ui-fab-notch { background: var(--px-card); border: 2p
 @media (prefers-reduced-motion: reduce) { .anim-bob { animation: none; } }
 .stroke-demo { stroke-dashoffset: 1; animation: strokeDraw .6s ease-out forwards; }
 @keyframes strokeDraw { to { stroke-dashoffset: 0; } }
+
+/* collector cards: 8-frame PixelLab idle strip (frames 0-4-1 ping-pong) */
+.card-anim { animation: cardAnim 1.2s steps(8) infinite; }
+@keyframes cardAnim { from { background-position: 0 0; } to { background-position: 114.2857% 0; } }

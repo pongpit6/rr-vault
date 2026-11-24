@@ -39,21 +39,9 @@ const REALM_INFO = [
   'พระราชวังโดมทองคำ ต้นไม้เขียวรอบวัง · นกพิราบขาว ผีเสื้อทอง และประกายทองทั้งวัน — จุดหมายสูงสุด',
 ]
 
-/* pixel icons for gear, coloured by tier */
-function GearIcon({ slot, color, size = 40 }) {
-  const px = {
-    weapon: ['....##', '...#c#', '..#c#.', '.#c#..', '##b#..', '.##...', '#..#..'],
-    armor: ['#....#', '##cc##', '#cccc#', '#cbbc#', '.#cc#.', '.#cc#.', '..##..'],
-    boots: ['......', '.##...', '.#c#..', '.#c#..', '.#cc##', '.#cccb', '.#####'],
-    satchel: ['..##..', '.#..#.', '######', '#cccc#', '#cbbc#', '#cccc#', '######'],
-    ring: ['..##..', '.#bb#.', '......', '#c..c#', '#c..c#', '.#cc#.', '..##..'],
-  }[slot]
-  const fill = { '#': '#1e293b', c: color, b: '#fde68a' }
-  return (
-    <svg width={size} height={size} viewBox="-1 -1 8 9" style={{ imageRendering: 'pixelated' }} shapeRendering="crispEdges">
-      {px.flatMap((row, y) => [...row].map((ch, x) => (ch === '.' ? null : <rect key={`${x}-${y}`} x={x} y={y} width={1} height={1} fill={fill[ch]} />)))}
-    </svg>
-  )
+/* gear icons: PixelLab art per slot and tier (gr_<slot><0-4> in the icon atlas) */
+function GearIcon({ slot, tier = 0, size = 40 }) {
+  return <PxIcon name={`gr_${slot}${Math.max(0, Math.min(4, tier))}`} size={size} />
 }
 
 const TABS = [
@@ -249,7 +237,7 @@ function GearTab({ rpg }) {
       {rpg.gear.map((g) => (
         <section key={g.slot} className="px-card p-3.5">
           <div className="flex gap-3 items-center">
-            <div className="w-16 h-16 grid place-items-center border-2 border-slate-800 shrink-0" style={{ background: `${g.color}22` }}><GearIcon slot={g.slot} color={g.color} size={44} /></div>
+            <div className="w-16 h-16 grid place-items-center border-2 border-slate-800 shrink-0" style={{ background: `${g.color}22` }}><GearIcon slot={g.slot} tier={g.tier} size={48} /></div>
             <div className="flex-1 min-w-0">
               <div className="text-xs text-slate-500">{g.label} · ขั้น <b style={{ color: g.color }}>{g.tierName}</b></div>
               <div className="font-bold leading-tight">{g.name}</div>

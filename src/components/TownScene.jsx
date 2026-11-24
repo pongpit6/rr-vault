@@ -35,13 +35,13 @@ const hs = (i, k = 0) => { const x = Math.sin(i * 127.1 + k * 311.7) * 43758.545
 function townLife(g, now, w, G, phase) {
   const t = now / 1000, put = (name, x, y, sz, flip = false, a = 1) => { const im = still(name); if (!im) return; g.save(); g.globalAlpha = a; g.translate(Math.round(x + sz / 2), Math.round(y)); g.scale(flip ? -1 : 1, 1); g.drawImage(im, -sz / 2, -sz, sz, sz); g.restore() }
   const fly = (name, n, sz, sp) => { for (let i = 0; i < n; i++) { const dir = hs(i, sz) > 0.5, p = ((t * sp * (0.8 + hs(i) * 0.5) + hs(i, 3) * 900) % (w + 60)) - 30; put(name, dir ? p : w - p, 18 + hs(i, 5) * 22 + Math.sin(t * 3 + i) * 2, sz, !dir) } }
-  if (phase === 'morning') { put('am_rooster', w * 0.62, G + 1, 13, Math.sin(t * 0.2) > 0); fly('am_bird', 2, 9, 18) }
-  if (phase === 'day') fly('am_bird', 3, 9, 20)
-  if (phase === 'evening') fly('am_crow', 3, 10, 16)
+  if (phase === 'morning') { put('am_rooster', w * 0.62, G + 1, 8, Math.sin(t * 0.2) > 0); fly('am_bird', 2, 6, 18) }
+  if (phase === 'day') fly('am_bird', 3, 6, 20)
+  if (phase === 'evening') fly('am_crow', 3, 8, 16)
   if (phase === 'night') {
-    put('am_cat', w * 0.38 + Math.sin(t * 0.15) * 30, G + 1, 12, Math.cos(t * 0.15) < 0)
-    for (let i = 0; i < 8; i++) put('am_firefly', (hs(i) * w + Math.sin(t * 0.6 + i) * 20 + w) % w, G - 8 - hs(i, 2) * 30 + Math.sin(t * 1.3 + i) * 4, 6, false, 0.5 + 0.5 * Math.sin(t * 3 + i * 1.7))
-    const k = (t % 12) / 1.1; if (k < 1) put('am_shoot', w * 0.3 + k * 70, 10 + k * 22, 14, false, 1 - k)
+    put('am_cat', w * 0.38 + Math.sin(t * 0.15) * 30, G + 1, 8, Math.cos(t * 0.15) < 0)
+    for (let i = 0; i < 8; i++) put('am_firefly', (hs(i) * w + Math.sin(t * 0.6 + i) * 20 + w) % w, G - 8 - hs(i, 2) * 30 + Math.sin(t * 1.3 + i) * 4, 4, false, 0.5 + 0.5 * Math.sin(t * 3 + i * 1.7))
+    const k = (t % 12) / 1.1; if (k < 1) put('am_shoot', w * 0.3 + k * 70, 10 + k * 22, 12, false, 1 - k)
   }
 }
 

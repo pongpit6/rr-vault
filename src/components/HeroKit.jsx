@@ -52,7 +52,7 @@ export function HeroCard({ rpg }) {
       <div className="grid grid-cols-5 gap-1.5 mt-3">
         {rpg.gear.map((g) => (
           <div key={g.slot} className="px-inner p-1.5 text-center" title={`${g.name} · ${g.how}: ${g.valueText}`}>
-            <PxIcon name={SLOT_ICON[g.slot]} size={28} />
+            <PxIcon name={`gr_${g.slot}${g.tier}`} size={28} />
             <div className="text-[10px] text-slate-500 mt-1">{g.label}</div>
             <div className="text-[10px] font-bold" style={{ color: g.color }}>{g.tierName}</div>
           </div>

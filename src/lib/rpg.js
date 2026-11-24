@@ -10,7 +10,8 @@ import { selectList } from '../store'
 import { useWeather, loadWeather, sceneWeather, thaiEvent, isThaiHoliday, moneyMood } from './world'
 import { doubleDay, decorOnSale } from './festivals'
 import { setHeroStage, setHeroSkin, setPetStage } from './heroStage'
-import { energyOf, partyPower, fight, emptyFarm, chestsDue, chestLoot, rankCost, RECIPES, CRAFT_DECOR, itemPrice, SKILLS_V, RELIC_BY_ID, relicFx, relicSlots, shadowFx, shadowSlots, SHADOW_BY_ID, enhStep, SHARDS_PER_GOLD, raidsOf, defendRaid, hourlyOf, huntMaps, IDLE_AWAY_MS, IDLE_LIVE_MS, HUNT_XP_PER_WIN, HUNT_XP_DAY } from './farm'
+import { cardFx, addCard, shopCards, sundayOf, sellPrice, cardPrice } from './cards'
+import { mapUnlocked, MAPS, MON_BY_ID, energyOf, partyPower, fight, emptyFarm, chestsDue, chestLoot, rankCost, RECIPES, CRAFT_DECOR, itemPrice, SKILLS_V, RELIC_BY_ID, relicFx, relicSlots, shadowFx, shadowSlots, SHADOW_BY_ID, enhStep, SHARDS_PER_GOLD, raidsOf, defendRaid, hourlyOf, huntMaps, IDLE_AWAY_MS, IDLE_LIVE_MS, HUNT_XP_PER_WIN, HUNT_XP_DAY } from './farm'
 import { outfitOf, condition7, shadowRace, birthdayInfo, bdaySkin, storyAct, albumSnap, FREEDOM_STEPS } from './hero'
 import { usePrices } from './prices'
 import { loadXau } from './market'
@@ -448,7 +449,7 @@ function computeRpg({ accounts, txns, settings, balances, summary, unlocked, por
 
   const farm = { ...emptyFarm(), ...(data.farm || {}) }
   if (farm.skillsV !== SKILLS_V) farm.skills = {} // skills were rebalanced: every point comes back
-  const fxR = { ...relicFx(farm), ...shadowFx(farm), enh: farm.enh || {} }
+  const fxR = { ...relicFx(farm), ...shadowFx(farm), enh: farm.enh || {}, card: cardFx(farm) }
   const energy0 = energyOf({ traces, habitDays, condition, today })
   const energy = { ...energy0, stamina: energy0.stamina + (fxR.shadowStamina || 0), mana: energy0.mana + (fxR.rl_dust || 0) + (fxR.shadowMana || 0) }
   const skillPts = lv.level + (farm.bonusPts || 0) - Object.values(farm.skills || {}).reduce((s, r) => s + [0, 1, 2, 3, 4, 6][r], 0)
@@ -702,7 +703,7 @@ export function useRpg() {
     const day = dayOf(f), logs = [], nowMs = Date.now()
     const hr = hourlyOf(f, nowMs, rpg.town.happiness)
     let bank = hr.bank
-    const fx = { ...relicFx(f), ...shadowFx(f), enh: f.enh || {} }
+    const fx = { ...relicFx(f), ...shadowFx(f), enh: f.enh || {}, card: cardFx(f) }
     const ctx = { power: rpg.power, skills: f.skills || {}, joined: rpg.party.filter((p) => p.joined).map((p) => p.id), hard: rpg.energy.hard, traces: rpg.traces, mana: rpg.energy.mana, fx }
     const maps = huntMaps(f, { level: rpg.level, realmTier: rpg.realm.tier, power: rpg.power, fx })
     for (let i = 0; i < n; i++) {
@@ -726,7 +727,7 @@ export function useRpg() {
     if (away && logs.length >= 2) {
       const drops = {}
       for (const l of logs) for (const [k, v] of Object.entries(l.drops)) drops[k] = (drops[k] || 0) + v
-      f.away = { from: away, to: f.last, n: logs.length, wins: logs.filter((l) => l.win).length, drops, night: logs.filter((l) => l.night).length, moon: logs.some((l) => l.moon), glow: logs.filter((l) => l.glow && l.win).map((l) => l.mon) }
+      f.away = { from: away, to: f.last, n: logs.length, wins: logs.filter((l) => l.win).length, drops, night: logs.filter((l) => l.night).length, moon: logs.some((l) => l.moon), glow: logs.filter((l) => l.glow && l.win).map((l) => l.mon), cards: logs.flatMap((l) => [l.card && { id: l.card.id }, l.glowCard && { id: l.glowCard.id, glow: true }].filter(Boolean)) }
     }
     saveFarm(f)
     return logs
@@ -783,9 +784,33 @@ export function useRpg() {
   }
   const sellItems = (keys) => {
     const f = F(), bag = { ...f.bag }; let got = 0
-    for (const k of keys) { got += itemPrice(k) * (bag[k] || 0); delete bag[k] }
+    const tm = 1 + (cardFx(f).trophy || 0) / 100 // desert cards raise trophy prices
+    for (const k of keys) { got += Math.round(itemPrice(k) * (k.startsWith('t:') ? tm : 1) * (bag[k] || 0)); delete bag[k] }
     if (!got) return 0
     pay(got, 0, { icon: '💰', text: `ขายของจากการล่ามอนสเตอร์` }, { farm: { ...f, bag } }); sfx('coin'); return got
+  }
+  /* ---------- collector cards ---------- */
+  /** this Sunday's merchant stock (5 cards, the same on every device); null on other days */
+  const cardShopToday = (() => {
+    const sun = sundayOf(new Date()); if (!sun) return null
+    const open = MAPS.filter((m) => mapUnlocked(m, { level: rpg.level, realmTier: rpg.realm.tier }).ok)
+    const f = rpg.farm, bought = f.cardShop?.date === sun ? f.cardShop.bought || [] : []
+    return { date: sun, items: shopCards(sun, open).map((c, i) => ({ ...c, i, sold: bought.includes(i) })) }
+  })()
+  const buyCard = (i) => {
+    const shop = cardShopToday, c = shop?.items[i]
+    if (!c || c.sold || fiat < c.price) return null
+    const f = F(), res = addCard(f, c.id, c.glow)
+    f.cardShop = { date: shop.date, bought: [...(f.cardShop?.date === shop.date ? f.cardShop.bought || [] : []), i] }
+    pay(-c.price, 0, { icon: '🃏', text: `ซื้อการ์ด${c.glow ? 'เรืองแสง' : ''} ${MON_BY_ID[c.id]?.name} จากพ่อค้าวันอาทิตย์` }, { farm: f }); sfx('coin'); return res
+  }
+  /** sell spare copies (only cards already at level 10, or a second glowing card) */
+  const sellCard = (id, glow = false) => {
+    const f = F(), key = glow ? 'glowSpare' : 'cardSpare', n = f[key]?.[id] || 0, mon = MON_BY_ID[id]
+    if (!n || !mon) return 0
+    const got = sellPrice(mon, glow) * n
+    f[key] = { ...f[key] }; delete f[key][id]
+    pay(got, 0, { icon: '🃏', text: `ขายการ์ด${glow ? 'เรืองแสง' : ''}ซ้ำ ${mon.name} ×${n}` }, { farm: f }); sfx('coin'); return got
   }
   const craft = (id) => {
     const rc = RECIPES.find((x) => x.id === id), d = fresh(), f = { ...emptyFarm(), ...(d.farm || {}) }, bag = { ...f.bag }
@@ -879,7 +904,7 @@ export function useRpg() {
     ...rpg, vault: v, fiat, gold, chestReady, openChest, buy, shopPrice, setEquip, toggleDeco, decorPrice, saleOff, chestCount: data.chestCount || 0,
     inflation: inflationMult(data), afford, buildPrice, build, upgrade, demolish, hallPrice, upgradeHall, hire, dismiss, buyDecor,
     collectReady, collect, collectDays, collectAmount, claim, exchange, exchangeRate: exchangeRate(data), exchangedThisWeek, econData: data,
-    bdayReady, claimBirthday, album: data.album || {}, farmFight, setFarm, makeRelic, wearRelic, rankUp, enhance, combineShards, buyShadow, wearShadow, sellItems, craft, openDiscipline,
+    bdayReady, claimBirthday, album: data.album || {}, farmFight, setFarm, makeRelic, wearRelic, rankUp, enhance, combineShards, buyShadow, wearShadow, sellItems, craft, cardShopToday, buyCard, sellCard, cardFx: cardFx(rpg.farm), openDiscipline,
     markNoSpend, noSpendReward, canNoSpendOn, markNoSpendOn, spentOn, markStorySeen, chooseMonthBoss, markMonthSeen,
   }
   R.current = api

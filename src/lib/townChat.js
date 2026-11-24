@@ -70,6 +70,13 @@ export function townChats(rpg) {
       const s2 = by0('bard', 'merchant', 'farmer'); if (s2) add(1, [s2], [[s2, `ว่ากันว่ากลางคืนจะมีมอนสเตอร์เรืองแสงโผล่มา ราว ${glowP}% เลยนะ`], ['hero', 'ถ้วยรางวัลมันได้สองเท่าใช่ไหม'], [s2, 'ใช่! ขายได้ราคาดีด้วย']])
       if (moon) { const s3 = by0('fisher', 'farmer', 'guard'); if (s3) add(3, [s3], [[s3, 'คืนนี้พระจันทร์เต็มดวง! มอนสเตอร์เรืองแสงออกมาเยอะเป็นสองเท่า'], ['hero', 'ของแรร์ก็ดรอปง่ายขึ้นอีกใช่ไหม'], [s3, 'ใช่ คืนเพ็ญแบบนี้มีเดือนละครั้งเท่านั้น']]) }
     }
+    // collector cards and the Sunday card merchant
+    const nCards = Object.keys(f.cards || {}).length, maxed = Object.values(f.cards || {}).filter((v) => v >= 10).length
+    if (new Date().getDay() === 0) { const sp = by0('merchant', 'banker', 'farmer'); if (sp) add(3, [sp], [[sp, 'วันอาทิตย์แล้ว! ข้าเอาการ์ดมอนสเตอร์มาขาย 5 ใบ ไปดูที่แท็บการ์ดนะ'], ['hero', 'มีใบหายาก ๆ ไหม'], [sp, 'บางสัปดาห์ก็มีบอส หรือแม้แต่ใบเรืองแสงนะ ลุ้นเอา']]) }
+    else { const sp = by0('merchant', 'farmer'); if (sp) add(1, [sp], [['hero', 'พ่อค้าการ์ดมาวันไหนนะ'], [sp, 'ทุกวันอาทิตย์ มาทีละ 5 ใบ เก็บ FIAT ไว้ให้พอนะ']]) }
+    if (nCards > 0) { const sp = by0('bard', 'apprentice', 'farmer'); if (sp) add(2, [sp], [[sp, `สมุดการ์ดของท่านมี ${nCards} ใบแล้วนะ!`], ['hero', 'การ์ดหายากเท่าเศษทองเลย ได้ทีดีใจทุกที'], [sp, 'ใส่ใบซ้ำทับ ความสามารถก็แรงขึ้นเรื่อย ๆ']]) }
+    else { const sp = by0('bard', 'farmer'); if (sp) add(1, [sp], [[sp, 'ได้ยินว่ามอนสเตอร์บางตัวทิ้งการ์ดไว้ หายากพอ ๆ กับเศษทองเลย'], ['hero', 'ถ้าได้มาจะเอาใส่สมุดสะสมไว้']]) }
+    if (maxed > 0) { const sp = by0('banker', 'merchant'); if (sp) add(2, [sp], [[sp, 'การ์ดที่เต็มสิบขั้นแล้ว ใบซ้ำเอามาขายให้ข้าได้นะ'], ['hero', 'ดีเลย จะได้เก็บ FIAT ไว้ซื้อใบใหม่']]) }
     if (glowMon) { const sp = by0('merchant', 'banker', 'farmer'); if (sp) add(3, [sp], [[sp, `ได้ยินว่าท่านล่า${glowMon.name}ตัวเรืองแสงได้ด้วย!`], ['hero', 'โชคดีน่ะ มันโผล่มาตอนกลางคืน'], [sp, `${glowMon.trophy}จากตัวเรืองแสง เอามาขายข้าได้เลยนะ`]]) }
   }
 

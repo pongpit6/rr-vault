@@ -39,7 +39,8 @@ export function drawPhased(g, base, still, draw, tod = todOf()) {
 
 /* ---------------- night bonuses (ก ข ค) ---------------- */
 /** night hunt: rare drops ×1.5, monsters 10% tougher; a full moon doubles the rare bonus and the glowing chance */
-export const NIGHT = { rare: 1.5, monPow: 1.1, glow: 0.03, glowTrophy: 2, moonMult: 2 }
+/** glowing monsters: trophy always ×2; materials, rare slot and magic crystals ×glowDrop; gold shards ×glowShard */
+export const NIGHT = { rare: 1.5, monPow: 1.1, glow: 0.03, glowTrophy: 2, glowDrop: 2, glowShard: 1.5, moonMult: 2 }
 /** moon age 0..1 (0 new, 0.5 full) from the mean synodic month, anchored at the new moon of 2000-01-06 18:14 UTC */
 export function moonPhase(d = new Date()) {
   const days = (d.getTime() - Date.UTC(2000, 0, 6, 18, 14)) / 864e5
