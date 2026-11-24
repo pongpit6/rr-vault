@@ -1,4 +1,4 @@
-import { Sparkles, Emo, EmoText } from './px'
+import { Sparkles, Emo } from './px'
 
 /** five-axis radar, pure SVG, pixel-ish (square points) */
 function Radar({ areas, size = 200 }) {

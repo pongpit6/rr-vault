@@ -1,10 +1,10 @@
-import { useEffect, useRef, useState } from 'react'
-import { Swords, Backpack, Hammer, BookOpen, Zap, Lock, Gift, Sparkles, Play, Pause, ScrollText, Castle as Castle2, Ghost, Gem } from './px'
+import { useEffect, useState } from 'react'
+import { Swords, Backpack, Hammer, BookOpen, Zap, Lock, Gift, Sparkles, ScrollText, Castle as Castle2, Ghost, Gem } from './px'
 import { Emo, PxIcon, hasPx } from './px'
 import { Portrait } from './RpgBits'
 import FarmScene from './FarmScene'
 import { useStore } from '../store'
-import { MAPS, MAP_BY_ID, MON_BY_ID, MATS, TREE, rankCost, RECIPES, mapUnlocked, itemName, itemPrice, itemIcon, RELICS, RELIC_BY_ID, NPC_INFO, SHADOWS, SHADOW_SLOT_LV, enhStep, ENH_FX, SHARDS_PER_GOLD } from '../lib/farm'
+import { MAPS, MAP_BY_ID, MON_BY_ID, MATS, TREE, rankCost, RECIPES, mapUnlocked, itemName, itemPrice, itemIcon, RELICS, RELIC_BY_ID, NPC_INFO, SHADOWS, SHADOW_SLOT_LV, enhStep, ENH_FX, SHARDS_PER_GOLD, MAP_MODES, huntMaps, mapWinRate } from '../lib/farm'
 import { monPower, BOSS_AFTER, trophyPrice, bossOf, eliteOf } from '../lib/farmData'
 import { MAP_LORE, MON_LORE, STORY, STORY_STEPS } from '../lib/farmLore'
 import { Sheet } from './ui'
@@ -24,8 +24,6 @@ const ItemIcon = ({ k, size = 28 }) => {
   if (k.startsWith('t:')) return <Portrait sprite={`mon_${k.slice(2)}`} size={size} />
   return <span style={{ fontSize: size * 0.7 }}>📦</span>
 }
-const SEQ = { n: 0 }
-const MON_SIZE = { normal: 72, elite: 88, boss: 104 }
 
 export default function FarmTab({ rpg }) {
   const [sub, setSub] = useState('hunt')
@@ -47,52 +45,67 @@ export default function FarmTab({ rpg }) {
 
 function Energy({ rpg }) {
   const e = rpg.energy
+  const mins = Math.ceil(rpg.nextHourIn / 60000)
   return (
-    <Card icon={Zap} title="ENERGY · พลังจากวินัยวันนี้" testid="farm-energy">
+    <Card icon={Zap} title="ENERGY · พลังกายและมานา" testid="farm-energy">
       <div className="grid grid-cols-2 gap-3 text-sm">
-        <div><div className="flex justify-between"><b>พลังกาย</b><span className="num">{rpg.staminaLeft}/{e.stamina}</span></div><Bar pct={rpg.staminaLeft / e.stamina} color="#f97316" /><div className="text-[10px] text-slate-500 mt-0.5">1 รอบการล่า = 1 พลังกาย</div></div>
+        <div><div className="flex justify-between"><b>พลังกาย</b><span className="num">{rpg.staminaLeft}</span></div><Bar pct={rpg.staminaDaily / Math.max(1, e.stamina)} color="#f97316" />
+          <div className="text-[10px] text-slate-500 mt-0.5">วันนี้ {rpg.staminaDaily}/{e.stamina} · สะสมรายชั่วโมง {rpg.staminaBank} · +1 ในอีก {mins} นาที</div></div>
         <div><div className="flex justify-between"><b>มานา</b><span className="num">{rpg.manaLeft}/{e.mana}</span></div><Bar pct={rpg.manaLeft / Math.max(1, e.mana)} color="#6366f1" /><div className="text-[10px] text-slate-500 mt-0.5">สกิลโอกาสใช้เองอัตโนมัติ</div></div>
       </div>
       <div className="flex flex-wrap gap-1 mt-2">
         {e.parts.map((p) => <span key={p.id} className={`text-[10px] px-1.5 py-0.5 border ${p.done ? 'border-emerald-500 bg-emerald-50 text-emerald-800' : 'border-slate-200 text-slate-400'}`}>{p.done ? '✓' : '+'}{p.pts} {p.name}</span>)}
         {e.fit > 0 && <span className="text-[10px] px-1.5 py-0.5 border border-amber-400 bg-amber-50">+5 ร่างกายฟิต 7 วัน</span>}
       </div>
-      <div className="text-[10px] text-slate-500 mt-1">ฐาน 20 + จากวินัยสูงสุด 20 · วินัยยาก (ออกกำลังกาย ไม่กินแป้ง จ่ายหนี้ ออม) วันนี้ทำแล้ว {e.hard} อย่าง → ดรอปวัสดุดีขึ้น</div>
+      <div className="text-[10px] text-slate-500 mt-1">ทุกวัน: ฐาน 20 + วินัยสูงสุด 20 (รีเซ็ตเที่ยงคืน) · และ +1 ทุกชั่วโมง สะสมได้ไม่จำกัด · วินัยยาก (ออกกำลังกาย ไม่กินแป้ง จ่ายหนี้ ออม) วันนี้ {e.hard} อย่าง → ดรอปวัสดุดีขึ้น</div>
     </Card>
   )
 }
 
+const fmtAgo = (iso) => { const m = Math.round((Date.now() - new Date(iso).getTime()) / 60000); return m < 60 ? `${m} นาที` : m < 1440 ? `${Math.round(m / 60)} ชั่วโมง` : `${Math.round(m / 1440)} วัน` }
+
+/** what the party did while you were away */
+function AwayCard({ rpg }) {
+  const a = rpg.farm.away
+  if (!a) return null
+  return (
+    <section className="px-card p-3 bg-amber-50" data-testid="away-card">
+      <div className="flex items-center gap-2"><PxIcon name="em_moneybag" size={22} /><b className="text-sm flex-1">ระหว่างที่คุณไม่อยู่ ({fmtAgo(a.from)})</b><button className="px-btn !py-0.5 !px-2 text-[11px]" onClick={() => rpg.setFarm({ away: null })} data-testid="away-ok">รับทราบ</button></div>
+      <div className="text-xs mt-1">ทีมออกล่า <b>{a.n}</b> รอบ ชนะ <b>{a.wins}</b> · ได้ {Object.keys(a.drops).length ? Object.entries(a.drops).map(([k, v]) => `${itemName(k)}×${v}`).join(', ') : 'ไม่ได้ของ'}</div>
+    </section>
+  )
+}
+
 function Hunt({ rpg }) {
-  const f = rpg.farm, map = MAP_BY_ID[f.map] || MAPS[0]
-  const showToast = useStore((s) => s.showToast)
-  const [log, setLog] = useState([])
-  const [events, setEvents] = useState([])
-  const R = useRef(rpg); R.current = rpg
-  const hit = (n) => {
-    const out = R.current.farmFight(n)
-    if (!out.length) { showToast(R.current.staminaLeft ? 'แผนที่นี้ยังไม่ปลดล็อก' : 'พลังกายหมดแล้ว ทำวินัยเพิ่มเพื่อได้พลังกายอีก · ระหว่างนี้มอนสเตอร์อาจมาบุกเมือง'); R.current.setFarm({ auto: false }); return }
-    setEvents((e) => [...e, ...out.map((l) => ({ ...l, seq: ++SEQ.n }))].slice(-40)); setLog((l) => [...[...out].reverse(), ...l].slice(0, 12))
-  }
-  // auto: one fight every 6 s while this screen is open; on return, catch up the time away (max 8 h, still limited by stamina)
-  useEffect(() => {
-    if (!f.auto) return
-    if (f.last) { const n = Math.min(R.current.staminaLeft, Math.floor(Math.min(8 * 3600e3, Date.now() - new Date(f.last).getTime()) / 60000)); if (n > 0) hit(n) }
-    const id = setInterval(() => { if (R.current.staminaLeft > 0) hit(1); else R.current.setFarm({ auto: false }) }, 6000)
-    return () => clearInterval(id)
-  }, [f.auto, f.map]) // eslint-disable-line
-  const last = log[0] ? MON_BY_ID[log[0].mon] : map.mons[0]
+  const f = rpg.farm
+  const setUi = useStore((s) => s.setUi)
+  useEffect(() => { setUi({ huntOpen: true }); return () => setUi({ huntOpen: false }) }, []) // eslint-disable-line
+  const fx = { ...rpg.relicFx }
+  const maps = huntMaps(f, { level: rpg.level, realmTier: rpg.realm.tier, power: rpg.power, fx })
+  const recent = f.recent || []
+  const lastL = recent[recent.length - 1]
+  const map = MAP_BY_ID[lastL?.map] || maps[0]
+  const last = lastL ? MON_BY_ID[lastL.mon] : map.mons[0]
   const kills = f.kills[map.id] || 0, bossNext = BOSS_AFTER * ((f.bossKills?.[map.id] || 0) + 1)
+  const mode = f.mapMode || 'pick'
   return (
     <div className="space-y-3">
+      <AwayCard rpg={rpg} />
       <Energy rpg={rpg} />
-      <Card icon={Swords} title="HUNT · เลือกแผนที่" testid="farm-maps">
+      <Card icon={Swords} title="HUNT · ล่าอัตโนมัติ" testid="farm-maps">
+        <div className="text-[11px] text-slate-500 mb-2">ทีมออกล่าเองเมื่อมีพลังกาย ไม่ต้องกดอะไร · ตอนเปิดหน้านี้สู้ทุก 8 วินาที · ปิดแอปไว้ก็ยังล่าต่อ (ราว 5 นาทีต่อรอบ)</div>
+        <div className="flex flex-wrap gap-1.5 mb-2" data-testid="map-mode">
+          {MAP_MODES.map((m) => <button key={m.id} onClick={() => rpg.setFarm({ mapMode: m.id })} className={`px-tab ${mode === m.id ? 'on' : ''}`} title={m.text} data-testid={`mode-${m.id}`}>{m.name}</button>)}
+        </div>
+        <div className="text-[11px] text-slate-500 mb-2">{MAP_MODES.find((m) => m.id === mode).text}{mode === 'pick' ? ' · แตะแผนที่เพื่อปักหมุด' : ` · ตอนนี้: ${maps.map((m) => m.name).join(', ')}`}</div>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
           {MAPS.map((m) => {
             const u = mapUnlocked(m, { level: rpg.level, realmTier: rpg.realm.tier })
+            const on = maps.includes(m), rate = Math.round(mapWinRate(m, rpg.power, fx) * 100)
             return (
-              <button key={m.id} disabled={!u.ok} onClick={() => rpg.setFarm({ map: m.id })} className={`px-inner p-2 text-left ${f.map === m.id ? 'ring-2 ring-emerald-500' : ''} ${u.ok ? '' : 'opacity-50'}`} data-testid={`map-${m.id}`}>
+              <button key={m.id} disabled={!u.ok} onClick={() => rpg.setFarm({ map: m.id, mapMode: 'pick' })} className={`px-inner p-2 text-left ${on ? 'ring-2 ring-emerald-500' : ''} ${u.ok ? '' : 'opacity-50'}`} data-testid={`map-${m.id}`}>
                 <div className="text-sm font-semibold"><Emo e={m.emoji} size={16} /> {m.name}</div>
-                <div className="text-[10px] text-slate-500">{u.ok ? `พลังมอน ~${monPower(m.mons[0])} · ล่าแล้ว ${f.kills[m.id] || 0}` : <><Lock size={10} /> ปลดล็อก: {u.why}</>}</div>
+                <div className="text-[10px] text-slate-500">{u.ok ? `โอกาสชนะ ~${rate}% · ล่าแล้ว ${f.kills[m.id] || 0}` : <><Lock size={10} /> ปลดล็อก: {u.why}</>}</div>
               </button>
             )
           })}
@@ -100,29 +113,26 @@ function Hunt({ rpg }) {
       </Card>
       <section className="px-card overflow-hidden" data-testid="farm-battle">
         <div className="relative">
-          <FarmScene mapId={map.id} party={rpg.party} shadows={f.shadowWorn || []} events={events} hue={rpg.skin?.hue || 0} idleMon={map.mons[0].id} />
+          <FarmScene mapId={map.id} party={rpg.party} shadows={f.shadowWorn || []} recent={recent} live={rpg.staminaLeft > 0} hue={rpg.skin?.hue || 0} idleMon={map.mons[0].id} />
           <div className="absolute left-2 top-2 px-font text-[10px] bg-white/85 px-1.5 py-0.5">พลังทีม {rpg.power}</div>
           <div className="absolute right-2 top-2 text-[11px] bg-white/85 px-1.5 py-0.5"><b>{last.name}</b> · พลัง {monPower(last)}{last.kind !== 'normal' && <span className="text-rose-600"> · {last.kind === 'boss' ? 'บอส' : 'หัวหน้า'}</span>}</div>
+          {!rpg.staminaLeft && <div className="absolute left-1/2 -translate-x-1/2 top-9 whitespace-nowrap text-[10px] bg-slate-900/80 text-white px-1.5 py-0.5" data-testid="replay-badge">{recent.length ? '▶ รีเพลย์การล่าล่าสุด' : 'ซ้อมกับหุ่นฝึก'} · พลังกายหมด +1 ในอีก {Math.ceil(rpg.nextHourIn / 60000)} นาที</div>}
         </div>
         <div className="p-3 space-y-2">
-          <div className="text-[11px] text-slate-500">บอส “{bossOf(map).name}” จะออกมาเมื่อล่าครบ {bossNext} ตัว (ตอนนี้ {kills})</div>
+          <div className="text-[11px] text-slate-500">{map.name}: บอส “{bossOf(map).name}” จะออกมาเมื่อล่าครบ {bossNext} ตัว (ตอนนี้ {kills})</div>
           <Bar pct={kills / bossNext} color="#ef4444" />
-          <div className="flex gap-2 flex-wrap">
-            <button className="px-btn" onClick={() => hit(1)} disabled={!rpg.staminaLeft} data-testid="farm-hit1"><Swords size={15} /> สู้ 1 รอบ</button>
-            <button className="px-btn" onClick={() => hit(5)} disabled={!rpg.staminaLeft}>สู้ 5 รอบ</button>
-            <button className={`px-btn ${f.auto ? '!bg-amber-400' : ''}`} onClick={() => rpg.setFarm({ auto: !f.auto, last: new Date().toISOString() })} disabled={!rpg.staminaLeft && !f.auto} data-testid="farm-auto">{f.auto ? <><Pause size={15} /> หยุดออโต้</> : <><Play size={15} /> ออโต้</>}</button>
-          </div>
           <div className="flex gap-1 flex-wrap text-[10px]" data-testid="farm-passives">
             {TREE.filter((t) => (f.skills?.[t.id] || 0) > 0).map((t) => <span key={t.id} className="px-inner px-1.5 py-0.5 flex items-center gap-1"><Emo k={t.icon} size={14} />{t.name} {t.kind === 'chance' ? `${Math.round(t.chance(f.skills[t.id]) * 100)}%` : `ขั้น ${f.skills[t.id]}`}</span>)}
             {(f.worn || []).map((id) => <span key={id} className="px-inner px-1.5 py-0.5 flex items-center gap-1 bg-amber-50"><Emo k={id} size={14} />{RELIC_BY_ID[id]?.name}</span>)}
-            {(f.potions || 0) > 0 && <span className="px-1.5 py-0.5 bg-emerald-50">🧪 ยา ×{f.potions}</span>}
+            {(f.potions || 0) > 0 && <span className="px-1.5 py-0.5 bg-emerald-50"><Emo e="🧪" size={12} /> ยา ×{f.potions}</span>}
             {!Object.values(f.skills || {}).some(Boolean) && !(f.worn || []).length && <span className="text-slate-400">สกิลและของติดตัวทำงานเองระหว่างสู้ · ลงแต้มที่แท็บ “สกิล” · รับของติดตัวจาก “ชาวเมือง”</span>}
           </div>
           <div className="space-y-0.5 text-[11px]" data-testid="farm-log">
-            {log.map((l, i) => {
+            {[...recent].reverse().slice(0, 12).map((l) => {
               const m = MON_BY_ID[l.mon]
-              return <div key={i} className={l.win ? 'text-slate-700' : 'text-rose-500'}>{l.win ? '⚔️ ชนะ' : '💥 แพ้'} {m.name}{l.note ? ` (${l.note})` : ''}{Object.keys(l.drops).length ? ' → ' + Object.entries(l.drops).map(([k, v]) => `${itemName(k)}×${v}`).join(', ') : ''}</div>
+              return <div key={l.seq} className={l.win ? 'text-slate-700' : 'text-rose-500'}><span className="text-slate-400">{l.at ? new Date(l.at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) : ''}</span> <Emo e={l.win ? '⚔️' : '💥'} size={12} /> {l.win ? 'ชนะ' : 'แพ้'} {m?.name}{l.note ? ` (${l.note})` : ''}{Object.keys(l.drops).length ? ' → ' + Object.entries(l.drops).map(([k, v]) => `${itemName(k)}×${v}`).join(', ') : ''}</div>
             })}
+            {!recent.length && <div className="text-slate-400">ยังไม่มีการล่า ทีมจะเริ่มเองเมื่อมีพลังกาย</div>}
           </div>
         </div>
       </section>

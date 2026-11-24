@@ -166,6 +166,23 @@ export function raidsOf(date, uid = '') {
   return out.sort((a, b) => a.at.localeCompare(b.at))
 }
 
+/* ---------------- idle hunting: +1 stamina every hour (no cap), on top of today's discipline stamina ---------------- */
+export const HOUR_MS = 3600e3
+/** the hourly bank right now: what's banked + whole hours since it was last counted */
+export function hourlyOf(f, now = Date.now()) {
+  const h = f.hourly
+  if (!h?.at) return { bank: 0, at: new Date(now).toISOString(), nextIn: HOUR_MS }
+  const since = Math.max(0, now - new Date(h.at).getTime()), gained = Math.floor(since / HOUR_MS)
+  return { bank: (h.bank || 0) + gained, at: new Date(new Date(h.at).getTime() + gained * HOUR_MS).toISOString(), nextIn: HOUR_MS - (since % HOUR_MS) }
+}
+export const IDLE_AWAY_MS = 5 * 60e3 // with the app closed the party fights about once every 5 minutes
+export const IDLE_LIVE_MS = 8e3 // while you watch the hunt it fights every 8 seconds
+export const MAP_MODES = [
+  { id: 'pick', name: 'แผนที่ที่เลือก', text: 'ล่าแค่แผนที่ที่ปักไว้' },
+  { id: 'all', name: 'ทุกแผนที่ที่สู้ไหว', text: 'วนล่าทุกแผนที่ที่ชนะได้ 50% ขึ้นไป' },
+  { id: 'safe', name: 'ชนะ 70% ขึ้นไป', text: 'วนล่าเฉพาะแผนที่ที่ชนะได้ 70% ขึ้นไป' },
+]
+
 /* ---------------- combat ---------------- */
 export function mapUnlocked(map, { level, realmTier }) {
   if (map.unlock.level && level < map.unlock.level) return { ok: false, why: `เลเวล ${map.unlock.level}` }
@@ -180,9 +197,27 @@ export function partyPower({ level, gear = [], party = [], skills = {}, traces =
   return Math.round(p * (1 + pct / 100))
 }
 const rnd = () => Math.random()
+/** chance to beat one monster with this power (relics, enhanced armor and shadows help) */
+export function winChance(power, mon, fx = {}) {
+  const mp = monPower(mon)
+  return Math.max(0.05, Math.min(0.97, 0.5 + (power - mp) / (2 * mp) + ((fx.rl_shield || 0) + (fx.enh?.armor || 0) + (fx.shadowGuard || 0) + (mon.kind !== 'normal' ? fx.shadowBoss || 0 : 0)) / 100))
+}
+/** average win rate against a map's everyday monsters */
+export const mapWinRate = (map, power, fx) => { const n = normalsOf(map); return n.reduce((s, m) => s + winChance(power, m, fx), 0) / n.length }
+/** the maps the idle party hunts in, by mode (falls back to the easiest open map) */
+export function huntMaps(f, { level, realmTier, power, fx }) {
+  const open = MAPS.filter((m) => mapUnlocked(m, { level, realmTier }).ok)
+  const mode = f.mapMode || 'pick'
+  if (mode === 'pick') { const m = MAP_BY_ID[f.map]; return [m && open.includes(m) ? m : open[0] || MAPS[0]] }
+  const need = mode === 'safe' ? 0.7 : 0.5
+  const ok = open.filter((m) => mapWinRate(m, power, fx) >= need)
+  return ok.length ? ok : [open[0] || MAPS[0]]
+}
+/** loot odds per win (tuned for idle hunting: daily stamina + 1 an hour, see claude/game-economy.md) */
+export const LOOT = { trophy: 0.36, mat: 0.3, shard: { normal: 0.0045, elite: 0.009, boss: 0.015 }, mcrystal: { normal: 0.02, elite: 0.065, boss: 0.2 } }
 /** one fight. f = data.farm (mutated copy), day = today's usage (mana is spent here). returns a log entry */
-export function fight(f, day, ctx) {
-  const map = MAP_BY_ID[f.map], sk = ctx.skills, fx = ctx.fx, procs = []
+export function fight(f, day, ctx, mapId = f.map) {
+  const map = MAP_BY_ID[mapId] || MAP_BY_ID[f.map], sk = ctx.skills, fx = ctx.fx, procs = []
   const has = (m) => m === 'knight' || ctx.joined.includes(m)
   const rank = (id) => (has(TREE_BY_ID[id].member) ? sk[id] || 0 : 0)
   const proc = (id) => { const t = TREE_BY_ID[id], r = rank(id); if (!r || day.mana + t.mana > ctx.mana || rnd() >= t.chance(r) + (fx.shadowProc || 0) / 100) return false; day.mana += t.mana; procs.push(t.name); return true }
@@ -190,8 +225,7 @@ export function fight(f, day, ctx) {
   const bossAfter = fx.rl_badge || BOSS_AFTER
   const norm = normalsOf(map)
   const mon = kills >= bossAfter * (bossKills + 1) ? bossOf(map) : rnd() < 0.1 + ((fx.rl_cloak || 0) + (fx.enh?.boots || 0) + (fx.shadowElite || 0)) / 100 ? eliteOf(map) : norm[Math.floor(rnd() * norm.length)]
-  const mp = monPower(mon)
-  let win = rnd() < Math.max(0.05, Math.min(0.97, 0.5 + (ctx.power - mp) / (2 * mp) + ((fx.rl_shield || 0) + (fx.enh?.armor || 0) + (fx.shadowGuard || 0) + (mon.kind !== 'normal' ? fx.shadowBoss || 0 : 0)) / 100))
+  let win = rnd() < winChance(ctx.power, mon, fx)
   let meteor = false
   if (mon.kind !== 'normal' && proc('meteor')) { win = true; meteor = true }
   if (!win && proc('revive')) win = true
@@ -207,9 +241,9 @@ export function fight(f, day, ctx) {
     f.dex[mon.id] = (f.dex[mon.id] || 0) + 1
     const big = mon.kind === 'boss' ? 4 : mon.kind === 'elite' ? 2 : 1
     // slot 1: its own trophy
-    if (mon.kind !== 'normal' || rnd() < 0.55 + (fx.shadowTrophy || 0) / 100) add(`t:${mon.id}`, 1 + (meteor ? 1 : 0))
+    if (mon.kind !== 'normal' || rnd() < LOOT.trophy + (fx.shadowTrophy || 0) / 100) add(`t:${mon.id}`, 1 + (meteor ? 1 : 0))
     // slot 2: materials (a second piece needs luck)
-    const matChance = 0.45 + rank('eye') * 0.04 + ctx.hard * 0.05 + ((fx.enh?.satchel || 0) + (fx.shadowMat || 0)) / 100 + (ctx.traces.saved ? 0.1 : 0)
+    const matChance = LOOT.mat + rank('eye') * 0.04 + ctx.hard * 0.05 + ((fx.enh?.satchel || 0) + (fx.shadowMat || 0)) / 100 + (ctx.traces.saved ? 0.1 : 0)
     const mat = () => map.mats[Math.floor(rnd() * map.mats.length)]
     if (rnd() < matChance) { add(mat(), big); if (rnd() < 0.15 + (fx.rl_bag || 0) / 100) add(mat(), 1) }
     if (proc('hawk')) add(mat(), 1)
@@ -217,14 +251,14 @@ export function fight(f, day, ctx) {
     const rare = (mon.kind === 'boss' ? 0.3 : mon.kind === 'elite' ? 0.08 : 0.02) + ((fx.rl_map || 0) + (fx.enh?.ring || 0) + (fx.shadowRare || 0)) / 100
     if (rnd() < rare) add(map.id === 'meadow' || map.id === 'forest' ? (rnd() < 0.5 ? 'crystal' : 'ink') : rnd() < 0.5 ? 'page' : 'ink', 1)
     // gold shards (very rare) and magic crystals for enhancing gear
-    if (rnd() < (mon.kind === 'boss' ? 0.02 : mon.kind === 'elite' ? 0.015 : 0.01)) add('shard', 1)
-    if (rnd() < (mon.kind === 'boss' ? 0.3 : mon.kind === 'elite' ? 0.1 : 0.03)) add('mcrystal', 1)
+    if (rnd() < LOOT.shard[mon.kind]) add('shard', 1)
+    if (rnd() < LOOT.mcrystal[mon.kind]) add('mcrystal', 1)
     // the pet brings something back
     if (fx.rl_snack && rnd() < fx.rl_snack / 100) { add(mat(), 1); procs.push('สัตว์เลี้ยงคาบของมา') }
     if (proc('storm')) for (const k of Object.keys(drops)) drops[k] *= 2
     for (const [k, v] of Object.entries(drops)) f.bag[k] = (f.bag[k] || 0) + v
   }
-  return { mon: mon.id, win, drops, note: procs.join(' · ') }
+  return { mon: mon.id, map: map.id, win, drops, note: procs.join(' · ') }
 }
 
 /** a raid on the town: each monster is fought by the town guard with part of the party's power (no stamina, no skills) */
@@ -241,10 +275,10 @@ export function defendRaid(f, raid, ctx) {
     res.won++
     f.dex[mon.id] = (f.dex[mon.id] || 0) + 1
     const add = (k, n) => { res.drops[k] = (res.drops[k] || 0) + n; f.bag[k] = (f.bag[k] || 0) + n }
-    if (mon.kind !== 'normal' || rnd() < 0.5) add(`t:${mon.id}`, 1)
-    if (rnd() < 0.4) add(map.mats[Math.floor(rnd() * map.mats.length)], 1)
-    if (rnd() < 0.01) add('shard', 1)
-    if (rnd() < 0.03) add('mcrystal', 1)
+    if (mon.kind !== 'normal' || rnd() < LOOT.trophy) add(`t:${mon.id}`, 1)
+    if (rnd() < LOOT.mat) add(map.mats[Math.floor(rnd() * map.mats.length)], 1)
+    if (rnd() < LOOT.shard[mon.kind]) add('shard', 1)
+    if (rnd() < LOOT.mcrystal[mon.kind]) add('mcrystal', 1)
   }
   return res
 }
@@ -254,5 +288,5 @@ export const itemName = (k) => (k.startsWith('t:') ? MON_BY_ID[k.slice(2)]?.trop
 export const itemPrice = (k) => (k.startsWith('t:') ? trophyPrice(MON_BY_ID[k.slice(2)]) : MATS[k]?.noSell ? 0 : MATS[k]?.price || 0)
 export const itemIcon = (k) => (k.startsWith('t:') ? `tro_${k.slice(2)}` : `mat_${k}`)
 
-export function emptyFarm() { return { map: 'meadow', kills: {}, bossKills: {}, bag: {}, dex: {}, skills: {}, relics: {}, worn: [], enh: {}, raids: [], raidSeen: null, shadows: {}, shadowWorn: [], runs: 0, day: null, auto: false, last: null, potions: 0, bond: 0, kit: 0, chests: {}, bonusPts: 0 } }
+export function emptyFarm() { return { map: 'meadow', kills: {}, bossKills: {}, bag: {}, dex: {}, skills: {}, relics: {}, worn: [], enh: {}, raids: [], raidSeen: null, shadows: {}, shadowWorn: [], runs: 0, day: null, last: null, mapMode: 'pick', hourly: null, idleAt: null, recent: [], away: null, potions: 0, bond: 0, kit: 0, chests: {}, bonusPts: 0 } }
 export { MAPS, MAP_BY_ID, MON_BY_ID, MATS }

@@ -8,7 +8,7 @@ import { useBattleEvents, SpriteImg, XpBar, ChestCard, sceneProps, Portrait } fr
 import { Avatar, Icon, Money } from '../components/ui'
 import { useProfile, useStore } from '../store'
 import { useRpg, REALMS } from '../lib/rpg'
-import { SHOP, GEAR_TIERS, memberById } from '../lib/party'
+import { SHOP, GEAR_TIERS } from '../lib/party'
 import { money, compact, todayISO, shortDate } from '../lib/format'
 import TownTab, { Wallet, Price } from '../components/TownTab'
 import { LifeStatsCard } from '../components/GrowthKit'
@@ -122,7 +122,7 @@ export default function VaultRpg({ onAdd, go }) {
                 {t.id === 'shop' && SHOP.some((i) => !rpg.owned[i.id] && rpg.afford(rpg.shopPrice(i))) && <span className="dot" />}
                 {t.id === 'town' && rpg.collectReady && <span className="dot" />}
                 {t.id === 'quests' && rpg.quests.some((q) => q.claimable) && <span className="dot" />}
-                {t.id === 'farm' && (rpg.chests.length > 0 || rpg.staminaLeft === rpg.energy.stamina) && <span className="dot" />}
+                {t.id === 'farm' && (rpg.chests.length > 0 || !!rpg.farm.away) && <span className="dot" />}
               </button>
             ))}
           </div>

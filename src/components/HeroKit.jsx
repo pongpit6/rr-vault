@@ -6,7 +6,7 @@ import { Money, Sheet } from './ui'
 import { useStore, selectList } from '../store'
 import { useVault } from '../lib/useVault'
 import { OUTFITS, rangeStats, bdaySkin, FREEDOM_STEPS } from '../lib/hero'
-import { GEAR_TIERS } from '../lib/party'
+
 import { addDays } from '../lib/habits'
 import { netWorthSeries } from '../lib/plan'
 import { todayISO, shiftMonth } from '../lib/format'

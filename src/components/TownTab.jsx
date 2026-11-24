@@ -1,5 +1,5 @@
 import { Emo, EmoText, PxIcon } from './px'
-import { useState, useEffect } from 'react'
+import { useState, useEffect , useRef} from 'react'
 import TownFull from './TownFull'
 import { useActiveTheme } from '../lib/theme'
 import { Hammer, Users, Smile, Coins, ArrowUpCircle, Trash2, Sparkles, Repeat, TrendingUp } from './px'
@@ -13,6 +13,7 @@ import { visitorFor, decorOnSale, nextDoubleDay, EVENT_DECOR } from '../lib/fest
 import { EVENTS } from '../lib/world'
 import { traceList } from './TownTraces'
 import { townLines, storyOf, APPRENTICE } from '../lib/townTalk'
+import { townChats, speakers } from '../lib/townChat'
 import { MessageCircle, BookOpen } from './px'
 import { LEVEL_REQ, BUILDINGS, HALL, NPCS, DECOR, priceOf, EXCHANGE_WEEKLY, RESIDENTS, xauPrice } from '../lib/town'
 
@@ -39,18 +40,39 @@ export function TodayTraces({ rpg, className = '', compact = false }) {
 /** villagers who live in town but aren't hired (the apprentice arrives with the reading story) */
 export const sceneExtra = (rpg) => [...(storyOf(rpg.habits).arrived ? [APPRENTICE.sprite] : []), ...(visitorFor(rpg.world) ? [visitorFor(rpg.world).sprite] : [])]
 
-/** one villager talking at a time, built from real data; tap for the next */
+/** town chat: villagers, the party and you talk back and forth, line by line, built from your real day; tap to move on */
 export function TownTalk({ rpg, className = '' }) {
-  const lines = townLines(rpg)
-  const [i, setI] = useState(() => Math.floor(Math.random() * 97))
-  useEffect(() => { const id = setInterval(() => setI((x) => x + 1), 8000); return () => clearInterval(id) }, [])
-  if (!lines.length) return null
-  const l = lines[i % lines.length]
+  const setUi = useStore((s) => s.setUi)
+  const R = useRef(rpg); R.current = rpg
+  const [st, setSt] = useState({ order: null, c: 0, l: 0 })
+  const chats = townChats(rpg)
+  const S = speakers(rpg)
+  // a shuffled order, conversations from your real day first
+  const order = st.order && st.order.length === chats.length ? st.order : chats.map((x, i) => [i, x.w + Math.random() * 1.5]).sort((a, b) => b[1] - a[1]).map(([i]) => i)
+  const cur = chats[order[st.c % Math.max(1, order.length)]]
+  const step = () => setSt((s0) => {
+    const o = s0.order && s0.order.length === chats.length ? s0.order : order
+    const c = chats[o[s0.c % o.length]]
+    return c && s0.l + 1 < c.lines.length ? { order: o, c: s0.c, l: s0.l + 1 } : { order: o, c: s0.c + 1, l: 0 }
+  })
+  useEffect(() => { const done = cur && st.l + 1 >= cur.lines.length; const id = setTimeout(step, done ? 6000 : 2800); return () => clearTimeout(id) }, [st.c, st.l, chats.length]) // eslint-disable-line
+  const line = cur?.lines[Math.min(st.l, cur.lines.length - 1)]
+  useEffect(() => { if (line) setUi({ townTalk: { who: line[0], text: line[1], at: Date.now() } }) }, [line?.[1]]) // eslint-disable-line
+  useEffect(() => () => setUi({ townTalk: null }), []) // eslint-disable-line
+  if (!cur) return null
+  const shown = cur.lines.slice(0, st.l + 1)
   return (
-    <button onClick={() => setI((x) => x + 1)} className={`w-full flex items-center gap-2 text-left ${className}`} data-testid="town-talk">
-      <Portrait sprite={l.sprite} size={34} />
-      <div className="flex-1 min-w-0 text-[12px] leading-snug"><b className="text-[11px] text-teal-700">{l.name}</b><div key={i} className="anim-pop">“<EmoText text={l.text} size={13} />”</div></div>
-      <MessageCircle size={14} className="text-slate-400 shrink-0" />
+    <button onClick={step} className={`w-full text-left space-y-1 ${className}`} data-testid="town-talk">
+      {shown.slice(-3).map(([who, text], i, arr) => {
+        const sp = S[who] || S.hero, hero = who === 'hero', last = i === arr.length - 1
+        return (
+          <div key={`${st.c}:${shown.length - arr.length + i}`} className={`flex items-end gap-2 ${hero ? 'flex-row-reverse' : ''} ${last ? 'anim-pop' : 'opacity-60'}`}>
+            <Portrait sprite={sp.sprite} size={28} />
+            <div className={`max-w-[80%] px-2 py-1 text-[12px] leading-snug border-2 border-slate-800 ${hero ? 'bg-emerald-50' : 'bg-white'}`}><b className="text-[10px] text-teal-700 block">{sp.name}</b><EmoText text={text} size={13} /></div>
+          </div>
+        )
+      })}
+      <div className="flex justify-end text-[10px] text-slate-400 items-center gap-1"><MessageCircle size={11} /> แตะเพื่อคุยต่อ</div>
     </button>
   )
 }
@@ -120,7 +142,6 @@ function Section({ icon: I, title, right, children }) {
 const btn = 'px-3 py-1.5 text-xs font-semibold border-2 border-slate-800 disabled:bg-slate-200 disabled:text-slate-400 disabled:border-slate-300'
 
 export default function TownTab({ rpg }) {
-  const cycleZone = useStore((s) => s.ui.btcCycle?.zone)
   useEffect(() => { loadCycle().then(shareWithTown).catch(() => {}) }, [])
   const T = rpg.town
   const showToast = useStore((s) => s.showToast)

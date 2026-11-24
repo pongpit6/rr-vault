@@ -1,5 +1,5 @@
 import { sfx } from './sfx'
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { useStore } from '../store'
 import { useVault } from './useVault'
 import { postingsOf, cardCycle } from './ledger'
@@ -10,7 +10,7 @@ import { selectList } from '../store'
 import { useWeather, loadWeather, sceneWeather, thaiEvent, isThaiHoliday, moneyMood } from './world'
 import { doubleDay, decorOnSale } from './festivals'
 import { setHeroStage, setHeroSkin, setPetStage } from './heroStage'
-import { energyOf, partyPower, fight, emptyFarm, chestsDue, chestLoot, TREE_BY_ID, rankCost, RECIPES, CRAFT_DECOR, itemPrice, mapUnlocked, MAP_BY_ID, SKILLS_V, RELIC_BY_ID, relicFx, relicSlots, shadowFx, shadowSlots, SHADOW_BY_ID, enhStep, SHARDS_PER_GOLD, raidsOf, defendRaid } from './farm'
+import { energyOf, partyPower, fight, emptyFarm, chestsDue, chestLoot, rankCost, RECIPES, CRAFT_DECOR, itemPrice, SKILLS_V, RELIC_BY_ID, relicFx, relicSlots, shadowFx, shadowSlots, SHADOW_BY_ID, enhStep, SHARDS_PER_GOLD, raidsOf, defendRaid, hourlyOf, huntMaps, IDLE_AWAY_MS, IDLE_LIVE_MS } from './farm'
 import { outfitOf, condition7, shadowRace, birthdayInfo, bdaySkin, storyAct, albumSnap, FREEDOM_STEPS } from './hero'
 import { usePrices } from './prices'
 import { loadXau } from './market'
@@ -453,11 +453,13 @@ function computeRpg({ accounts, txns, settings, balances, summary, unlocked, por
   const skillPts = lv.level + (farm.bonusPts || 0) - Object.values(farm.skills || {}).reduce((s, r) => s + [0, 1, 2, 3, 4, 6][r], 0)
   const power = partyPower({ level: lv.level, gear: party.gear, party: party.party, skills: farm.skills, traces, fx: fxR })
   const used = farm.day?.date === today ? farm.day : { date: today, runs: 0, mana: 0 }
+  const hourly = hourlyOf(farm)
   const chests = chestsDue({ habits: h, rpg: { noSpendStreak, monthBoss, quests, bosses, budgetMonth: budgetMonthOk ? lmKey : null }, today }).filter((c) => !(farm.chests || {})[c.key])
 
   return {
     outfit, condition, shadow, act, birthday, energy, farm, skillPts, power, chests, relicFx: fxR, relicSlots: relicSlots(lv.level), shadowSlots: shadowSlots(lv.level),
-    staminaLeft: Math.max(0, energy.stamina - used.runs), manaLeft: Math.max(0, energy.mana - used.mana),
+    staminaDaily: Math.max(0, energy.stamina - used.runs), staminaBank: hourly.bank, nextHourIn: hourly.nextIn,
+    staminaLeft: Math.max(0, energy.stamina - used.runs) + hourly.bank, manaLeft: Math.max(0, energy.mana - used.mana),
     inventory: portfolio.open, portfolioValue: portfolio.value,
     xp, xpParts, ...lv, title: title[1], titleEn: title[2], stats, bosses, quests, achievements, newlyUnlocked,
     streak, bestStreak, realm, nextRealm, realmNet, weather, loggedToday: todayCount, debtFog, town, wallet, days,
@@ -467,7 +469,11 @@ function computeRpg({ accounts, txns, settings, balances, summary, unlocked, por
   }
 }
 
+/** one idle runner for the whole app, however many screens use the hook */
+const IDLE_LOCK = { t: 0 }
+
 export function useRpg() {
+  const R = useRef(null)
   const v = useVault()
   const put = useStore((s) => s.put)
   const privacy = useStore((s) => s.ui.privacy)
@@ -689,15 +695,32 @@ export function useRpg() {
   }
   const dayOf = (f) => (f.day?.date === todayISO() ? { ...f.day } : { date: todayISO(), runs: 0, mana: 0 })
   const saveFarm = (f) => save({ farm: f })
-  const farmFight = (n = 1) => {
+  /** n idle fights: today's discipline stamina first, then the hourly bank. away = a catch-up after time away (kept as a summary) */
+  const farmFight = (n = 1, away = null) => {
     const f = F(); f.bag = { ...f.bag }; f.kills = { ...f.kills }; f.dex = { ...f.dex }
-    const day = dayOf(f), logs = []
-    const map = MAP_BY_ID[f.map]
-    if (!mapUnlocked(map, { level: rpg.level, realmTier: rpg.realm.tier }).ok) return []
-    const ctx = { power: rpg.power, skills: f.skills || {}, joined: rpg.party.filter((p) => p.joined).map((p) => p.id), hard: rpg.energy.hard, traces: rpg.traces, mana: rpg.energy.mana, fx: { ...relicFx(f), ...shadowFx(f), enh: f.enh || {} } }
-    for (let i = 0; i < n && day.runs < rpg.energy.stamina; i++) { day.runs++; logs.push(fight(f, day, ctx)) }
-    f.day = day; f.last = new Date().toISOString()
-    if (logs.length) { saveFarm(f); sfx(logs.some((l) => l.win) ? 'coin' : 'hit') }
+    const day = dayOf(f), logs = [], nowMs = Date.now()
+    const hr = hourlyOf(f, nowMs)
+    let bank = hr.bank
+    const fx = { ...relicFx(f), ...shadowFx(f), enh: f.enh || {} }
+    const ctx = { power: rpg.power, skills: f.skills || {}, joined: rpg.party.filter((p) => p.joined).map((p) => p.id), hard: rpg.energy.hard, traces: rpg.traces, mana: rpg.energy.mana, fx }
+    const maps = huntMaps(f, { level: rpg.level, realmTier: rpg.realm.tier, power: rpg.power, fx })
+    for (let i = 0; i < n; i++) {
+      if (day.runs < rpg.energy.stamina) day.runs++
+      else if (bank > 0) bank--
+      else break
+      const m = maps[(f.runs || 0) % maps.length]
+      const l = fight(f, day, ctx, m.id)
+      logs.push({ ...l, seq: f.runs, at: new Date(nowMs).toISOString() })
+    }
+    if (!logs.length) return []
+    f.day = day; f.hourly = { at: hr.at, bank }; f.last = new Date(nowMs).toISOString(); f.idleAt = f.last
+    f.recent = [...(f.recent || []), ...logs].slice(-30)
+    if (away && logs.length >= 2) {
+      const drops = {}
+      for (const l of logs) for (const [k, v] of Object.entries(l.drops)) drops[k] = (drops[k] || 0) + v
+      f.away = { from: away, to: f.last, n: logs.length, wins: logs.filter((l) => l.win).length, drops }
+    }
+    saveFarm(f)
     return logs
   }
   const setFarm = (patch) => saveFarm({ ...F(), ...patch })
@@ -778,6 +801,26 @@ export function useRpg() {
   const setEquip = (patch) => save({ equip: { ...(fresh().equip || {}), ...patch } })
   const toggleDeco = (id) => { const off = { ...(fresh().decoOff || {}) }; off[id] = !off[id]; save({ decoOff: off }) }
 
+  // idle hunting: the party spends stamina by itself — every 8 s while you watch the hunt, about every 5 min otherwise,
+  // and on return it catches up the time away in one go (still limited by stamina)
+  useEffect(() => {
+    const tick = () => {
+      const st = useStore.getState(), nowMs = Date.now()
+      if ((st.session && !st.pulled) || !v.txns.length || nowMs - IDLE_LOCK.t < 6000) return
+      const r = R.current
+      if (!r) return
+      if (!r.farm.hourly?.at) { r.setFarm({ hourly: { at: new Date(nowMs).toISOString(), bank: 0 } }); return } // the hourly clock starts now
+      if (r.staminaLeft <= 0) return
+      IDLE_LOCK.t = nowMs
+      const f = r.farm, lastMs = f.idleAt ? new Date(f.idleAt).getTime() : nowMs - IDLE_AWAY_MS
+      const gap = nowMs - lastMs, watching = !!st.ui.huntOpen && document.visibilityState === 'visible'
+      if (gap >= 2 * IDLE_AWAY_MS) r.farmFight(Math.min(r.staminaLeft, Math.floor(gap / IDLE_AWAY_MS)), f.idleAt || new Date(lastMs).toISOString())
+      else if (gap >= (watching ? IDLE_LIVE_MS : IDLE_AWAY_MS)) r.farmFight(1)
+    }
+    const first = setTimeout(tick, 1500), id = setInterval(tick, 4000)
+    return () => { clearTimeout(first); clearInterval(id) }
+  }, [v.txns.length > 0]) // eslint-disable-line
+
   // town raids happen in the background; resolve the ones whose time has come (today and yesterday), keep 7 days of log
   useEffect(() => {
     const run = () => {
@@ -824,13 +867,15 @@ export function useRpg() {
     if (Object.keys(patch).length) save(patch)
   }, [rpg.newlyUnlocked.join(), rpg.newlyJoined.join(), rpg.level, rpg.realm.tier, rpg.act.free, Math.round(v.summary.net / 1000)]) // eslint-disable-line
 
-  return {
+  const api = {
     ...rpg, vault: v, fiat, gold, chestReady, openChest, buy, shopPrice, setEquip, toggleDeco, decorPrice, saleOff, chestCount: data.chestCount || 0,
     inflation: inflationMult(data), afford, buildPrice, build, upgrade, demolish, hallPrice, upgradeHall, hire, dismiss, buyDecor,
     collectReady, collect, collectDays, collectAmount, claim, exchange, exchangeRate: exchangeRate(data), exchangedThisWeek, econData: data,
     bdayReady, claimBirthday, album: data.album || {}, farmFight, setFarm, makeRelic, wearRelic, rankUp, enhance, combineShards, buyShadow, wearShadow, sellItems, craft, openDiscipline,
     markNoSpend, noSpendReward, canNoSpendOn, markNoSpendOn, spentOn, markStorySeen, chooseMonthBoss, markMonthSeen,
   }
+  R.current = api
+  return api
 }
 
 const CHEST_TIPS = [

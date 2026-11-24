@@ -6,7 +6,7 @@ import { Avatar, Money, IconBadge, Empty, Button } from '../components/ui'
 import TxnRow from '../components/TxnRow'
 import { SubLogo, AssetLogo } from '../components/Logos'
 import { useRpg } from '../lib/rpg'
-import { sfx } from '../lib/sfx'
+
 import { TownHomeCard } from '../components/TownTab'
 import { HabitsToday } from '../components/HabitKit'
 import { useSubs } from './Subscriptions'

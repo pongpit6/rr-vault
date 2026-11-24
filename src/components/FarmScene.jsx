@@ -32,17 +32,18 @@ const SLOT = { knight: 0, healer: 1, mage: 2, ranger: 3 }
  * (sword, staff light, fireball, arrow), the monster flashes and shakes, damage pops up,
  * then it falls and its drops float up (or it strikes back when the party loses).
  */
-export default function FarmScene({ mapId, party = [], shadows = [], events = [], hue = 0, idleMon }) {
+export default function FarmScene({ mapId, party = [], shadows = [], recent = [], live = false, hue = 0, idleMon }) {
   const cv = useRef(null)
-  const S = useRef({ queue: [], cur: null, seen: 0, fx: [], monId: idleMon })
-  const P = useRef({}); P.current = { mapId, party, hue, shadows }
+  // fights already on record when the scene opens are not replayed as new; they feed the replay loop
+  const S = useRef({ queue: [], cur: null, seen: recent.length ? recent[recent.length - 1].seq : -1, fx: [], monId: idleMon, idleSince: 0, rp: 0, bg: null })
+  const P = useRef({}); P.current = { mapId, party, hue, shadows, recent, live }
   // new fight results join the queue (newest last)
   useEffect(() => {
     const s = S.current
-    const fresh = events.filter((e) => e.seq > s.seen)
-    if (events.length) s.seen = Math.max(s.seen, ...events.map((e) => e.seq))
-    if (fresh.length) s.queue.push(...fresh)
-  }, [events])
+    const fresh = recent.filter((e) => e.seq > s.seen)
+    if (recent.length) s.seen = Math.max(s.seen, ...recent.map((e) => e.seq))
+    if (fresh.length) s.queue.push(...fresh.slice(-6))
+  }, [recent])
   useEffect(() => { if (!S.current.cur && !S.current.queue.length) S.current.monId = idleMon }, [idleMon])
 
   useEffect(() => {
@@ -59,13 +60,21 @@ export default function FarmScene({ mapId, party = [], shadows = [], events = []
   }, [])
 
   function draw(g, now, dt) {
-    const s = S.current, { mapId, party, hue, shadows } = P.current
+    const s = S.current, { mapId, party, hue, shadows, recent, live } = P.current
+    // nothing new and no stamina: replay the last fights (or train on a dummy) so the party never just stands there
+    if (!s.cur && !s.queue.length) {
+      if (!s.idleSince) s.idleSince = now
+      else if (!live && now - s.idleSince > 1800) {
+        s.queue.push(recent.length ? { ...recent[s.rp++ % recent.length], replay: true } : { mon: 'scarecrow', map: 'meadow', win: true, drops: {}, note: '', train: true })
+        s.idleSince = 0
+      }
+    } else s.idleSince = 0
     // next fight from the queue; faster when several are waiting
     if (!s.cur && s.queue.length) {
       const e = s.queue.shift()
       const members = party.filter((p) => p.joined).map((p) => p.id)
       s.cur = { ...e, shadow: shadows.length && Math.random() < 0.35 ? Math.floor(Math.random() * shadows.length) : -1, t: 0, dur: s.queue.length > 2 ? 650 : 1100, who: members[Math.floor(Math.random() * members.length)] || 'knight', dmg: 0, hitDone: false }
-      s.monId = e.mon
+      s.monId = e.mon; s.bg = e.map || s.bg
     }
     const c = s.cur
     if (c) c.t += dt
@@ -73,8 +82,8 @@ export default function FarmScene({ mapId, party = [], shadows = [], events = []
 
     // background (map art, bottom-aligned), dimmed slightly at the edges
     g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, W, H)
-    const bg = still(`map_${mapId}`)
-    if (bg) { const top = GY - 2 * (MAP_GROUND[mapId] || 114); if (top > 0) g.drawImage(bg, 0, 0, 200, 1, 0, 0, 400, top + 2); g.drawImage(bg, 0, top, 400, 240) } else { g.fillStyle = '#bae6fd'; g.fillRect(0, 0, W, H) }
+    const bgId = s.bg || mapId, bg = still(`map_${bgId}`)
+    if (bg) { const top = GY - 2 * (MAP_GROUND[bgId] || 114); if (top > 0) g.drawImage(bg, 0, 0, 200, 1, 0, 0, 400, top + 2); g.drawImage(bg, 0, top, 400, 240) } else { g.fillStyle = '#bae6fd'; g.fillRect(0, 0, W, H) }
 
     // shadow soldiers stand behind the party in a dark aura; one lunges in now and then
     shadows.forEach((id, i) => {
@@ -128,11 +137,12 @@ export default function FarmScene({ mapId, party = [], shadows = [], events = []
         const dmg = c.win ? 20 + Math.floor(Math.random() * 60) : 5 + Math.floor(Math.random() * 15)
         s.fx.push({ kind: 'num', text: c.note ? `${c.note}!` : `-${dmg}`, x: x + h / 2, y: y + 6, life: 900, color: c.win ? '#fde047' : '#e2e8f0' })
         for (let i = 0; i < 8; i++) s.fx.push({ kind: 'spark', x: x + h / 2, y: y + h / 2, vx: (Math.random() - 0.5) * 0.25, vy: -Math.random() * 0.25, life: 500 })
-        sfx('hit')
+        if (!c.replay && !c.train) sfx('hit')
       }
       if (c && k >= 0.78 && !c.dropDone) {
         c.dropDone = true
-        if (c.win) Object.entries(c.drops || {}).forEach(([key, v], i) => s.fx.push({ kind: 'num', text: `+${itemName(key)}${v > 1 ? ` ×${v}` : ''}`, x: W - 80, y: GY - 40 - i * 14, life: 1300, color: '#86efac' }))
+        if (c.train) s.fx.push({ kind: 'num', text: 'ซ้อมดี!', x: W - 80, y: GY - 40, life: 1000, color: '#93c5fd' })
+        else if (c.win) Object.entries(c.drops || {}).forEach(([key, v], i) => s.fx.push({ kind: 'num', text: `+${itemName(key)}${v > 1 ? ` ×${v}` : ''}`, x: W - 80, y: GY - 40 - i * 14, life: 1300, color: '#86efac' }))
         else s.fx.push({ kind: 'num', text: 'แพ้…', x: 120, y: GY - 70, life: 900, color: '#fca5a5' })
       }
     }

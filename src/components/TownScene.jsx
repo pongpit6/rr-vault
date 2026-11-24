@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react'
 import { still, drawStill, frame, skyFor, mix, GROUND } from './BattleScene'
 import { DECOR_BY_ID } from '../lib/town'
 import { NPC_BY_ID, RESIDENTS } from '../lib/town'
+import { useStore } from '../store'
 import { worldBack, worldFront } from './WorldFx'
 import { prop } from './propArt'
 import { TRACE_HOME, traceOnBuilding, traceProps, traceNoSpend, heroForm, growthAura } from './TownTraces'
@@ -285,6 +286,7 @@ export function drawTown(g, t, now, o = {}) {
   return () => {
     const W2 = w * 2, GY = G * 2 + 4
     const walkers = [...RESIDENTS.map((r) => r.sprite), ...(o.extra || []), ...t.npcs.map((id) => NPC_BY_ID[id]?.sprite).filter(Boolean)]
+    const at = {} // where each speaker stands this frame (for the chat bubble)
     const resting = (o.world && o.world.holiday) || (hour >= 22 || hour < 6)
     walkers.forEach((sp, k) => {
       if (resting && k % 2) return // half the town is asleep / off work
@@ -294,6 +296,7 @@ export function drawTown(g, t, now, o = {}) {
       const flip = Math.cos(ph) < 0
       const hop = Math.sin(now / 190 + k) > 0.3 ? 1 : 0
       drawStill(g, sp, x, GY + 16 + (k % 3) * 5 - hop, 34, flip)
+      at[sp] = [x, GY + 16 + (k % 3) * 5 - 36]
     })
     const hx2 = HALL_X * 2
     const gr = o.growth
@@ -301,10 +304,38 @@ export function drawTown(g, t, now, o = {}) {
     ;(o.party || []).forEach((id, k) => growthAura(g, hx2 + 171 + k * 26, GY + 18, gr?.members?.[id]?.stage, MEMBER_COLOR[id] || '#14b8a6', now, 38))
     const hero = frame('hero_idle', Math.floor(now / 180) % 5, 'normal', o.hue || 0)
     if (hero) g.drawImage(hero, hx2 - 16, GY - 36, (hero.width / hero.height) * 54, 54)
+    at.hero = [hx2 + 10, GY - 36]
     if (o.traces?.form) heroForm(g, o.traces.form, hx2 - 6, GY - 40, now)
-    ;(o.party || []).forEach((id, k) => { const im = frame(`${id}_idle`, Math.floor(now / 200 + k) % 5); if (im) g.drawImage(im, hx2 + 150 + k * 26, GY - 24, 42, 42) })
+    ;(o.party || []).forEach((id, k) => { const im = frame(`${id}_idle`, Math.floor(now / 200 + k) % 5); if (im) g.drawImage(im, hx2 + 150 + k * 26, GY - 24, 42, 42); at[id] = [hx2 + 171 + k * 26, GY - 22] })
+    // whoever is talking in the town chat gets a speech bubble
+    const tk = useStore.getState().ui.townTalk
+    if (tk && Date.now() - tk.at < 5000) {
+      const sp = tk.who === 'hero' ? 'hero' : ['healer', 'mage', 'ranger'].includes(tk.who) ? tk.who : tk.who === 'apprentice' ? 'npc_apprentice' : tk.who === 'visitor' ? (o.extra || []).find((e) => e.startsWith('visitor_')) : (RESIDENTS.find((r) => r.id === tk.who) || NPC_BY_ID[tk.who])?.sprite
+      const p = at[sp]
+      if (p) speech(g, tk.text, p[0], p[1], W2)
+    }
     if (o.pet) { const ps = [18, 22, 27][(gr?.pet?.stage || 1) - 1]; drawStill(g, o.pet, hx2 - 26 - (ps - 18), GY + 16 - (Math.floor(now / 400) % 2), ps) }
   }
+}
+
+/** a pixel speech bubble above (x, y): up to two lines, emoji stripped */
+function speech(g, text, x, y, W2) {
+  const clean = String(text).replace(/\p{Extended_Pictographic}\uFE0F?/gu, '').replace(/\s+/g, ' ').trim()
+  g.font = '600 11px sans-serif'
+  const segs = typeof Intl !== 'undefined' && Intl.Segmenter ? [...new Intl.Segmenter('th', { granularity: 'word' }).segment(clean)].map((x) => x.segment) : clean.split('')
+  const lines = ['']
+  for (const sg of segs) {
+    const t = lines[lines.length - 1] + sg
+    if (g.measureText(t).width > 168 && lines[lines.length - 1]) { if (lines.length === 2) { lines[1] = lines[1].trimEnd() + '…'; break } lines.push(sg.trimStart()) } else lines[lines.length - 1] = t
+  }
+  const w = Math.min(190, Math.max(...lines.map((l) => g.measureText(l).width)) + 12), h = lines.length * 13 + 8
+  const bx = Math.round(Math.max(4, Math.min(W2 - w - 4, x - w / 2))), by = Math.round(y - h - 8)
+  g.fillStyle = '#1e293b'; g.fillRect(bx - 2, by - 2, w + 4, h + 4)
+  g.fillStyle = '#ffffff'; g.fillRect(bx, by, w, h)
+  g.fillStyle = '#1e293b'; g.fillRect(Math.round(x) - 3, by + h + 2, 6, 3); g.fillRect(Math.round(x) - 1, by + h + 5, 2, 3)
+  g.fillStyle = '#0f172a'; g.textBaseline = 'top'
+  lines.forEach((l, i) => g.fillText(l, bx + 6, by + 4 + i * 13, w - 10))
+  g.textBaseline = 'alphabetic'
 }
 
 /** Canvas wrapper: animates at ~8 fps, horizontally scrollable, tap a plot to select it. */
