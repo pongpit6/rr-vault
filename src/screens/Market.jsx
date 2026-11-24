@@ -1,4 +1,4 @@
-import { Emo } from '../components/px'
+import { Emo, FlagImg, flagCode } from '../components/px'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Search, Star, RefreshCw, ChevronRight, X, Radio, Plus } from '../components/px'
 import { useStore } from '../store'
@@ -45,10 +45,10 @@ function Spark({ c, up, w = 72, h = 26 }) {
 function Badge({ it, size = 38 }) {
   const mk = MARKET_ICON[it.symbol] || (it.kind === 'metal' ? (/silver/i.test(it.name || '') ? 'mk_silver' : 'mk_goldspot') : null)
   if (mk) return <div className="shrink-0 grid place-items-center rounded-2xl bg-white border border-slate-200" style={{ width: size, height: size }}><img src={`./sprites/${mk}.png`} alt="" width={Math.round(size * 0.8)} height={Math.round(size * 0.8)} style={{ imageRendering: 'pixelated' }} /></div>
-  if (it.kind === 'fx') return <div className="shrink-0 grid place-items-center rounded-2xl bg-white border border-slate-200" style={{ width: size, height: size, fontSize: size * 0.5 }}>{it.flag || '💱'}</div>
+  if (it.kind === 'fx') return <div className="shrink-0 grid place-items-center rounded-2xl bg-white border border-slate-200 overflow-hidden" style={{ width: size, height: size }}>{flagCode(it.flag) ? <FlagImg e={it.flag} size={Math.round(size * 0.72)} /> : <Emo e="💱" size={Math.round(size * 0.6)} />}</div>
   if (it.kind === 'index') {
     const flag = /\.BK$/.test(it.symbol) ? '🇹🇭' : /HSI|\.SS|\.SZ/.test(it.symbol) ? '🇨🇳' : '🇺🇸'
-    return <div className="shrink-0 grid place-items-center rounded-2xl bg-slate-900/[.04] border border-slate-200 font-bold text-slate-600" style={{ width: size, height: size, fontSize: size * 0.42 }}>{flag}</div>
+    return <div className="shrink-0 relative grid place-items-center rounded-2xl bg-white border border-slate-200" style={{ width: size, height: size }}><img src="./sprites/mk_index.png" alt="" width={Math.round(size * 0.74)} height={Math.round(size * 0.74)} style={{ imageRendering: 'pixelated' }} /><span className="absolute -right-1 -bottom-1"><FlagImg e={flag} size={Math.round(size * 0.46)} /></span></div>
   }
   const asset = it.kind === 'fund' ? { type: 'fund', code: it.code || it.name } : { type: it.kind === 'crypto' ? 'crypto' : it.kind === 'stock' ? 'stock' : it.kind === 'gold' ? 'gold' : 'commodity', symbol: it.symbol, item: it.item }
   return <AssetLogo asset={asset} size={size} />
@@ -367,7 +367,7 @@ function FxConverter({ it, rate, at }) {
   const top = thbTop ? { flag: '🇹🇭', ccy: 'THB' } : { flag: it.flag, ccy: it.ccy }
   const bot = thbTop ? { flag: it.flag, ccy: it.ccy } : { flag: '🇹🇭', ccy: 'THB' }
   const out = thbTop ? n / rate : n * rate
-  const side = (s, children) => <div className="flex items-center gap-2 rounded-xl border-2 border-slate-200 px-3 py-2 bg-white"><div className="flex-1 min-w-0">{children}</div><span className="text-lg">{s.flag}</span><span className="font-semibold text-sm w-10">{s.ccy}</span></div>
+  const side = (s, children) => <div className="flex items-center gap-2 rounded-xl border-2 border-slate-200 px-3 py-2 bg-white"><div className="flex-1 min-w-0">{children}</div><FlagImg e={s.flag} size={22} /><span className="font-semibold text-sm w-10">{s.ccy}</span></div>
   return (
     <div className="mt-3 card p-3 space-y-2" data-testid="fx-conv">
       {side(top, <input className="w-full text-xl font-bold num outline-none bg-transparent" inputMode="decimal" value={amt} onChange={(e) => setAmt(e.target.value.replace(/[^0-9.,]/g, ''))} data-testid="fx-in" />)}

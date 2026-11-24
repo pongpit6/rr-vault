@@ -1,3 +1,4 @@
+import { FlagImg } from './px'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Volume2, X, Plus } from './px'
@@ -34,7 +35,7 @@ export default function VocabSheet({ H }) {
       <div className="flex gap-1.5" data-testid="vocab-langs">
         {Object.entries(LANGS).map(([k, l]) => (
           <button key={k} onClick={() => setPrefs({ lang: k, cats: [] })} className={`flex-1 py-2 rounded-xl border-2 text-xs font-semibold ${prefs.lang === k ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200'}`}>
-            <div className="text-lg leading-none">{l.flag}</div>{l.name}
+            <div className="text-lg leading-none"><FlagImg e={l.flag} size={24} /></div>{l.name}
           </button>
         ))}
       </div>

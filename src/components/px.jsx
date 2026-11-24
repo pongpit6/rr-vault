@@ -170,10 +170,22 @@ export const EMOJI_PX = {
   '🔤': 'hb_vocab', '😴': 'hb_sleep', '🙂': 'Smile', '😪': 'hb_rest', '☕': 'Coffee', '🔒': 'Lock', '🎯': 'Target', '🏆': 'Trophy', '⭐': 'Star', '🌟': 'Star', '📈': 'TrendingUp',
   '📉': 'TrendingDown', '💳': 'CreditCard', '🔔': 'Bell', '🍀': 'Sprout', '🧪': 'rl_flask', '🎒': 'Backpack', '👕': 'Shirt', '⚡': 'Zap', '🐾': 'PawPrint', '🏃': 'hb_exercise', '🌌': 'Moon', '🌸': 'dc_flowers', '🌥': 'Cloud', '🏖': 'Sun', '➕': 'Plus', '🎃': 'Gift', '🌙': 'Moon', '👋': 'Smile', '✅': 'Check', '🥇': 'Award', '🥈': 'Award', '🥉': 'Award', '⛽': 'Fuel', '🛢': 'Droplet', '🛌': 'hb_sleep', '🧾': 'Receipt', '🦸': 'cr_hero', '🍜': 'Utensils',
 }
-const EMO_RE = /(\p{Extended_Pictographic}\uFE0F?)/u
+const EMO_RE = /([\u{1F1E6}-\u{1F1FF}]{2}|\p{Extended_Pictographic}\uFE0F?)/u
 export const emoKey = (e) => (e ? EMOJI_PX[String(e).replace(/\uFE0F/g, '')] : undefined)
+/** '🇹🇭' → 'th' (two regional-indicator letters); Windows has no flag glyphs, so flags are drawn as images */
+export const flagCode = (e) => {
+  const cps = [...String(e || '')].map((c) => c.codePointAt(0))
+  return cps.length === 2 && cps.every((c) => c >= 0x1f1e6 && c <= 0x1f1ff) ? cps.map((c) => String.fromCharCode(c - 0x1f1e6 + 97)).join('') : null
+}
+/** a country's own flag (its official symbol, not redrawn) */
+export function FlagImg({ e, code, size = 22, className = '' }) {
+  const cc = code || flagCode(e)
+  if (!cc) return null
+  return <img src={`https://flagcdn.com/w80/${cc}.png`} alt={cc.toUpperCase()} width={size} height={Math.round(size * 0.72)} className={`inline-block align-middle object-cover rounded-[3px] border border-slate-900/10 ${className}`} style={{ width: size, height: Math.round(size * 0.72) }} loading="lazy" />
+}
 export function Emo({ k, e, size = 22, className = '' }) {
   const key = k && k in IDX ? k : emoKey(e)
+  if (!key && flagCode(e)) return <FlagImg e={e} size={size} className={className} />
   return key ? <PxIcon name={key} size={size} className={className} /> : <span className={className}>{e}</span>
 }
 /** a line of text where every emoji that has pixel art becomes the icon */
@@ -183,6 +195,7 @@ export function EmoText({ text, size = 14 }) {
   if (!EMO_RE.test(s)) return s
   return s.split(new RegExp(EMO_RE.source, 'gu')).map((part, i) => {
     const key = i % 2 ? emoKey(part) : null
+    if (i % 2 && !key && flagCode(part)) return <FlagImg key={i} e={part} size={size + 2} className="mx-[1px] -mt-[2px]" />
     return key ? <PxIcon key={i} name={key} size={size} className="mx-[1px] -mt-[2px]" /> : part
   })
 }
