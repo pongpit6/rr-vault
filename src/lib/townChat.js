@@ -172,6 +172,10 @@ export function townChats(rpg) {
   if (empty > 0) add(1, ['farmer'], [['farmer', `ที่ดินว่างอีก ${empty} แปลงนะ จะสร้างอะไรดี`], ['hero', 'ฟาร์มหรือบ้านพักน่าจะคุ้มก่อน'], ['farmer', 'ฟาร์มสร้างได้ถึง 3 แปลง ข้าช่วยดูแลให้']])
   if ((T.npcSlots || 0) > (T.npcs || []).length) add(1, ['merchant'], [['merchant', 'โรงเตี๊ยมยังมีห้องว่าง จ้างคนมาช่วยงานเมืองไหม'], ['hero', 'ขอดูก่อนว่าใครให้โบนัสอะไร']])
   if (T.happiness != null && T.happiness < 40) add(2, [by('bard', 'farmer')], [[by('bard', 'farmer'), 'ชาวเมืองดูเหงา ๆ นะช่วงนี้'], ['hero', 'เดี๋ยวหาของตกแต่งกับนักกวีมาเพิ่มความสุข']])
+  if ((rpg.happyBonusToday || 0) > 0) add(2, [by('bard', 'farmer')], [[by('bard', 'farmer'), `เมืองเราครึกครื้น ทีมเลยได้พลังกายเพิ่มวันนี้ ${rpg.happyBonusToday} แต้ม`], ['hero', 'ความสุขของชาวเมืองช่วยทีมได้จริง ๆ'], [by('bard', 'farmer'), 'ของตกแต่งกับ NPC ที่จ้างมาช่วยเพิ่มความสุขนะ']])
+  if (T.happiness >= 70) add(1, ['merchant', 'farmer'], [['merchant', 'ช่วงนี้ชาวเมืองยิ้มกันทั้งวันเลย'], ['farmer', 'เมืองสุข รายได้เมืองก็ดี ทีมก็มีแรงล่ามากขึ้น'], ['hero', 'งั้นต้องรักษาความสุขไว้ให้ดี']])
+  if ((rpg.huntXpToday || 0) >= 30) add(2, [by('guard', 'farmer')], [[by('guard', 'farmer'), 'วันนี้ทีมล่าจน XP เต็มเพดาน 30 แล้วนะ'], ['hero', 'ที่เหลือต้องเก็บจากชีวิตจริง จดบัญชีกับทำนิสัย'], [by('guard', 'farmer'), 'ถูกต้อง เลเวลจริงมาจากวินัยจริง']])
+  else if ((rpg.huntXpToday || 0) > 0) add(1, [by('guard', 'farmer')], [[by('guard', 'farmer'), `ทีมได้ XP จากการล่าวันนี้ ${rpg.huntXpToday} แล้ว`], ['hero', 'ชนะตัวละ 1 XP วันละไม่เกิน 30 ใช่ไหม'], [by('guard', 'farmer'), 'ใช่ ส่วนใหญ่ยังต้องมาจากชีวิตจริงนะ']])
   if (rpg.world?.birthday?.week) add(3, ['farmer', 'merchant'], [['farmer', `สัปดาห์นี้ทั้งเมืองฉลองวันเกิดท่าน${me}!`], ['merchant', 'ข้าลดราคาให้วันเดียว ฮ่า ๆ'], ['hero', 'ขอบคุณทุกคนมาก ปีนี้จะดีกว่าปีที่แล้ว']])
   if ((rpg.gold || 0) >= 1 && rpg.exchangeRate) add(1, [by('banker', 'merchant')], [[by('banker', 'merchant'), `ตอนนี้เรตแลก GOLD อยู่ที่ ${fmt(rpg.exchangeRate)} FIAT`], ['hero', 'ทองหายาก เก็บไว้ใช้กับของสำคัญ']])
 

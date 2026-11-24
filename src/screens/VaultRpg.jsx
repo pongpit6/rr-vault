@@ -482,6 +482,7 @@ function StatusTab({ rpg, go }) {
         {rpg.xpParts.length ? (
           <div className="space-y-1.5 text-sm">{rpg.xpParts.map(([label, v]) => <div key={label} className="flex justify-between"><span className="text-slate-600">{label}</span><span className="px-font text-[10px] text-amber-600">+{v}</span></div>)}</div>
         ) : <div className="text-sm text-slate-500">เริ่มบันทึกรายการเพื่อรับ XP แรก</div>}
+        <div className="text-[11px] text-slate-500 mt-2">XP ส่วนใหญ่มาจากชีวิตจริง (บันทึกรายการ จ่ายหนี้ ออม ลงทุน นิสัย หนังสือ คำศัพท์) · การล่าให้ชนะตัวละ 1 สูงสุดวันละ 30 · ทุกเลเวลได้แต้มสกิล 1 แต้ม (หีบวินัยให้เพิ่มอีก 1–2)</div>
       </Section>
     </div>
   )

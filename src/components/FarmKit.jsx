@@ -4,7 +4,7 @@ import { Emo, PxIcon, hasPx } from './px'
 import { Portrait } from './RpgBits'
 import FarmScene from './FarmScene'
 import { useStore } from '../store'
-import { MAPS, MAP_BY_ID, MON_BY_ID, MATS, TREE, rankCost, RECIPES, mapUnlocked, itemName, itemPrice, itemIcon, RELICS, RELIC_BY_ID, NPC_INFO, SHADOWS, SHADOW_SLOT_LV, enhStep, ENH_FX, SHARDS_PER_GOLD, MAP_MODES, huntMaps, mapWinRate, LOOT, RARE_ODDS, rareOf, matUse } from '../lib/farm'
+import { MAPS, MAP_BY_ID, MON_BY_ID, MATS, TREE, rankCost, RECIPES, mapUnlocked, itemName, itemPrice, itemIcon, RELICS, RELIC_BY_ID, NPC_INFO, SHADOWS, SHADOW_SLOT_LV, enhStep, ENH_FX, SHARDS_PER_GOLD, MAP_MODES, huntMaps, mapWinRate, LOOT, RARE_ODDS, rareOf, matUse, happyBonusChance, HUNT_XP_PER_WIN, HUNT_XP_DAY } from '../lib/farm'
 import { monPower, BOSS_AFTER, trophyPrice, bossOf, eliteOf, normalsOf } from '../lib/farmData'
 import { MAP_LORE, MON_LORE, STORY, STORY_STEPS } from '../lib/farmLore'
 import { Sheet } from './ui'
@@ -57,7 +57,7 @@ function Energy({ rpg }) {
         {e.parts.map((p) => <span key={p.id} className={`text-[10px] px-1.5 py-0.5 border ${p.done ? 'border-emerald-500 bg-emerald-50 text-emerald-800' : 'border-slate-200 text-slate-400'}`}>{p.done ? '✓' : '+'}{p.pts} {p.name}</span>)}
         {e.fit > 0 && <span className="text-[10px] px-1.5 py-0.5 border border-amber-400 bg-amber-50">+5 ร่างกายฟิต 7 วัน</span>}
       </div>
-      <div className="text-[10px] text-slate-500 mt-1">ทุกวัน: ฐาน 20 + วินัยสูงสุด 20 (รีเซ็ตเที่ยงคืน) · และ +1 ทุกชั่วโมง สะสมได้ไม่จำกัด · วินัยยาก (ออกกำลังกาย ไม่กินแป้ง จ่ายหนี้ ออม) วันนี้ {e.hard} อย่าง → ดรอปวัสดุดีขึ้น</div>
+      <div className="text-[10px] text-slate-500 mt-1">ทุกวัน: ฐาน 20 + วินัยสูงสุด 20 (รีเซ็ตเที่ยงคืน) · +1 ทุกชั่วโมง สะสมได้ไม่จำกัด · ความสุขของเมือง {rpg.town.happiness}% ให้โอกาส {Math.round(happyBonusChance(rpg.town.happiness) * 100)}% ได้เพิ่มอีก +1 ทุกชั่วโมง (วันนี้ได้ {rpg.happyBonusToday || 0}) · วินัยยาก (ออกกำลังกาย ไม่กินแป้ง จ่ายหนี้ ออม) วันนี้ {e.hard} อย่าง → ดรอปวัสดุดีขึ้น</div>
     </Card>
   )
 }
@@ -94,7 +94,7 @@ function Hunt({ rpg }) {
       <AwayCard rpg={rpg} />
       <Energy rpg={rpg} />
       <Card icon={Swords} title="HUNT · ล่าอัตโนมัติ" testid="farm-maps">
-        <div className="text-[11px] text-slate-500 mb-2">ทีมออกล่าเองเมื่อมีพลังกาย ไม่ต้องกดอะไร · ตอนเปิดหน้านี้สู้ทุก 8 วินาที · ปิดแอปไว้ก็ยังล่าต่อ (ราว 5 นาทีต่อรอบ)</div>
+        <div className="text-[11px] text-slate-500 mb-2">ทีมออกล่าเองเมื่อมีพลังกาย ไม่ต้องกดอะไร · ตอนเปิดหน้านี้สู้ทุก 8 วินาที · ปิดแอปไว้ก็ยังล่าต่อ (ราว 5 นาทีต่อรอบ) · ชนะได้ XP ตัวละ {HUNT_XP_PER_WIN} สูงสุดวันละ {HUNT_XP_DAY} (วันนี้ {rpg.huntXpToday}/{HUNT_XP_DAY})</div>
         <div className="flex flex-wrap gap-1.5 mb-2" data-testid="map-mode">
           {MAP_MODES.map((m) => <button key={m.id} onClick={() => rpg.setFarm({ mapMode: m.id })} className={`px-tab ${mode === m.id ? 'on' : ''}`} title={m.text} data-testid={`mode-${m.id}`}>{m.name}</button>)}
         </div>

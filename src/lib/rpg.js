@@ -10,7 +10,7 @@ import { selectList } from '../store'
 import { useWeather, loadWeather, sceneWeather, thaiEvent, isThaiHoliday, moneyMood } from './world'
 import { doubleDay, decorOnSale } from './festivals'
 import { setHeroStage, setHeroSkin, setPetStage } from './heroStage'
-import { energyOf, partyPower, fight, emptyFarm, chestsDue, chestLoot, rankCost, RECIPES, CRAFT_DECOR, itemPrice, SKILLS_V, RELIC_BY_ID, relicFx, relicSlots, shadowFx, shadowSlots, SHADOW_BY_ID, enhStep, SHARDS_PER_GOLD, raidsOf, defendRaid, hourlyOf, huntMaps, IDLE_AWAY_MS, IDLE_LIVE_MS } from './farm'
+import { energyOf, partyPower, fight, emptyFarm, chestsDue, chestLoot, rankCost, RECIPES, CRAFT_DECOR, itemPrice, SKILLS_V, RELIC_BY_ID, relicFx, relicSlots, shadowFx, shadowSlots, SHADOW_BY_ID, enhStep, SHARDS_PER_GOLD, raidsOf, defendRaid, hourlyOf, huntMaps, IDLE_AWAY_MS, IDLE_LIVE_MS, HUNT_XP_PER_WIN, HUNT_XP_DAY } from './farm'
 import { outfitOf, condition7, shadowRace, birthdayInfo, bdaySkin, storyAct, albumSnap, FREEDOM_STEPS } from './hero'
 import { usePrices } from './prices'
 import { loadXau } from './market'
@@ -276,6 +276,7 @@ function computeRpg({ accounts, txns, settings, balances, summary, unlocked, por
     add('คำศัพท์ที่จำได้', habits.learnt)
   }
   add('Achievement', unlockedCount * 50)
+  add('ล่ามอนสเตอร์ (ชนะตัวละ 1 สูงสุดวันละ 30)', data.farm?.huntXp?.total || 0)
   const realmNet = Math.max(summary.net, data.peakNet || 0) // the highest you ever reached: market dips never take land away
   const realmNow = [...REALMS].reverse().find((r) => realmNet >= r.min)
   const debtFog = Math.min(0.55, summary.debts / Math.max(1, summary.assets + summary.debts))
@@ -453,12 +454,12 @@ function computeRpg({ accounts, txns, settings, balances, summary, unlocked, por
   const skillPts = lv.level + (farm.bonusPts || 0) - Object.values(farm.skills || {}).reduce((s, r) => s + [0, 1, 2, 3, 4, 6][r], 0)
   const power = partyPower({ level: lv.level, gear: party.gear, party: party.party, skills: farm.skills, traces, fx: fxR })
   const used = farm.day?.date === today ? farm.day : { date: today, runs: 0, mana: 0 }
-  const hourly = hourlyOf(farm)
+  const hourly = hourlyOf(farm, Date.now(), town.happiness)
   const chests = chestsDue({ habits: h, rpg: { noSpendStreak, monthBoss, quests, bosses, budgetMonth: budgetMonthOk ? lmKey : null }, today }).filter((c) => !(farm.chests || {})[c.key])
 
   return {
     outfit, condition, shadow, act, birthday, energy, farm, skillPts, power, chests, relicFx: fxR, relicSlots: relicSlots(lv.level), shadowSlots: shadowSlots(lv.level),
-    staminaDaily: Math.max(0, energy.stamina - used.runs), staminaBank: hourly.bank, nextHourIn: hourly.nextIn,
+    staminaDaily: Math.max(0, energy.stamina - used.runs), staminaBank: hourly.bank, nextHourIn: hourly.nextIn, happyBonusToday: hourly.bonusToday, huntXpToday: farm.huntXp?.date === today ? farm.huntXp.day || 0 : 0,
     staminaLeft: Math.max(0, energy.stamina - used.runs) + hourly.bank, manaLeft: Math.max(0, energy.mana - used.mana),
     inventory: portfolio.open, portfolioValue: portfolio.value,
     xp, xpParts, ...lv, title: title[1], titleEn: title[2], stats, bosses, quests, achievements, newlyUnlocked,
@@ -699,7 +700,7 @@ export function useRpg() {
   const farmFight = (n = 1, away = null) => {
     const f = F(); f.bag = { ...f.bag }; f.kills = { ...f.kills }; f.dex = { ...f.dex }
     const day = dayOf(f), logs = [], nowMs = Date.now()
-    const hr = hourlyOf(f, nowMs)
+    const hr = hourlyOf(f, nowMs, rpg.town.happiness)
     let bank = hr.bank
     const fx = { ...relicFx(f), ...shadowFx(f), enh: f.enh || {} }
     const ctx = { power: rpg.power, skills: f.skills || {}, joined: rpg.party.filter((p) => p.joined).map((p) => p.id), hard: rpg.energy.hard, traces: rpg.traces, mana: rpg.energy.mana, fx }
@@ -713,7 +714,12 @@ export function useRpg() {
       logs.push({ ...l, seq: f.runs, at: new Date(nowMs).toISOString() })
     }
     if (!logs.length) return []
-    f.day = day; f.hourly = { at: hr.at, bank }; f.last = new Date(nowMs).toISOString(); f.idleAt = f.last
+    f.day = day; f.hourly = { at: hr.at, bank, bonusDay: hr.bonusDay, bonusN: hr.bonusToday }; f.last = new Date(nowMs).toISOString(); f.idleAt = f.last
+    // a little XP from hunting: 1 per win, capped per day
+    const tday = todayISO(), hx = f.huntXp?.date === tday ? { ...f.huntXp } : { date: tday, day: 0, total: f.huntXp?.total || 0 }
+    const gain = Math.min(HUNT_XP_DAY - hx.day, logs.filter((l) => l.win).length * HUNT_XP_PER_WIN)
+    if (gain > 0) { hx.day += gain; hx.total += gain }
+    f.huntXp = hx
     f.recent = [...(f.recent || []), ...logs].slice(-30)
     if (away && logs.length >= 2) {
       const drops = {}

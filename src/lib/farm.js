@@ -168,13 +168,25 @@ export function raidsOf(date, uid = '') {
 
 /* ---------------- idle hunting: +1 stamina every hour (no cap), on top of today's discipline stamina ---------------- */
 export const HOUR_MS = 3600e3
-/** the hourly bank right now: what's banked + whole hours since it was last counted */
-export function hourlyOf(f, now = Date.now()) {
+/** a happy town sometimes sends an extra stamina point with the hourly one: chance = happiness ÷ 2 (%). Same roll on every device. */
+export const happyBonusChance = (happiness = 0) => Math.max(0, Math.min(100, happiness)) / 200
+const hourRoll = (hourIdx) => { let x = Math.imul(hourIdx ^ 0x9e3779b9, 2654435761) >>> 0; x = Math.imul(x ^ (x >>> 15), 2246822507) >>> 0; return (x % 10000) / 10000 }
+/** the hourly bank right now: what's banked + whole hours since it was last counted (+ the happiness bonus for those hours) */
+export function hourlyOf(f, now = Date.now(), happiness = 0) {
   const h = f.hourly
-  if (!h?.at) return { bank: 0, at: new Date(now).toISOString(), nextIn: HOUR_MS }
-  const since = Math.max(0, now - new Date(h.at).getTime()), gained = Math.floor(since / HOUR_MS)
-  return { bank: (h.bank || 0) + gained, at: new Date(new Date(h.at).getTime() + gained * HOUR_MS).toISOString(), nextIn: HOUR_MS - (since % HOUR_MS) }
+  if (!h?.at) return { bank: 0, at: new Date(now).toISOString(), nextIn: HOUR_MS, bonus: 0, bonusToday: 0 }
+  const start = new Date(h.at).getTime(), since = Math.max(0, now - start), gained = Math.floor(since / HOUR_MS)
+  const chance = happyBonusChance(happiness), today = new Date(now).toDateString()
+  let bonus = 0, bonusNewToday = 0
+  for (let i = 1; i <= gained; i++) {
+    const t = start + i * HOUR_MS
+    if (hourRoll(Math.floor(t / HOUR_MS)) < chance) { bonus++; if (new Date(t).toDateString() === today) bonusNewToday++ }
+  }
+  const prevToday = h.bonusDay === today ? h.bonusN || 0 : 0
+  return { bank: (h.bank || 0) + gained + bonus, at: new Date(start + gained * HOUR_MS).toISOString(), nextIn: HOUR_MS - (since % HOUR_MS), bonus, bonusToday: prevToday + bonusNewToday, bonusDay: today }
 }
+/** hunting gives a little XP too: 1 per win, at most this many a day (real life stays the main source) */
+export const HUNT_XP_PER_WIN = 1, HUNT_XP_DAY = 30
 export const IDLE_AWAY_MS = 5 * 60e3 // with the app closed the party fights about once every 5 minutes
 export const IDLE_LIVE_MS = 8e3 // while you watch the hunt it fights every 8 seconds
 export const MAP_MODES = [
@@ -217,7 +229,7 @@ export function huntMaps(f, { level, realmTier, power, fx }) {
 /** the two items a map's rare slot can give (half and half) */
 export const rareOf = (map) => (map.id === 'meadow' || map.id === 'forest' ? ['crystal', 'ink'] : ['page', 'ink'])
 export const RARE_ODDS = { normal: 0.02, elite: 0.08, boss: 0.3 }
-export const LOOT = { trophy: 0.36, mat: 0.3, shard: { normal: 0.0045, elite: 0.009, boss: 0.015 }, mcrystal: { normal: 0.02, elite: 0.065, boss: 0.2 } }
+export const LOOT = { trophy: 0.34, mat: 0.29, shard: { normal: 0.0045, elite: 0.009, boss: 0.015 }, mcrystal: { normal: 0.02, elite: 0.065, boss: 0.2 } }
 /** one fight. f = data.farm (mutated copy), day = today's usage (mana is spent here). returns a log entry */
 export function fight(f, day, ctx, mapId = f.map) {
   const map = MAP_BY_ID[mapId] || MAP_BY_ID[f.map], sk = ctx.skills, fx = ctx.fx, procs = []

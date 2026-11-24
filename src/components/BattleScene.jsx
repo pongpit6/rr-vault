@@ -414,7 +414,7 @@ export default function BattleScene({
       if (ev && ev.type === 'levelup' && fire('_lvl', 300)) {
         s.levelGlow = 1700
         showBanner({ text: 'LEVEL UP!', sub: `เลเวล ${ev.level}`, cls: 'gold' }); sfx('levelup')
-        tell(`⬆️ ปาร์ตี้เลเวลอัปเป็น ${ev.level}! ได้ XP จากวินัยการเงินของคุณ`)
+        tell(`⬆️ ปาร์ตี้เลเวลอัปเป็น ${ev.level}! ได้ XP จากวินัยในชีวิตจริงและการล่า · ได้แต้มสกิลเพิ่ม 1`)
         for (let i = 0; i < 34; i++) s.fx.push({ x: heroBaseX + 32, y: gy - 6, vx: Math.random() * 2 - 1, vy: -Math.random() * 3 - 0.6, life: 1300, c: i % 3 ? '#fde047' : '#5eead4', z: 2 })
         ev._done = true
       }

@@ -14,6 +14,7 @@ import { EVENTS } from '../lib/world'
 import { traceList } from './TownTraces'
 import { townLines, storyOf, APPRENTICE } from '../lib/townTalk'
 import { townChats, speakers } from '../lib/townChat'
+import { happyBonusChance } from '../lib/farm'
 import { MessageCircle, BookOpen } from './px'
 import { LEVEL_REQ, BUILDINGS, HALL, NPCS, DECOR, priceOf, EXCHANGE_WEEKLY, RESIDENTS, xauPrice } from '../lib/town'
 
@@ -266,7 +267,7 @@ export default function TownTab({ rpg }) {
       <Section icon={Smile} title="HAPPINESS · ความสุขของเมือง">
         <div className="space-y-1 text-xs">
           {T.happyParts.map(([k, v]) => <div key={k} className="flex justify-between"><span>{k}</span><span className={`num font-semibold ${v < 0 ? 'text-rose' : 'text-emerald-700'}`}>{v > 0 ? '+' : ''}{v}</span></div>)}
-          <div className="text-[11px] text-slate-500 pt-1">ความสุขยิ่งสูง รายได้รายวันยิ่งมาก (×{T.happyMult.toFixed(2)}) · บ้านเยอะเกินอาคารอื่นจะแออัด</div>
+          <div className="text-[11px] text-slate-500 pt-1">ความสุขยิ่งสูง รายได้รายวันยิ่งมาก (×{T.happyMult.toFixed(2)}) และทุกชั่วโมงมีโอกาส {Math.round(happyBonusChance(T.happiness) * 100)}% ได้พลังกายเพิ่ม +1 · บ้านเยอะเกินอาคารอื่นจะแออัด</div>
         </div>
       </Section>
 
