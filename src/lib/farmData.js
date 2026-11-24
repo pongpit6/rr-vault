@@ -128,18 +128,20 @@ export const BOSS_AFTER = 30 // kills in a map before its boss shows up
 
 /** monsters whose PixelLab art faces right; the hunt scene mirrors them so every monster faces the party (left) */
 export const FACES_RIGHT = new Set([
-  'slime_g', 'spider', 'sand_golem', 'ice_golem', 'wraith', 'tumble',
-  'rabbit', 'bee', 'boar', 'crow', 'snail', 'goblin', 'fox_fire', 'beetle', 'deer', 'raccoon', 'pixie', 'bandit',
-  'mole', 'skeleton', 'worm', 'kobold', 'drill', 'dwarf', 'crystal_wyrm', 'leech', 'croc', 'lizard', 'turtle_s', 'bog_zombie',
-  'dragonfly', 'scorpion', 'mummy', 'vulture', 'jackal', 'camel', 'lizard_d', 'frost_bird', 'seal', 'owl_s', 'walrus', 'salamander',
-  'imp', 'hellhound', 'phoenix_s', 'rock_turtle', 'red_dragon', 'ghost', 'gargoyle', 'armor', 'shadow_cat', 'chest_mimic', 'shadow_lord', 'cobra',
-  'sphinx', 'ice_imp', 'ice_dragon', 'fox_s', 'snow_wolf', 'owlbear', 'skull_mage', 'penguin', 'eel', 'wolf', 'spider_c', 'frog',
-  'toad_king', 'hydra_jr', 'sandworm', 'beetle_s', 'yeti_jr', 'snowman', 'mammoth', 'efreet', 'death_knight',
+  'slime_g', 'spider', 'sand_golem', 'ice_golem', 'wraith', 'tumble', 'rabbit', 'bee', 'boar', 'crow', 'snail', 'goblin',
+  'fox_fire', 'beetle', 'deer', 'raccoon', 'pixie', 'bandit', 'mole', 'skeleton', 'worm', 'kobold', 'drill', 'dwarf',
+  'crystal_wyrm', 'leech', 'croc', 'lizard', 'turtle_s', 'bog_zombie', 'dragonfly', 'scorpion', 'mummy', 'vulture', 'jackal', 'camel',
+  'lizard_d', 'frost_bird', 'seal', 'owl_s', 'walrus', 'salamander', 'imp', 'hellhound', 'phoenix_s', 'rock_turtle', 'red_dragon', 'ghost',
+  'gargoyle', 'armor', 'shadow_cat', 'chest_mimic', 'shadow_lord', 'cobra', 'sphinx', 'ice_imp', 'ice_dragon', 'fox_s', 'snow_wolf', 'owlbear',
+  'penguin', 'eel', 'wolf', 'spider_c', 'frog', 'toad_king', 'hydra_jr', 'sandworm', 'beetle_s', 'yeti_jr', 'snowman', 'mammoth',
+  'efreet', 'death_knight', 'bat', 'bog_lord', 'book_mimic', 'cactus', 'cave_bat', 'djinn', 'ember', 'ent', 'fire_bat', 'fire_crab',
+  'frost_knight', 'gem_crab', 'hag', 'ice_slime', 'iron_golem', 'lava_slime', 'magma_golem', 'mushroom', 'ooze', 'pharaoh', 'rockling', 'scarecrow',
+  'slime_r', 'sprout', 'treant', 'vampire_bat', 'wisp',
 ])
 /** glowing forms whose art faces the other way from the normal form (flip toggled for the glowing one) */
-export const GLOW_FACES_OTHER = new Set(['fire_snake'])
+export const GLOW_FACES_OTHER = new Set([])
 /** player's own facing fixes (from the in-game checker), XOR on top of the defaults. key 'id' = normal form, 'id*' = glowing form */
-const FACE_KEY = 'lq_face_fix'
+const FACE_KEY = 'lq_face_fix2' // bumped whenever the player's list is baked into the defaults
 export const faceFixes = () => { try { return JSON.parse(localStorage.getItem(FACE_KEY) || '{}') } catch { return {} } }
 export const toggleFaceFix = (id, glow = false) => { const f = faceFixes(), k = glow ? id + '*' : id; if (f[k]) delete f[k]; else f[k] = 1; try { localStorage.setItem(FACE_KEY, JSON.stringify(f)) } catch { /* storage off */ } return f }
 export const clearFaceFixes = () => { try { localStorage.removeItem(FACE_KEY) } catch { /* storage off */ } }
