@@ -3,7 +3,7 @@ import { useActiveTheme } from '../lib/theme'
 import { useStore } from '../store'
 import { frame, drawStill, drawRealm, skyFor, mix, GROUND, still, setHeroStage } from './BattleScene'
 import { setHeroSkin } from '../lib/heroStage'
-import { outfitOf, bdaySkin } from '../lib/hero'
+import { outfitOf, freeSkin } from '../lib/hero'
 import { drawTown, plotX } from './TownScene'
 import { computeTown } from '../lib/town'
 
@@ -229,7 +229,7 @@ export function BackdropHost({ tab }) {
   setHeroStage(outfitOf(data.maxLevel || 1).stage)
   const pet = (data.owned || {})[data.equip?.pet] ? data.equip.pet : 'pet_fox'
   const worn = (data.owned || {})[data.equip?.skin] ? data.equip.skin : null
-  setHeroSkin(worn && worn.startsWith('skin_') ? worn : worn && worn.startsWith('bday_') ? bdaySkin(worn).sheet : null)
+  setHeroSkin(worn && worn.startsWith('skin_') ? worn : worn && freeSkin(worn) ? freeSkin(worn).sheet : null)
   const hue = 0
   const tier = data.tier ?? (net == null ? 1 : net < 0 ? 0 : net < 10000 ? 1 : net < 100000 ? 2 : net < 1000000 ? 3 : 4)
   const town = data.town ? computeTown(data, { realmTier: tier }) : null

@@ -92,6 +92,7 @@ export function chestsDue({ habits, rpg, today }) {
   if (save?.done) out.push({ key: `save:${save.key}`, name: 'ออมได้ 20% ทั้งเดือน', tier: 2 })
   for (const b of rpg.bosses || []) if (!b.isGoal && b.defeated && b.account?.type === 'loan') out.push({ key: `debt:${b.id}`, name: `ปลดหนี้ ${b.accName}`, tier: 3 })
   if (rpg.budgetMonth) out.push({ key: `budget:${rpg.budgetMonth}`, name: 'ทุกหมวดอยู่ในงบทั้งเดือน', tier: 2 })
+  for (const c of habits?.path?.checkpoints || []) out.push({ key: `path:${c.id}`, name: `ผ่านจุดตรวจหลักสูตร ${c.id}`, tier: 1 })
   return out
 }
 /** what a chest holds (deterministic from its key, so it can't be re-rolled) */
@@ -152,8 +153,13 @@ const SH = [
   ['sh_monk', 'พระสายฟ้า', 8, 1500, 'shadowMana', 1, 'มานา +1 ต่อวัน'],
   ['sh_gun', 'มือปืนพเนจร', 6, 1200, 'shadowElite', 5, 'เจอหัวหน้าบ่อยขึ้น +5%'],
   ['sh_frost', 'นักล่าแม่มดน้ำแข็ง', 6, 1200, 'shadowGuard', 4, 'กันแพ้ +4%'],
+  // free with a bachelor's degree (ปริญญาตรี) in the language curriculum; never sold
+  ['sh_en', 'ดยุกดาบพจนานุกรม', 0, 0, 'shadowPower', 3, 'พลังทีม +3%', 'en'],
+  ['sh_ja', 'นักธนูพู่กันศาลเจ้า', 0, 0, 'shadowGuard', 3, 'กันแพ้ +3%', 'ja'],
+  ['sh_zh', 'บัณฑิตกังฟูไม้ไผ่', 0, 0, 'shadowMat', 3, 'ดรอปวัสดุ +3%', 'zh'],
+  ['sh_ko', 'นักดาบพัดฮันบก', 0, 0, 'shadowRare', 2, 'ของหายาก +2%', 'ko'],
 ]
-export const SHADOWS = SH.map(([id, name, gold, fiat, key, val, text], i) => ({ id, name, gold, fiat, key, val, text, art: i }))
+export const SHADOWS = SH.map(([id, name, gold, fiat, key, val, text, deg], i) => ({ id, name, gold, fiat, key, val, text, art: i, deg: deg || null }))
 export const SHADOW_BY_ID = Object.fromEntries(SHADOWS.map((x) => [x.id, x]))
 export const SHADOW_SLOT_LV = [1, 15, 25, 35, 45]
 export const shadowSlots = (level) => SHADOW_SLOT_LV.filter((l) => level >= l).length

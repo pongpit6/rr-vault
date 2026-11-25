@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Volume2, X, Plus } from './px'
 import { Button, Segmented } from './ui'
 import CourseView from './CourseKit'
+import CurriculumView from './CurriculumKit'
 import { useStore } from '../store'
 import { sfx } from '../lib/sfx'
 import { LANGS, CATS, LEVELS, MODES, modesFor, loadBank, bankNow, pickRound, grade, sameWord, statsFor, customOf, speak, canSpeak, LEARNT_BOX } from '../lib/vocab'
@@ -39,20 +40,20 @@ export default function VocabSheet({ H }) {
           </button>
         ))}
       </div>
-      <Segmented value={lang.course ? tab : tab === 'script' ? 'quiz' : tab} onChange={setTab} options={[...(lang.course ? [{ value: 'script', label: 'ตัวอักษร' }] : []), { value: 'quiz', label: 'ฝึกคำศัพท์' }, { value: 'words', label: 'คำศัพท์' }]} />
+      <Segmented value={lang.course ? tab : tab === 'script' ? 'quiz' : tab} onChange={setTab} options={[{ value: 'path', label: 'หลักสูตร' }, ...(lang.course ? [{ value: 'script', label: 'ตัวอักษร' }] : []), { value: 'quiz', label: 'ฝึกคำศัพท์' }, { value: 'words', label: 'คำศัพท์' }]} />
 
-      {lang.course && tab === 'script' && lang.ready ? <CourseView H={H} lang={prefs.lang} /> : !lang.ready ? (
+      {tab === 'path' ? <CurriculumView H={H} lang={prefs.lang} setLang={(k) => setPrefs({ lang: k, cats: [] })} onScript={() => setTab('script')} /> : lang.course && tab === 'script' && lang.ready ? <CourseView H={H} lang={prefs.lang} /> : !lang.ready ? (
         <div className="px-inner p-5 text-center text-sm text-slate-600">ภาษา{lang.name}กำลังจะมา พร้อมหลักสูตรตัวอักษร 🛠️</div>
       ) : !bank ? <div className="text-center text-sm text-slate-500 py-6">กำลังโหลดคำศัพท์…</div> : tab === 'quiz' ? (
         <>
-          <div className="grid grid-cols-3 gap-2 text-center">
-            <Stat label="จำได้แล้ว" v={`${st.learnt} คำ`} /><Stat label="รอทบทวน" v={`${st.due} คำ`} /><Stat label="วันนี้" v={`${H.dayOf().vocab?.rounds || 0} รอบ`} />
+          <div className="grid grid-cols-4 gap-2 text-center">
+            <Stat label="เข้าใจแล้ว" v={`${st.learnt} คำ`} /><Stat label="ใช้เองได้" v={`${st.use} คำ`} /><Stat label="รอทบทวน" v={`${st.due} คำ`} /><Stat label="วันนี้" v={`${H.dayOf().vocab?.rounds || 0} รอบ`} />
           </div>
           <div className="px-hp"><div style={{ width: `${st.total ? (st.learnt / st.total) * 100 : 0}%` }} /></div>
-          <div className="text-[11px] text-slate-500 -mt-1">จำได้ {st.learnt} จาก {st.total} คำ</div>
+          <div className="text-[11px] text-slate-500 -mt-1">เข้าใจ {st.learnt} จาก {st.total} คำ · "ใช้เองได้" = ตอบถูกในแบบที่ต้องหยิบคำเอง (สะกด เติมประโยค แปลกลับ) อย่างน้อย 2 ครั้ง</div>
 
           <Chips label="ระดับ" all="ทุกระดับ" items={Object.entries(LEVELS).map(([k, n]) => [+k, n])} value={prefs.lvs} onChange={(lvs) => setPrefs({ lvs })} />
-          <Chips label="หมวด" all="ทุกหมวด" items={[...Object.entries(CATS).map(([k, c]) => [k, `${c.emoji} ${c.name}`]), ...(customOf(v, prefs.lang).length ? [['mine', '⭐ คำของฉัน']] : []), ...(v.customCats || []).map((c) => [c.id, `🏷️ ${c.name}`])]} value={prefs.cats} onChange={(cats) => setPrefs({ cats })} />
+          <Chips label="หมวด" all="ทุกหมวด" items={[['lesson', '🎓 ตามบทเรียน'], ...Object.entries(CATS).map(([k, c]) => [k, `${c.emoji} ${c.name}`]), ...(customOf(v, prefs.lang).length ? [['mine', '⭐ คำของฉัน']] : []), ...(v.customCats || []).map((c) => [c.id, `🏷️ ${c.name}`])]} value={prefs.cats} onChange={(cats) => setPrefs({ cats })} />
           <div>
             <div className="text-xs text-slate-500 mb-1">แบบฝึก</div>
             <select className="field" value={prefs.mode} onChange={(e) => setPrefs({ mode: e.target.value })} data-testid="vocab-mode">
@@ -123,7 +124,7 @@ function Quiz({ round, setRound, H, lang, onAgain }) {
     if (picked) return
     sfx(ok ? 'coin' : 'hit')
     const first = !round.graded[w.id]
-    if (first) H.saveVocab(grade(useStore.getState().items.vocab?.data || {}, w.id, ok))
+    if (first) H.saveVocab(grade(useStore.getState().items.vocab?.data || {}, w.id, ok, undefined, w.mode))
     setRound((r) => {
       const graded = { ...r.graded, [w.id]: true }
       // a wrong word comes back at the end of this round (up to 2 more times)

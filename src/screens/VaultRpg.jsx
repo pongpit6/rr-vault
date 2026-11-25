@@ -14,7 +14,7 @@ import TownTab, { Wallet, Price } from '../components/TownTab'
 import { LifeStatsCard } from '../components/GrowthKit'
 import { MonthBossCard, MonthRecapCard, MonthEndSheet } from '../components/MonthKit'
 import { HeroCard, AlbumCard, BirthdayCard, ActCard } from '../components/HeroKit'
-import { bdaySkin } from '../lib/hero'
+import { freeSkin } from '../lib/hero'
 import FarmTab, { SkillTree, EnhanceCard, ShadowCard } from '../components/FarmKit'
 
 function Section({ icon: I, title, right, children }) {
@@ -292,8 +292,8 @@ function ShopTab({ rpg }) {
             {type === 'skin' && (
               <ShopCard name={`ชุดตามยศ: ${rpg.outfit.name}`} desc="เปลี่ยนเองเมื่อเลื่อนยศ" art={<Portrait sprite={`hero${rpg.outfit.stage}`} size={48} />} owned equipped={!rpg.skin} onEquip={() => rpg.setEquip({ skin: null })} />
             )}
-            {type === 'skin' && Object.keys(rpg.owned).map(bdaySkin).filter(Boolean).map((i) => (
-              <ShopCard key={i.id} name={i.name} desc={i.desc} art={<Portrait sprite="hero" size={48} hue={i.hue} />} owned equipped={rpg.skin?.id === i.id} onEquip={() => rpg.setEquip({ skin: rpg.skin?.id === i.id ? null : i.id })} />
+            {type === 'skin' && Object.keys(rpg.owned).map(freeSkin).filter(Boolean).map((i) => (
+              <ShopCard key={i.id} name={i.name} desc={i.desc} art={<Portrait sprite={i.sheet} size={48} hue={i.hue} />} owned equipped={rpg.skin?.id === i.id} onEquip={() => rpg.setEquip({ skin: rpg.skin?.id === i.id ? null : i.id })} />
             ))}
             {SHOP.filter((i) => i.type === type).map((i) => {
               const owned = !!rpg.owned[i.id]
@@ -426,7 +426,7 @@ function QuestsTab({ rpg, onAdd }) {
 }
 
 /* ---------------- achievements: grouped grid, tap for how / when / progress ---------------- */
-const ACH_GROUPS = [['habit', 'นิสัย'], ['money', 'การเงิน'], ['game', 'เกม'], ['fortune', 'ดวงชะตา']]
+const ACH_GROUPS = [['habit', 'นิสัย'], ['money', 'การเงิน'], ['game', 'เกม'], ['fortune', 'ดวงชะตา'], ['degree', 'ปริญญา']]
 const achGroup = (a) => a.group || (a.habit ? 'habit' : 'money')
 const thDateTime = (iso) => { const d = new Date(iso); return isNaN(d) ? '' : d.toLocaleString('th-TH', { dateStyle: 'long', timeStyle: 'short' }) }
 function AchIcon({ a, on, size = 18 }) {
@@ -466,7 +466,7 @@ function Achievements({ list }) {
                 : <div className="text-slate-500">ยังไม่ได้รับ</div>}
               {sel.prog && <div className="mt-2"><div className="flex justify-between text-[11px] text-slate-500"><span>ความคืบหน้า</span><span className="num">{Math.min(sel.prog[0], sel.prog[1]).toLocaleString()}/{sel.prog[1].toLocaleString()}</span></div><div className="px-xp !h-2 mt-1"><div style={{ width: `${Math.min(1, sel.prog[0] / sel.prog[1]) * 100}%`, background: '#14b8a6' }} /></div></div>}
             </div>
-            <div className="text-[11px] text-slate-500">{sel.group ? 'ถ้วยฝั่งเกมและดวงชะตาเป็นเกียรติยศอย่างเดียว ไม่ได้ GOLD และ XP (สองอย่างนี้ได้จากวินัยในชีวิตจริงเป็นหลัก)' : 'รางวัล: +3 GOLD และ +50 XP เมื่อได้รับ'}</div>
+            <div className="text-[11px] text-slate-500">{sel.group && sel.group !== 'degree' ? 'ถ้วยฝั่งเกมและดวงชะตาเป็นเกียรติยศอย่างเดียว ไม่ได้ GOLD และ XP (สองอย่างนี้ได้จากวินัยในชีวิตจริงเป็นหลัก)' : 'รางวัล: +3 GOLD และ +50 XP เมื่อได้รับ'}</div>
           </div>
         </Sheet>
       )}

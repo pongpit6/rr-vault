@@ -208,6 +208,17 @@ export function townChats(rpg) {
   if ((hb.meditate?.streak || 0) >= 3) add(2, [by('bard', 'merchant')], [[by('bard', 'merchant'), `สมาธิติดกัน ${hb.meditate.streak} วัน ท่านดูนิ่งขึ้นจริง ๆ`], ['hero', 'ใจนิ่ง ก็ไม่ซื้อของตามอารมณ์']])
   if ((hb.nocarb?.streak || 0) >= 3) add(2, [by('baker', 'merchant')], [[by('baker', 'merchant'), `${hb.nocarb.streak} วันแล้วที่ไม่แตะแป้งกับน้ำตาล`], ['hero', 'ร่างกายเบาขึ้นเยอะเลย']])
   if ((h?.finished?.length || 0) > 0) add(1, [by('apprentice', 'banker', 'farmer')], [[by('apprentice', 'banker', 'farmer'), `ท่านอ่านจบไปแล้ว ${h.finished.length} เล่ม`], ['hero', `เล่มล่าสุดคือ “${h.finished[0]?.title || 'หนังสือดี ๆ'}”`]])
+  // ---------- the language curriculum (lessons, degrees) ----------
+  const pth = h?.path
+  if (pth?.lessons > 0) {
+    const sp = by('banker', 'farmer')
+    add(1, [sp], [[sp, `ได้ข่าวว่าเรียนภาษาผ่านไปแล้ว ${fmt(pth.lessons)} บท`], ['hero', 'ทีละบท ฟังก่อน ฝึกแล้วค่อยใช้เอง'], [sp, 'แบบนี้แหละ ค่อย ๆ ทบต้นเหมือนเงินออม']])
+  }
+  const degs = Object.entries(pth?.degree || {}).filter(([, k]) => k > 0)
+  if (degs.length) {
+    const sp = by('bard', 'merchant')
+    if (sp) add(1.2, [sp], [[sp, `ท่าน${me}ใส่ชุดบัณฑิตมาด้วย! รับปริญญาแล้วเหรอ`], ['hero', 'ยังอีกไกล ปริญญาเอกต้องจบครบสี่ภาษา'], [sp, 'งั้นข้าจะแต่งเพลงรอไว้ตอนวันรับปริญญาเอกเลย']])
+  }
   if ((h?.learnt || 0) >= 50 && S.visitor == null) add(1, [by('banker', 'farmer')], [[by('banker', 'farmer'), `จำศัพท์ได้ ${fmt(h.learnt)} คำแล้ว ไปเที่ยวต่างประเทศได้สบาย`], ['hero', 'ตอนนี้กำลังหัดเขียนตัวอักษรด้วย']])
   // hunting, gear, relics and shadows
   if ((bag.shard || 0) >= 7) add(2, [by('banker', 'merchant')], [[by('banker', 'merchant'), `ท่านมีเศษทองคำ ${bag.shard} เศษแล้ว อีกนิดก็หลอมเป็น GOLD ได้`], ['hero', 'ครบ 10 เศษเมื่อไหร่จะหลอมทันที']])

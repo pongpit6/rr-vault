@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import { useStore, selectList } from '../store'
 import { todayISO } from './format'
 import { isWordId, LEARNT_BOX } from './vocab'
+import { pathStats } from './course'
 
 /**
  * Daily habits. Each day is its own synced item (id `hd-YYYY-MM-DD`, kind 'habitday') so two devices
@@ -149,7 +150,7 @@ export function computeHabits({ days = {}, books = [], vocab = {}, state = {}, n
   return {
     by: out, activeDays, fiat, todayFiat, mult, gold, weeklyGold, thisWeek, thisWeekGoal, paused: !!days[today]?.pause, life, lifeRank,
     reading, finished, pagesTotal, reps, medMin, sleeps, avgSleep, learnt, sleeping: state.sleeping || null,
-    lastMeal: state.lastMeal || null, fastHours: state.fastHours || 16,
+    lastMeal: state.lastMeal || null, fastHours: state.fastHours || 16, path: pathStats(vocab),
   }
 }
 

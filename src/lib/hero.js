@@ -87,6 +87,18 @@ export const bdaySkin = (id) => {
   return { id, type: 'skin', name: `ชุดวันเกิดอายุ ${age}`, desc: 'ของสะสมประจำปี ได้ในสัปดาห์วันเกิด', hue: 0, art: true, sheet: `bday${age % 4}`, bday: age }
 }
 
+/** free graduation outfits from the language curriculum: looks only, no bonus */
+export const GRAD_SKINS = {
+  grad_en: { name: 'ชุดบัณฑิตภาษาอังกฤษ', desc: 'ได้ฟรีเมื่อรับประกาศนียบัตรภาษาอังกฤษ (จบช่วง 1)' },
+  grad_ja: { name: 'ชุดบัณฑิตภาษาญี่ปุ่น', desc: 'ได้ฟรีเมื่อรับประกาศนียบัตรภาษาญี่ปุ่น (จบช่วง 1)' },
+  grad_zh: { name: 'ชุดบัณฑิตภาษาจีน', desc: 'ได้ฟรีเมื่อรับประกาศนียบัตรภาษาจีน (จบช่วง 1)' },
+  grad_ko: { name: 'ชุดบัณฑิตภาษาเกาหลี', desc: 'ได้ฟรีเมื่อรับประกาศนียบัตรภาษาเกาหลี (จบช่วง 1)' },
+  grad_doctor: { name: 'ชุดดุษฎีบัณฑิต', desc: 'ได้ฟรีเมื่อจบปริญญาเอกสี่ภาษา' },
+}
+export const gradSkin = (id) => (GRAD_SKINS[id] ? { id, type: 'skin', ...GRAD_SKINS[id], desc: `${GRAD_SKINS[id].desc} · ใส่เท่ ๆ ไม่มีโบนัส`, hue: 0, art: true, sheet: id, grad: true } : null)
+/** any free outfit (birthday or graduation) by id */
+export const freeSkin = (id) => bdaySkin(id) || gradSkin(id)
+
 /* ---------------- one year of the adventure (birthday to birthday) ---------------- */
 const SAVE_T = ['saving', 'invest', 'reserve']
 export function rangeStats(from, to, { txns = [], accounts = [], days = {}, noSpend = {}, books = [] }) {

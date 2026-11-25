@@ -2,7 +2,7 @@
  * Party, gear, skills, shop and the adventure log — all read from real money data.
  * Nothing here is random: every line in the log points back to a transaction or a milestone.
  */
-import { bdaySkin } from './hero'
+import { freeSkin } from './hero'
 import { SKIN_PERK } from './town'
 import { money, round2, todayISO } from './format'
 
@@ -152,7 +152,7 @@ export function computeParty({ growthG = {}, accounts, txns, summary, portfolio,
   const owned = data.owned || {}
   const equip = data.equip || {}
   const pet = SHOP.find((i) => i.id === equip.pet && owned[i.id]) || PET_DEFAULT
-  const skin = SHOP.find((i) => i.id === equip.skin && owned[i.id]) || (owned[equip.skin] ? bdaySkin(equip.skin) : null)
+  const skin = SHOP.find((i) => i.id === equip.skin && owned[i.id]) || (owned[equip.skin] ? freeSkin(equip.skin) : null)
   // the battle scene shows the town's flowers, lamps and banner (decorations are bought in the town now)
   const tdec = { ...((data.town || {}).decor || {}) }
   if (owned.deco_flowers) tdec.flowers = 1

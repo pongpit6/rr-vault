@@ -166,7 +166,7 @@ export const EMOJI_PX = {
   '🗽': 'dc_statue', '💎': 'Gem', '🌱': 'Sprout', '🛒': 'ShoppingCart', '⬆': 'ArrowUpCircle', '🎂': 'Cake', '🎁': 'Gift', '🌪': 'sk_storm', '🛡': 'Shield', '☄': 'sk_meteor',
   '🏹': 'sk_arrow', '💪': 'hb_exercise', '🏠': 'House', '🏦': 'Landmark', '📚': 'Book', '🍺': 'Beer', '🏋': 'Dumbbell', '🏫': 'GraduationCap', '🌳': 'dc_tree', '🪑': 'dc_bench',
   '🌷': 'dc_flowers', '🪣': 'dc_well', '🚩': 'dc_banner', '⛲': 'dc_fountain', '🌿': 'cr_garden', '🗿': 'dc_statue', '🎏': 'cr_tapestry', '🔮': 'Sparkles', '🪓': 'Hammer',
-  '⚖': 'Scale', '💱': 'ArrowLeftRight', '💚': 'sk_heal', '🦅': 'sk_eagle', '🗺': 'Map', '🏅': 'Award', '🗡': 'g_weapon', '📜': 'ScrollText', '📖': 'hb_read', '🧘': 'hb_meditate',
+  '🎓': 'GraduationCap', '⚖': 'Scale', '💱': 'ArrowLeftRight', '💚': 'sk_heal', '🦅': 'sk_eagle', '🗺': 'Map', '🏅': 'Award', '🗡': 'g_weapon', '📜': 'ScrollText', '📖': 'hb_read', '🧘': 'hb_meditate',
   '🔤': 'hb_vocab', '😴': 'hb_sleep', '🙂': 'Smile', '😪': 'hb_rest', '☕': 'Coffee', '🔒': 'Lock', '🎯': 'Target', '🏆': 'Trophy', '⭐': 'Star', '🌟': 'Star', '📈': 'TrendingUp',
   '📉': 'TrendingDown', '💳': 'CreditCard', '🔔': 'Bell', '🍀': 'Sprout', '🧪': 'rl_flask', '🎒': 'Backpack', '👕': 'Shirt', '⚡': 'Zap', '🐾': 'PawPrint', '🏃': 'hb_exercise', '🌌': 'Moon', '🌸': 'dc_flowers', '🌥': 'Cloud', '🏖': 'Sun', '➕': 'Plus', '🎃': 'Gift', '🌙': 'em_night', '🌅': 'em_dawn', '🌇': 'em_dusk', '🌕': 'em_fullmoon', '👋': 'Smile', '✅': 'Check', '🥇': 'Award', '🥈': 'Award', '🥉': 'Award', '⛽': 'Fuel', '🛢': 'Droplet', '🛌': 'hb_sleep', '🧾': 'Receipt', '🦸': 'cr_hero', '🍜': 'Utensils',
 }

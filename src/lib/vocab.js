@@ -71,7 +71,19 @@ export async function loadBank(lang) {
   if (banks[lang]) return banks[lang]
   if (!LANGS[lang]?.ready) return (banks[lang] = [])
   const m = await loaders[lang]()
-  return (banks[lang] = parseBank(lang, m.default))
+  const bank = parseBank(lang, m.default)
+  // curriculum words: tag the bank words a lesson teaches, add the ones the bank doesn't have yet
+  try {
+    const { loadPath } = await import('./course')
+    const path = await loadPath(lang), byW = new Map(bank.map((w) => [w.w.toLowerCase(), w]))
+    for (const l of path.LESSONS) for (const [w, read, th, ex, exTh, col] of l.body?.words || []) {
+      const hit = byW.get(w.toLowerCase())
+      if (hit) { hit.lesson ||= l.id; if (col && !hit.col) hit.col = col; continue }
+      const x = { id: `${lang}:${w}`, lang, w, alt: '', read, th, cat: 'talk', lv: 1, ex, exTh, col, lesson: l.id }
+      bank.push(x); byW.set(w.toLowerCase(), x)
+    }
+  } catch { /* the course is optional */ }
+  return (banks[lang] = bank)
 }
 export const bankNow = (lang) => banks[lang] || null
 
@@ -105,7 +117,7 @@ function optionsFor(w, all, key) {
 export function pickRound(vocab, { lang = 'en', bank = [], lvs = [], cats = [], mode = 'auto', n = 10, today = todayISO() } = {}) {
   const cards = vocab.cards || {}
   const all = [...bank, ...customOf(vocab, lang)]
-  const fits = (w) => (!lvs.length || lvs.includes(w.lv) || w.mine) && (!cats.length || cats.includes(w.cat))
+  const fits = (w) => (!lvs.length || lvs.includes(w.lv) || w.mine) && (!cats.length || cats.includes(w.cat) || (cats.includes('lesson') && w.lesson))
   const list = all.filter(fits)
   const due = list.filter((w) => cards[w.id] && cards[w.id].due <= today && cards[w.id].last !== today).sort((a, b) => (cards[a.id].box || 0) - (cards[b.id].box || 0))
   const fresh = shuffle(list.filter((w) => !cards[w.id])).sort((a, b) => a.lv - b.lv)
@@ -127,11 +139,15 @@ export function blankOut(ex = '', word = '') {
 }
 
 /** first answer of the round decides the box; a repeat inside the same round only practises */
-export function grade(vocab, id, ok, today = todayISO()) {
+/** modes where you produce the word yourself: a right answer there counts toward "ใช้ได้" (can use), not only "เข้าใจ" */
+export const USE_MODES = ['spell', 'sentence', 'reverse', 'use']
+export const USE_N = 2
+export function grade(vocab, id, ok, today = todayISO(), mode = null) {
   const cards = { ...(vocab.cards || {}) }
   const c = cards[id] || { box: 0, seen: 0, right: 0, wrong: 0 }
   const box = ok ? Math.min(5, (c.box || 0) + 1) : 1
-  cards[id] = { box, seen: (c.seen || 0) + 1, right: (c.right || 0) + (ok ? 1 : 0), wrong: (c.wrong || 0) + (ok ? 0 : 1), due: nextDue(box, today), last: today }
+  const use = (c.use || 0) + (ok && USE_MODES.includes(mode) ? 1 : 0)
+  cards[id] = { box, seen: (c.seen || 0) + 1, right: (c.right || 0) + (ok ? 1 : 0), wrong: (c.wrong || 0) + (ok ? 0 : 1), due: nextDue(box, today), last: today, ...(use ? { use } : {}) }
   return { ...vocab, cards }
 }
 
@@ -145,9 +161,9 @@ export function statsFor(vocab, lang, bank = []) {
   const cards = vocab.cards || {}
   const ids = [...bank, ...customOf(vocab, lang)].map((w) => w.id)
   const today = todayISO()
-  let learnt = 0, due = 0, started = 0
-  for (const id of ids) { const c = cards[id]; if (!c) continue; started++; if ((c.box || 0) >= LEARNT_BOX) learnt++; if (c.due <= today && c.last !== today) due++ }
-  return { total: ids.length, learnt, due, started }
+  let learnt = 0, due = 0, started = 0, use = 0
+  for (const id of ids) { const c = cards[id]; if (!c) continue; started++; if ((c.box || 0) >= LEARNT_BOX) learnt++; if ((c.use || 0) >= USE_N) use++; if (c.due <= today && c.last !== today) due++ }
+  return { total: ids.length, learnt, due, started, use }
 }
 
 /* ---------- speech (the phone's own voices, works offline) ---------- */

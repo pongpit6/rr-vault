@@ -15,6 +15,7 @@ import { tarotBuff, tarotStam } from './fortune/tarot'
 const withTarot = (card, t) => { if (!t) return card; const o = { ...card }; for (const [k, v] of Object.entries(t.fx)) o[k] = Math.round(((o[k] || 0) + v) * 100) / 100; return o }
 import { cardFx, addCard, shopCards, sundayOf, sellPrice, cardPrice, CARD_MAX } from './cards'
 const MON_COUNT = 120
+import { COURSE_LANGS, DEGREES, DOCTOR, LANG_TH, LESSON_XP, CHECKPOINT_XP } from './course'
 import { mapUnlocked, MAPS, MON_BY_ID, energyOf, partyPower, fight, emptyFarm, chestsDue, chestLoot, rankCost, RECIPES, CRAFT_DECOR, itemPrice, SKILLS_V, RELIC_BY_ID, relicFx, relicSlots, shadowFx, shadowSlots, SHADOW_BY_ID, enhStep, SHARDS_PER_GOLD, raidsOf, defendRaid, hourlyOf, huntMaps, IDLE_AWAY_MS, IDLE_LIVE_MS, HUNT_XP_PER_WIN, HUNT_XP_DAY } from './farm'
 import { outfitOf, condition7, shadowRace, birthdayInfo, bdaySkin, storyAct, albumSnap, FREEDOM_STEPS } from './hero'
 import { usePrices } from './prices'
@@ -126,10 +127,16 @@ export const ACHIEVEMENTS = [
   { id: 'tarot_first', name: 'ไพ่ใบแรก', desc: 'จั่วไพ่ยิปซีประจำวันครั้งแรก', px: 'tr_back', group: 'fortune' },
   { id: 'tarot30', name: 'นักอ่านไพ่', desc: 'จั่วไพ่ประจำวันครบ 30 วัน', px: 'ft_ball', group: 'fortune' },
   { id: 'tarot_review10', name: 'ทบทวนตัวเอง', desc: 'ทบทวนไพ่ตอนเย็น 10 ครั้ง', px: 'ev_study', group: 'fortune' },
+  // degrees from the language curriculum (these do pay XP and GOLD like habit trophies: real study)
+  ...COURSE_LANGS.flatMap((lang) => [1, 2, 3, 4].map((k) => ({
+    id: `deg_${lang}${k}`, name: `${DEGREES[k]}ภาษา${LANG_TH[lang]}`, group: 'degree', px: 'GraduationCap', lang, lv: k,
+    desc: `จบช่วง 1${k > 1 ? `–${k}` : ''} (บท 1–${k * 8}) ของหลักสูตรภาษา${LANG_TH[lang]}${k === 1 ? ' · ได้ชุดบัณฑิตฟรี' : k === 3 ? ' · ได้ทหารเงาประจำภาษาฟรี' : ''}`,
+  }))),
+  { id: 'deg_doctor', name: `${DOCTOR}สี่ภาษา`, desc: 'จบหลักสูตรครบ 32 บททั้ง 4 ภาษา · ได้ชุดดุษฎีบัณฑิตฟรี', group: 'degree', px: 'Award' },
 ]
 
 /** game and fortune trophies pay no GOLD (GOLD stays scarce; the hunt already rewards those) */
-const ACH_NO_GOLD = new Set(ACHIEVEMENTS.filter((a) => a.group).map((a) => a.id))
+const ACH_NO_GOLD = new Set(ACHIEVEMENTS.filter((a) => a.group && a.group !== 'degree').map((a) => a.id))
 
 const addDaysISO = (d, n) => { const x = new Date(d + 'T12:00:00'); x.setDate(x.getDate() + n); return x.toISOString().slice(0, 10) }
 
@@ -300,6 +307,8 @@ function computeRpg({ accounts, txns, settings, balances, summary, unlocked, por
   const prog = {
     hunt100: [kills, 100], hunt1000: [kills, 1000], boss_all: [bossMaps, MAPS.length], dex_map: [dexMap, 15], dex_all: [dexN, MON_COUNT],
     glow10: [glowN, 10], card50: [cardN, 50], card_max: [cardTop, CARD_MAX], enh5: [enhTop, 5], enh10: [enhTop, 10], tarot30: [tarotDays.length, 30], tarot_review10: [reviews, 10],
+    ...Object.fromEntries(COURSE_LANGS.flatMap((lang) => [1, 2, 3, 4].map((k) => [`deg_${lang}${k}`, [Math.min(k, h?.path?.degree?.[lang] || 0), k]]))),
+    deg_doctor: [COURSE_LANGS.filter((l) => (h?.path?.degree?.[l] || 0) >= 4).length, 4],
   }
   Object.assign(cond, {
     hunt_first: kills > 0, hunt100: kills >= 100, hunt1000: kills >= 1000, boss_first: bossMaps > 0, boss_all: bossMaps >= MAPS.length,
@@ -308,6 +317,8 @@ function computeRpg({ accounts, txns, settings, balances, summary, unlocked, por
     gold_smelt: (fm.goldMade || 0) > 0, enh5: enhTop >= 5, enh10: enhTop >= 10, relic_first: Object.values(fm.relics || {}).some((v) => v > 0),
     chest_first: Object.keys(fm.chests || {}).length > 0, decor_first: Object.keys(data.town?.decor || {}).some((k) => CRAFT_DECOR[k]),
     story_full: MAPS.some((m) => (fm.kills || {})[m.id] >= 15 && (fm.bossKills || {})[m.id] > 0),
+    ...Object.fromEntries(COURSE_LANGS.flatMap((lang) => [1, 2, 3, 4].map((k) => [`deg_${lang}${k}`, (h?.path?.degree?.[lang] || 0) >= k]))),
+    deg_doctor: COURSE_LANGS.every((l) => (h?.path?.degree?.[l] || 0) >= 4),
     birth_set: !!ft.birth?.date, tarot_first: tarotDays.length > 0, tarot30: tarotDays.length >= 30, tarot_review10: reviews >= 10,
   })
   const achievements = ACHIEVEMENTS.map((a) => ({ ...a, unlockedAt: unlocked[a.id] || null, ready: !!cond[a.id], prog: prog[a.id] || null }))
@@ -330,7 +341,11 @@ function computeRpg({ accounts, txns, settings, balances, summary, unlocked, por
     add('หนังสือที่อ่านจบ', habits.finished.length * 100)
     add('คำศัพท์ที่จำได้', habits.learnt)
   }
-  add('Achievement', achievements.filter((a) => (a.unlockedAt || a.ready) && !a.group).length * 50) // game & fortune trophies: honour only
+  if (habits?.path) {
+    add('บทเรียนภาษาที่ผ่าน', habits.path.lessons * LESSON_XP)
+    add('จุดตรวจหลักสูตรภาษา', habits.path.checkpoints.length * CHECKPOINT_XP)
+  }
+  add('Achievement', achievements.filter((a) => (a.unlockedAt || a.ready) && (!a.group || a.group === 'degree')).length * 50) // game & fortune trophies: honour only
   add('ล่ามอนสเตอร์ (ชนะตัวละ 1 สูงสุดวันละ 30)', data.farm?.huntXp?.total || 0)
   const realmNet = Math.max(summary.net, data.peakNet || 0) // the highest you ever reached: market dips never take land away
   const realmNow = [...REALMS].reverse().find((r) => realmNet >= r.min)
@@ -832,7 +847,7 @@ export function useRpg() {
   // shadow soldiers
   const buyShadow = (id) => {
     const x = SHADOW_BY_ID[id], f = F()
-    if (!x || (f.shadows || {})[id] || fiat < x.fiat || gold < x.gold) return false
+    if (!x || x.deg || (f.shadows || {})[id] || fiat < x.fiat || gold < x.gold) return false
     const worn = f.shadowWorn || []
     pay(-x.fiat, -x.gold, { icon: '👤', text: `ทหารเงา “${x.name}” เข้าร่วมทีม` }, { farm: { ...f, shadows: { ...(f.shadows || {}), [id]: now() }, shadowWorn: worn.length < rpg.shadowSlots ? [...worn, id] : worn } }); sfx('levelup'); return true
   }
@@ -954,6 +969,17 @@ export function useRpg() {
     const now = new Date().toISOString()
     const patch = {}
     if (rpg.newlyUnlocked.length) { patch.unlocked = { ...(d.unlocked || {}) }; rpg.newlyUnlocked.forEach((id) => { patch.unlocked[id] = now }) }
+    // free curriculum rewards: graduation outfits (degree 1 / doctorate) and language shadows (degree 3)
+    const got = (id) => rpg.achievements.some((a) => a.id === id && (a.unlockedAt || a.ready))
+    const owned = { ...(d.owned || {}) }, shadows = { ...(d.farm?.shadows || {}) }
+    let ow = false, sw = false
+    for (const lang of COURSE_LANGS) {
+      if (got(`deg_${lang}1`) && !owned[`grad_${lang}`]) { owned[`grad_${lang}`] = now; ow = true }
+      if (got(`deg_${lang}3`) && !shadows[`sh_${lang}`]) { shadows[`sh_${lang}`] = now; sw = true }
+    }
+    if (got('deg_doctor') && !owned.grad_doctor) { owned.grad_doctor = now; ow = true }
+    if (ow) patch.owned = owned
+    if (sw) patch.farm = { ...(d.farm || {}), shadows }
     if (rpg.newlyJoined.length) { patch.joined = { ...(d.joined || {}) }; rpg.newlyJoined.forEach((id) => { patch.joined[id] = now }) }
     if (!d.econStart) patch.econStart = now
     if (d.gems && !d.gemsMigrated) { patch.fiat = (d.fiat || 0) + d.gems * GEM_TO_FIAT; patch.gemsMigrated = d.gems; patch.gems = 0; patch.econLog = [...(d.econLog || []), { at: now, icon: '💱', text: `แปลงเจมเดิม ${d.gems} เป็น FIAT`, fiat: d.gems * GEM_TO_FIAT }] }

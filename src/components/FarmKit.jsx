@@ -9,6 +9,7 @@ import CardAlbum from './CardAlbum'
 import HuntFull from './HuntFull'
 import { GLOW_CARD_MULT, GLOW_CARD, CARD_DROP, abilityOf, cardPct } from '../lib/cards'
 import { useStore } from '../store'
+import { LANG_TH } from '../lib/course'
 import { MAPS, MAP_BY_ID, MON_BY_ID, MATS, TREE, rankCost, RECIPES, mapUnlocked, itemName, itemPrice, itemIcon, RELICS, RELIC_BY_ID, NPC_INFO, SHADOWS, SHADOW_SLOT_LV, enhStep, ENH_FX, SHARDS_PER_GOLD, MAP_MODES, huntMaps, mapWinRate, LOOT, RARE_ODDS, rareOf, matUse, happyBonusChance, HUNT_XP_PER_WIN, HUNT_XP_DAY } from '../lib/farm'
 import { monPower, BOSS_AFTER, trophyPrice, bossOf, eliteOf, normalsOf, mirrorMon, toggleFaceFix, faceFixes, clearFaceFixes } from '../lib/farmData'
 import { MAP_LORE, MON_LORE, STORY, STORY_STEPS } from '../lib/farmLore'
@@ -573,7 +574,7 @@ export function ShadowCard({ rpg }) {
   const f = rpg.farm, worn = f.shadowWorn || [], own = f.shadows || {}
   return (
     <Card icon={Ghost} title="SHADOW ARMY · ทหารเงา" testid="shadow-army" right={<span className="text-[11px]">ออกรบ {worn.length}/{rpg.shadowSlots}</span>}>
-      <div className="text-[11px] text-slate-500 mb-2">ตัวคุณในชุดฮีโร่ต่าง ๆ พร้อมออร่าเงา ช่วยบัพและออกโจมตีในการล่า · ช่องเปิดที่เลเวล {SHADOW_SLOT_LV.join(' / ')} · ซื้อด้วย GOLD + FIAT</div>
+      <div className="text-[11px] text-slate-500 mb-2">ตัวคุณในชุดฮีโร่ต่าง ๆ พร้อมออร่าเงา ช่วยบัพและออกโจมตีในการล่า · ช่องเปิดที่เลเวล {SHADOW_SLOT_LV.join(' / ')} · ซื้อด้วย GOLD + FIAT (ทหารเงาประจำภาษาได้ฟรีจากปริญญาตรีในหลักสูตรภาษา)</div>
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
         {SHADOWS.map((x) => {
           const has = !!own[x.id], on = worn.includes(x.id)
@@ -583,6 +584,7 @@ export function ShadowCard({ rpg }) {
               <div className="text-[11px] font-semibold leading-tight mt-1">{x.name}</div>
               <div className="text-[10px] text-slate-500">{x.text}</div>
               {has ? <button className="px-btn !py-0.5 !px-2 text-[11px] mt-1" onClick={() => { if (!rpg.wearShadow(x.id)) showToast('ช่องเต็มแล้ว') }}>{on ? 'พัก' : 'ออกรบ'}</button>
+                : x.deg ? <div className="text-[10px] mt-1 text-violet-700 font-semibold">ฟรีเมื่อได้ปริญญาตรีภาษา{LANG_TH[x.deg]}</div>
                 : <button className="px-btn !py-0.5 !px-2 text-[11px] mt-1" disabled={rpg.gold < x.gold || rpg.fiat < x.fiat} onClick={() => showToast(rpg.buyShadow(x.id) ? `${x.name} เข้าร่วมทีม` : 'GOLD หรือ FIAT ไม่พอ')}>{x.gold} GOLD + {x.fiat.toLocaleString()}</button>}
             </div>
           )
