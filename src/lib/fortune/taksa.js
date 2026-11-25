@@ -113,5 +113,5 @@ export function pairScore(m, q, birthP) {
   const s = t + (tags.includes('มิตร') || tags.includes('สมพล') ? 0.5 : 0) - (tags.includes('ศัตรู') ? 0.5 : 0) + (['ศรี', 'มนตรี', 'เดช', 'อายุ'].includes(bh) ? 0.5 : bh === 'กาลกิณี' ? -1 : 0)
   return Math.round(s * 10) / 10
 }
-export const scoreColor = (s) => (s >= 2 ? '#7c3aed' : s >= 1 ? '#22c55e' : s > -0.5 ? '#94a3b8' : s > -1.5 ? '#f97316' : '#dc2626')
+export const scoreColor = (s) => (s >= 2 ? '#16a34a' : s >= 1 ? '#0ea5e9' : s > -0.5 ? '#94a3b8' : s > -1.5 ? '#f97316' : '#dc2626')
 export const scoreText = (s) => (s >= 2 ? 'ดีมาก' : s >= 1 ? 'ดี' : s > -0.5 ? 'กลาง ๆ' : s > -1.5 ? 'ระวัง' : 'หนัก')

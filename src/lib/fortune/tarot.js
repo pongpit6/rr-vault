@@ -27,7 +27,7 @@ export function luckOf(id, rev = false) {
   return l >= 4 ? l - 2 : l === 3 ? 2 : l + 1
 }
 export const LUCK_TEXT = ['', 'ดวงต้องระวัง', 'ดวงเบา ๆ', 'ดวงกลาง ๆ', 'ดวงดี', 'ดวงดีมาก']
-export const LUCK_COLOR = ['', '#ef4444', '#f97316', '#64748b', '#10b981', '#8b5cf6']
+export const LUCK_COLOR = ['', '#ef4444', '#f97316', '#64748b', '#0ea5e9', '#16a34a']
 
 /* ---------- game effect ---------- */
 const BASE = { mat: 8, sell: 6, rare: 8, crystal: 10, trophy: 6, trophyDrop: 8, proc: 8, mana: 12, elite: 10, night: 10, glow: 12, weaken: 2, power: 3, second: 2 }

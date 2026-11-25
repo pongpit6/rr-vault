@@ -13,7 +13,8 @@ import { setHeroStage, setHeroSkin, setPetStage } from './heroStage'
 import { tarotBuff, tarotStam } from './fortune/tarot'
 /** today's tarot card adds its buff on top of the card album (outside the album caps) */
 const withTarot = (card, t) => { if (!t) return card; const o = { ...card }; for (const [k, v] of Object.entries(t.fx)) o[k] = Math.round(((o[k] || 0) + v) * 100) / 100; return o }
-import { cardFx, addCard, shopCards, sundayOf, sellPrice, cardPrice } from './cards'
+import { cardFx, addCard, shopCards, sundayOf, sellPrice, cardPrice, CARD_MAX } from './cards'
+const MON_COUNT = 120
 import { mapUnlocked, MAPS, MON_BY_ID, energyOf, partyPower, fight, emptyFarm, chestsDue, chestLoot, rankCost, RECIPES, CRAFT_DECOR, itemPrice, SKILLS_V, RELIC_BY_ID, relicFx, relicSlots, shadowFx, shadowSlots, SHADOW_BY_ID, enhStep, SHARDS_PER_GOLD, raidsOf, defendRaid, hourlyOf, huntMaps, IDLE_AWAY_MS, IDLE_LIVE_MS, HUNT_XP_PER_WIN, HUNT_XP_DAY } from './farm'
 import { outfitOf, condition7, shadowRace, birthdayInfo, bdaySkin, storyAct, albumSnap, FREEDOM_STEPS } from './hero'
 import { usePrices } from './prices'
@@ -99,7 +100,36 @@ export const ACHIEVEMENTS = [
   { id: 'free_land', name: 'พ้นแดนหมอก', desc: 'มูลค่าสุทธิเป็นบวก', icon: 'home' },
   { id: 'nw100k', name: 'ปราสาทแรก', desc: 'มูลค่าสุทธิถึง 100,000', icon: 'building' },
   { id: 'nw1m', name: 'ราชาแห่งเกาะ', desc: 'มูลค่าสุทธิถึง 1,000,000', icon: 'gem' },
+  // the hunt, cards, crafting (game side)
+  { id: 'hunt_first', name: 'นักล่าหน้าใหม่', desc: 'ล่ามอนสเตอร์ตัวแรก', px: 'Swords', group: 'game' },
+  { id: 'hunt100', name: 'นักล่าร้อยตัว', desc: 'ล่ามอนสเตอร์รวม 100 ตัว', px: 'Swords', group: 'game' },
+  { id: 'hunt1000', name: 'ตำนานนักล่า', desc: 'ล่ามอนสเตอร์รวม 1,000 ตัว', px: 'Swords', group: 'game' },
+  { id: 'boss_first', name: 'ผู้โค่นบอส', desc: 'ปราบบอสประจำแผนที่ได้ 1 ตัว', px: 'tro_king_slime', group: 'game' },
+  { id: 'boss_all', name: 'ผู้พิชิตแปดแดน', desc: 'ปราบบอสครบทั้ง 8 แผนที่', px: 'tro_shadow_lord', group: 'game' },
+  { id: 'dex_map', name: 'นักบันทึกแดนเดียว', desc: 'สมุดมอนสเตอร์ครบ 1 แผนที่ (15 ตัว)', px: 'BookOpen', group: 'game' },
+  { id: 'dex_all', name: 'สารานุกรมมอนสเตอร์', desc: 'สมุดมอนสเตอร์ครบทั้ง 120 ตัว', px: 'BookOpen', group: 'game' },
+  { id: 'glow_first', name: 'แสงแรกในความมืด', desc: 'เจอตัวเรืองแสงครั้งแรก', px: 'em_glow', group: 'game' },
+  { id: 'glow10', name: 'นักล่ายามราตรี', desc: 'เจอตัวเรืองแสงครบ 10 ชนิด', px: 'em_nighthunt', group: 'game' },
+  { id: 'card_first', name: 'การ์ดใบแรก', desc: 'ได้การ์ดมอนสเตอร์ใบแรก', px: 'em_card', group: 'game' },
+  { id: 'card50', name: 'นักสะสมการ์ด', desc: 'มีการ์ดครบ 50 ชนิด', px: 'em_album', group: 'game' },
+  { id: 'card_max', name: 'การ์ดขั้นสูงสุด', desc: 'อัปการ์ดใบใดก็ได้ถึงขั้น 10', px: 'em_cardpack', group: 'game' },
+  { id: 'card_glow', name: 'การ์ดเรืองแสง', desc: 'ได้การ์ดเรืองแสงใบแรก', px: 'em_cardglow', group: 'game' },
+  { id: 'gold_smelt', name: 'ช่างหลอมทอง', desc: 'หลอมเศษทองคำเป็น GOLD ครั้งแรก', px: 'mat_shard', group: 'game' },
+  { id: 'enh5', name: 'ช่างตีบวก', desc: 'ตีบวกอุปกรณ์ชิ้นใดก็ได้ถึง +5', px: 'fx_enh', group: 'game' },
+  { id: 'enh10', name: 'ตีบวกสูงสุด', desc: 'ตีบวกอุปกรณ์ชิ้นใดก็ได้ถึง +10', px: 'fx_enh', group: 'game' },
+  { id: 'relic_first', name: 'ของติดตัวชิ้นแรก', desc: 'ให้ชาวเมืองทำของติดตัวชิ้นแรก', px: 'rl_badge', group: 'game' },
+  { id: 'chest_first', name: 'หีบแห่งวินัย', desc: 'เปิดหีบวินัยใบแรก', px: 'Gift', group: 'game' },
+  { id: 'decor_first', name: 'แต่งเมือง', desc: 'สร้างของตกแต่งเมืองจากวัสดุชิ้นแรก', px: 'dc_fountain', group: 'game' },
+  { id: 'story_full', name: 'นักเล่าตำนาน', desc: 'เปิดเรื่องราวครบ 3 บทของแผนที่ใดก็ได้', px: 'ScrollText', group: 'game' },
+  // fortune
+  { id: 'birth_set', name: 'รู้จักดวงตัวเอง', desc: 'ใส่ข้อมูลวันเกิดในเมนูดวงชะตา', px: 'ft_yinyang', group: 'fortune' },
+  { id: 'tarot_first', name: 'ไพ่ใบแรก', desc: 'จั่วไพ่ยิปซีประจำวันครั้งแรก', px: 'tr_back', group: 'fortune' },
+  { id: 'tarot30', name: 'นักอ่านไพ่', desc: 'จั่วไพ่ประจำวันครบ 30 วัน', px: 'ft_ball', group: 'fortune' },
+  { id: 'tarot_review10', name: 'ทบทวนตัวเอง', desc: 'ทบทวนไพ่ตอนเย็น 10 ครั้ง', px: 'ev_study', group: 'fortune' },
 ]
+
+/** game and fortune trophies pay no GOLD (GOLD stays scarce; the hunt already rewards those) */
+const ACH_NO_GOLD = new Set(ACHIEVEMENTS.filter((a) => a.group).map((a) => a.id))
 
 const addDaysISO = (d, n) => { const x = new Date(d + 'T12:00:00'); x.setDate(x.getDate() + n); return x.toISOString().slice(0, 10) }
 
@@ -259,7 +289,28 @@ function computeRpg({ accounts, txns, settings, balances, summary, unlocked, por
     nw100k: summary.net >= 100000,
     nw1m: summary.net >= 1000000,
   }
-  const achievements = ACHIEVEMENTS.map((a) => ({ ...a, unlockedAt: unlocked[a.id] || null, ready: !!cond[a.id] }))
+  // game and fortune achievements, with progress for the countable ones
+  const fm = { ...emptyFarm(), ...(data.farm || {}) }, ft = useStore.getState().items.fortune?.data || {}
+  const kills = Object.values(fm.kills || {}).reduce((a, b) => a + b, 0)
+  const bossMaps = MAPS.filter((m) => (fm.bossKills || {})[m.id] > 0).length
+  const dexN = Object.values(fm.dex || {}).filter((v) => v > 0).length, dexMap = Math.max(0, ...MAPS.map((m) => m.mons.filter((x) => (fm.dex || {})[x.id] > 0).length))
+  const glowN = Object.values(fm.glowDex || {}).filter((v) => v > 0).length
+  const cardN = Object.values(fm.cards || {}).filter((v) => v > 0).length, cardTop = Math.max(0, ...Object.values(fm.cards || {}))
+  const enhTop = Math.max(0, ...Object.values(fm.enh || {})), tarotDays = Object.values(ft.tarot || {}), reviews = tarotDays.filter((x) => x.review).length
+  const prog = {
+    hunt100: [kills, 100], hunt1000: [kills, 1000], boss_all: [bossMaps, MAPS.length], dex_map: [dexMap, 15], dex_all: [dexN, MON_COUNT],
+    glow10: [glowN, 10], card50: [cardN, 50], card_max: [cardTop, CARD_MAX], enh5: [enhTop, 5], enh10: [enhTop, 10], tarot30: [tarotDays.length, 30], tarot_review10: [reviews, 10],
+  }
+  Object.assign(cond, {
+    hunt_first: kills > 0, hunt100: kills >= 100, hunt1000: kills >= 1000, boss_first: bossMaps > 0, boss_all: bossMaps >= MAPS.length,
+    dex_map: dexMap >= 15, dex_all: dexN >= MON_COUNT, glow_first: glowN > 0, glow10: glowN >= 10,
+    card_first: cardN > 0, card50: cardN >= 50, card_max: cardTop >= CARD_MAX, card_glow: Object.values(fm.glowCards || {}).some(Boolean),
+    gold_smelt: (fm.goldMade || 0) > 0, enh5: enhTop >= 5, enh10: enhTop >= 10, relic_first: Object.values(fm.relics || {}).some((v) => v > 0),
+    chest_first: Object.keys(fm.chests || {}).length > 0, decor_first: Object.keys(data.town?.decor || {}).some((k) => CRAFT_DECOR[k]),
+    story_full: MAPS.some((m) => (fm.kills || {})[m.id] >= 15 && (fm.bossKills || {})[m.id] > 0),
+    birth_set: !!ft.birth?.date, tarot_first: tarotDays.length > 0, tarot30: tarotDays.length >= 30, tarot_review10: reviews >= 10,
+  })
+  const achievements = ACHIEVEMENTS.map((a) => ({ ...a, unlockedAt: unlocked[a.id] || null, ready: !!cond[a.id], prog: prog[a.id] || null }))
   const newlyUnlocked = achievements.filter((a) => a.ready && !a.unlockedAt).map((a) => a.id)
   const unlockedCount = achievements.filter((a) => a.unlockedAt || a.ready).length
 
@@ -279,7 +330,7 @@ function computeRpg({ accounts, txns, settings, balances, summary, unlocked, por
     add('หนังสือที่อ่านจบ', habits.finished.length * 100)
     add('คำศัพท์ที่จำได้', habits.learnt)
   }
-  add('Achievement', unlockedCount * 50)
+  add('Achievement', achievements.filter((a) => (a.unlockedAt || a.ready) && !a.group).length * 50) // game & fortune trophies: honour only
   add('ล่ามอนสเตอร์ (ชนะตัวละ 1 สูงสุดวันละ 30)', data.farm?.huntXp?.total || 0)
   const realmNet = Math.max(summary.net, data.peakNet || 0) // the highest you ever reached: market dips never take land away
   const realmNow = [...REALMS].reverse().find((r) => realmNet >= r.min)
@@ -393,7 +444,7 @@ function computeRpg({ accounts, txns, settings, balances, summary, unlocked, por
   })
 
   // ---------- wallet ----------
-  const wallet = computeWallet({ days, txns, data, achievementsUnlocked: Object.keys(unlocked).length, bossesDefeated: bosses.filter((b) => b.defeated).length, habits, habitBoost: town.habitBoost })
+  const wallet = computeWallet({ days, txns, data, achievementsUnlocked: Object.keys(unlocked).filter((id) => !ACH_NO_GOLD.has(id)).length, bossesDefeated: bosses.filter((b) => b.defeated).length, habits, habitBoost: town.habitBoost })
 
   // weather mirrors this month's money: overspending brings storms, otherwise the Thai season
   const mo = new Date().getMonth() + 1
@@ -776,7 +827,7 @@ export function useRpg() {
   const combineShards = () => {
     const f = F(), have = f.bag.shard || 0, n = Math.floor(have / SHARDS_PER_GOLD)
     if (!n) return 0
-    pay(0, n, { icon: '🪙', text: `หลอมเศษทองคำเป็น ${n} GOLD` }, { farm: { ...f, bag: { ...f.bag, shard: have - n * SHARDS_PER_GOLD } } }); sfx('levelup'); return n
+    pay(0, n, { icon: '🪙', text: `หลอมเศษทองคำเป็น ${n} GOLD` }, { farm: { ...f, goldMade: (f.goldMade || 0) + n, bag: { ...f.bag, shard: have - n * SHARDS_PER_GOLD } } }); sfx('levelup'); return n
   }
   // shadow soldiers
   const buyShadow = (id) => {

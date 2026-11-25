@@ -32,11 +32,28 @@ export const COMMODITY_PRESETS = [
 /** Short display label: fund code, ticker without "-USD", or the asset name. */
 export const assetLabel = (a) => !a ? '' : a.code || (a.source === 'yahoo' && a.symbol ? a.symbol.replace('-USD', '') : a.name)
 
+/** Thai fund kind, guessed from its code and name (gold, fixed income / money market, tax-saving, foreign, mixed, equity). */
+export function fundKind(a = {}) {
+  const t = `${a.code || ''} ${a.name || ''} ${a.symbol || ''}`.toUpperCase()
+  if (/GOLD|ทองคำ/.test(t)) return 'gold'
+  if (/FIXED|BOND|MONEY|TREASURY|CASH|-MM\b|PLUS-?F|ตราสารหนี้|ตลาดเงิน|พันธบัตร/.test(t)) return 'income'
+  if (/SSF|RMF|THAIESG|TESG|LTF/.test(t)) return 'tax'
+  if (/MIX|BAL|ALLOC|ผสม/.test(t)) return 'mixed'
+  if (/GLOBAL|GL\b|WORLD|US\b|USA|CHINA|CN\b|JAPAN|JP\b|INDIA|VIET|EURO|ASIA|EM\b|S&P|NASDAQ|ต่างประเทศ|^K-G|\bK-G/.test(t)) return 'foreign'
+  return 'equity'
+}
+/** pixel icon per fund kind (all existing atlas art) */
+export const FUND_ICON = { gold: 'item:gold', income: 'ShieldCheck', tax: 'PiggyBank', mixed: 'Scale', foreign: 'Map', equity: 'TrendingUp' }
+export const FUND_KIND_TH = { gold: 'กองทุนทองคำ', income: 'ตราสารหนี้ / ตลาดเงิน', tax: 'กองทุนลดหย่อนภาษี', mixed: 'กองทุนผสม', foreign: 'กองทุนต่างประเทศ', equity: 'กองทุนหุ้น' }
+
 const AMC = [['KTAM', 'KT', '#00A6E6'], ['KT-', 'KT', '#00A6E6'], ['KF', 'KS', '#FFC20E', '#3d2b00'], ['KKP', 'KKP', '#594A9E'], ['K-', 'K', '#00A950'],
   ['SCB', 'SCB', '#4E2E7F'], ['ES-', 'ES', '#E4002B'], ['TMB', 'ES', '#E4002B'], ['TTB', 'ES', '#E4002B'], ['BBL', 'BBL', '#1E3C96'], ['B-', 'BBL', '#1E3C96'],
   ['UOB', 'UOB', '#005EB8'], ['PRINCIPAL', 'P', '#0061A0'], ['ONE-', 'ONE', '#E5007E'], ['LH', 'LH', '#7AB800'], ['TISCO', 'TIS', '#1F3B7A'],
   ['MFC', 'MFC', '#00539F'], ['ASP', 'A+', '#F37021'], ['DAOL', 'DL', '#E60012'], ['XSPRING', 'XS', '#111827'], ['MEGA', 'M', '#0F766E']]
 /** Fund-house badge (initials + house color) for Thai mutual funds. */
+const AMC_NAME = { KT: 'กรุงไทย', KS: 'กรุงศรี', KKP: 'เกียรตินาคินภัทร', K: 'กสิกรไทย', SCB: 'ไทยพาณิชย์', ES: 'อีสท์สปริง', BBL: 'บัวหลวง', UOB: 'ยูโอบี', P: 'พรินซิเพิล', ONE: 'วรรณ', LH: 'แลนด์ แอนด์ เฮ้าส์', TIS: 'ทิสโก้', MFC: 'เอ็มเอฟซี', 'A+': 'แอสเซท พลัส', DL: 'ดาโอ', XS: 'เอ็กซ์สปริง', M: 'เมก้า' }
+/** fund house name (Thai) from the fund code, '' when unknown */
+export const amcName = (code = '') => { const c = code.toUpperCase(); const m = AMC.find(([p]) => c.startsWith(p)); return m ? `บลจ.${AMC_NAME[m[1]] || m[1]}` : '' }
 export const fundBadge = (code = '') => { const c = code.toUpperCase(); const m = AMC.find(([p]) => c.startsWith(p)); return m ? { text: m[1], bg: m[2], fg: m[3] || '#fff' } : { text: c.slice(0, 2) || 'F', bg: '#14b8a6', fg: '#fff' } }
 
 export const itemOf = (asset) => asset?.item || ASSET_TYPES[asset?.type]?.item || 'cash'

@@ -1,11 +1,11 @@
 import { Emo, EmoText, PxIcon } from '../components/px'
 import { useState } from 'react'
 import { Flame, Swords, Check, Lock, Trophy, ScrollText, Sparkles, MapPin, Backpack, Users, Shield, Store, Map as MapIcon, BookOpen, Eye, Castle } from '../components/px'
-import { ItemSprite, AssetLogo } from '../components/Logos'
-import { itemOf, assetLabel } from '../lib/portfolio'
+import { ItemSprite, AssetIcon } from '../components/Logos'
+import { assetLabel, amcName, fundKind, FUND_KIND_TH, ASSET_TYPES } from '../lib/portfolio'
 import BattleScene from '../components/BattleScene'
 import { useBattleEvents, SpriteImg, XpBar, ChestCard, sceneProps, Portrait } from '../components/RpgBits'
-import { Avatar, Icon, Money } from '../components/ui'
+import { Avatar, Icon, Money, Sheet } from '../components/ui'
 import { useProfile, useStore } from '../store'
 import { useRpg, REALMS } from '../lib/rpg'
 import { SHOP, GEAR_TIERS } from '../lib/party'
@@ -425,6 +425,55 @@ function QuestsTab({ rpg, onAdd }) {
   )
 }
 
+/* ---------------- achievements: grouped grid, tap for how / when / progress ---------------- */
+const ACH_GROUPS = [['habit', 'นิสัย'], ['money', 'การเงิน'], ['game', 'เกม'], ['fortune', 'ดวงชะตา']]
+const achGroup = (a) => a.group || (a.habit ? 'habit' : 'money')
+const thDateTime = (iso) => { const d = new Date(iso); return isNaN(d) ? '' : d.toLocaleString('th-TH', { dateStyle: 'long', timeStyle: 'short' }) }
+function AchIcon({ a, on, size = 18 }) {
+  if (!on) return <Lock size={size - 3} />
+  return a.px ? <PxIcon name={a.px} size={size + 6} /> : <Icon name={a.icon} size={size} />
+}
+function Achievements({ list }) {
+  const [g, setG] = useState('game')
+  const [sel, setSel] = useState(null)
+  const items = list.filter((a) => achGroup(a) === g)
+  return (
+    <div className="space-y-3">
+      <div className="flex gap-1.5 overflow-x-auto">{ACH_GROUPS.map(([k, t]) => { const all = list.filter((a) => achGroup(a) === k), n = all.filter((a) => a.unlockedAt || a.ready).length; return <button key={k} onClick={() => setG(k)} className={`px-btn !py-1 text-xs shrink-0 ${g === k ? '' : 'opacity-50'}`} data-testid={`ach-tab-${k}`}>{t} {n}/{all.length}</button> })}</div>
+      <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+        {items.map((a) => {
+          const on = a.unlockedAt || a.ready
+          return (
+            <button key={a.id} onClick={() => setSel(a)} className={`px-inner p-2 text-center ${on ? '' : 'opacity-60'}`} data-testid={`ach-${a.id}`}>
+              <div className={`mx-auto w-9 h-9 grid place-items-center ${on ? 'bg-amber-100 text-amber-600' : 'bg-slate-100 text-slate-400'}`}><AchIcon a={a} on={on} /></div>
+              <div className="text-[11px] font-semibold mt-1.5 leading-tight">{a.name}</div>
+              {!on && a.prog ? <div className="px-xp !h-1.5 mt-1"><div style={{ width: `${Math.min(1, a.prog[0] / a.prog[1]) * 100}%`, background: '#14b8a6' }} /></div>
+                : <div className="text-[9px] text-slate-500 leading-tight mt-0.5">{on && a.unlockedAt ? new Date(a.unlockedAt).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit' }) : a.desc}</div>}
+            </button>
+          )
+        })}
+      </div>
+      {sel && (
+        <Sheet open onClose={() => setSel(null)} title={sel.name}>
+          <div className="space-y-3 text-sm" data-testid="ach-sheet">
+            <div className="flex items-center gap-3">
+              <div className={`w-14 h-14 grid place-items-center shrink-0 ${sel.unlockedAt || sel.ready ? 'bg-amber-100 text-amber-600' : 'bg-slate-100 text-slate-400'}`}><AchIcon a={sel} on={sel.unlockedAt || sel.ready} size={26} /></div>
+              <div><div className="text-[11px] text-slate-500">{ACH_GROUPS.find(([k]) => k === achGroup(sel))[1]}</div><div className="font-semibold">{sel.desc}</div></div>
+            </div>
+            <div className="px-inner p-3">
+              {sel.unlockedAt ? <><div className="text-[11px] text-slate-500">ได้รับเมื่อ</div><div className="font-semibold" data-testid="ach-date">{thDateTime(sel.unlockedAt)}</div></>
+                : sel.ready ? <div className="font-semibold">เพิ่งทำได้ กำลังบันทึกวันที่</div>
+                : <div className="text-slate-500">ยังไม่ได้รับ</div>}
+              {sel.prog && <div className="mt-2"><div className="flex justify-between text-[11px] text-slate-500"><span>ความคืบหน้า</span><span className="num">{Math.min(sel.prog[0], sel.prog[1]).toLocaleString()}/{sel.prog[1].toLocaleString()}</span></div><div className="px-xp !h-2 mt-1"><div style={{ width: `${Math.min(1, sel.prog[0] / sel.prog[1]) * 100}%`, background: '#14b8a6' }} /></div></div>}
+            </div>
+            <div className="text-[11px] text-slate-500">{sel.group ? 'ถ้วยฝั่งเกมและดวงชะตาเป็นเกียรติยศอย่างเดียว ไม่ได้ GOLD และ XP (สองอย่างนี้ได้จากวินัยในชีวิตจริงเป็นหลัก)' : 'รางวัล: +3 GOLD และ +50 XP เมื่อได้รับ'}</div>
+          </div>
+        </Sheet>
+      )}
+    </div>
+  )
+}
+
 /* ---------------- status: stats, inventory, achievements, xp ---------------- */
 function StatusTab({ rpg, go }) {
   const unlocked = rpg.achievements.filter((a) => a.unlockedAt || a.ready).length
@@ -443,28 +492,17 @@ function StatusTab({ rpg, go }) {
           {rpg.inventory.map((h) => (
             <button key={h.asset.id} onClick={() => go?.('portfolio')} className={`px-inner p-1.5 text-center relative ${h.pnl > 0 ? 'px-glow' : ''}`} title={h.asset.name}>
               <div className="h-11 grid place-items-center relative">
-                <ItemSprite name={itemOf(h.asset)} size={36} />
-                {h.asset.type !== 'gold' && h.asset.type !== 'commodity' && <span className="absolute -bottom-0.5 -right-0.5"><AssetLogo asset={h.asset} size={18} /></span>}
+                <AssetIcon asset={h.asset} size={34} />
               </div>
               <div className="text-[10px] font-semibold truncate">{assetLabel(h.asset)}</div>
+              <div className="text-[8px] text-slate-500 truncate leading-tight">{h.asset.type === 'fund' ? amcName(h.asset.code || '') || FUND_KIND_TH[fundKind(h.asset)] : ASSET_TYPES[h.asset.type]?.label.split(' /')[0]}</div>
               <div className={`px-font text-[8px] ${h.pnlPct >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>{h.pnlPct >= 0 ? '+' : ''}{(h.pnlPct * 100).toFixed(1)}%</div>
             </button>
           ))}
         </div>
       </Section>
       <Section icon={Trophy} title="ACHIEVEMENTS" right={<span className="px-font text-[9px] text-slate-500">{unlocked}/{rpg.achievements.length}</span>}>
-        <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-          {rpg.achievements.map((a) => {
-            const on = a.unlockedAt || a.ready
-            return (
-              <div key={a.id} className={`px-inner p-2 text-center ${on ? '' : 'opacity-50'}`} title={a.desc}>
-                <div className={`mx-auto w-9 h-9 grid place-items-center ${on ? 'bg-amber-100 text-amber-600' : 'bg-slate-100 text-slate-400'}`}>{on ? <Icon name={a.icon} size={18} /> : <Lock size={15} />}</div>
-                <div className="text-[11px] font-semibold mt-1.5 leading-tight">{a.name}</div>
-                <div className="text-[9px] text-slate-500 leading-tight mt-0.5">{a.desc}</div>
-              </div>
-            )
-          })}
-        </div>
+        <Achievements list={rpg.achievements} />
       </Section>
       <Section icon={Sparkles} title="XP · ที่มาของค่าประสบการณ์">
         {rpg.xpParts.length ? (

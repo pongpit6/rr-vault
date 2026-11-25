@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { logoUrl } from '../lib/subs'
-import { logoCandidates, itemOf, fundBadge } from '../lib/portfolio'
+import { logoCandidates, itemOf, fundKind, FUND_ICON, FUND_KIND_TH } from '../lib/portfolio'
+import { PxIcon } from './px'
 
 export function ItemSprite({ name, size = 32, className = '' }) {
   return <img src={`./sprites/item_${name}.png`} alt="" width={size} height={size} className={className} style={{ imageRendering: 'pixelated' }} />
@@ -21,16 +22,27 @@ export function SubLogo({ sub, size = 40 }) {
 }
 
 /** Real asset logo (coin / company) with the pixel item sprite as fallback. */
+/** themed icon for an asset: the real logo for crypto / stocks when one loads, else pixel art (fund kind, gold, bond, ...) */
+export function AssetIcon({ asset, size = 36 }) {
+  const cands = asset?.type === 'fund' ? [] : logoCandidates(asset)
+  const [i, setI] = useState(0)
+  if (asset?.type === 'fund') {
+    const ic = FUND_ICON[fundKind(asset)]
+    return ic.startsWith('item:') ? <ItemSprite name={ic.slice(5)} size={size} /> : <PxIcon name={ic} size={size} />
+  }
+  const src = asset?.type === 'gold' || asset?.type === 'commodity' ? null : cands[i]
+  return src
+    ? <img src={src} alt="" width={size} height={size} className="object-contain" style={{ width: size, height: size }} onError={() => setI(i + 1)} referrerPolicy="no-referrer" />
+    : <ItemSprite name={itemOf(asset)} size={size} />
+}
+
 export function AssetLogo({ asset, size = 40 }) {
   const cands = logoCandidates(asset)
   const [i, setI] = useState(0)
-  if (asset?.type === 'fund' && asset.code) {
-    const b = fundBadge(asset.code)
-    const tag = /SSF/i.test(asset.code) ? 'SSF' : /RMF/i.test(asset.code) ? 'RMF' : null
+  if (asset?.type === 'fund') {
     return (
-      <div className="shrink-0 relative grid place-items-center rounded-2xl font-bold overflow-hidden" style={{ width: size, height: size, background: b.bg, color: b.fg, fontSize: size * (b.text.length > 2 ? 0.27 : 0.36) }}>
-        {b.text}
-        {tag && <span className="absolute bottom-0 inset-x-0 text-center bg-black/25 text-white font-semibold" style={{ fontSize: Math.max(7, size * 0.18), lineHeight: 1.3 }}>{tag}</span>}
+      <div className="shrink-0 grid place-items-center rounded-2xl bg-white border border-slate-200 overflow-hidden" style={{ width: size, height: size }} title={FUND_KIND_TH[fundKind(asset)]}>
+        <AssetIcon asset={asset} size={Math.round(size * 0.78)} />
       </div>
     )
   }

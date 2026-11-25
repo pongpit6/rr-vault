@@ -8,7 +8,7 @@ import { PxIcon } from '../px'
 
 /** levels: [{ th, color, min }] from worst to best; a value belongs to the last level whose min ≤ v */
 export const levelOf = (levels, v) => levels.reduce((a, l) => (v >= l.min ? l : a), levels[0])
-export const TAKSA_LEVELS = [{ th: 'หนัก', color: '#dc2626', min: -99 }, { th: 'ระวัง', color: '#f97316', min: -1.5 }, { th: 'กลาง ๆ', color: '#94a3b8', min: -0.49 }, { th: 'ดี', color: '#22c55e', min: 1 }, { th: 'ดีมาก', color: '#7c3aed', min: 2 }]
+export const TAKSA_LEVELS = [{ th: 'หนัก', color: '#dc2626', min: -99 }, { th: 'ระวัง', color: '#f97316', min: -1.5 }, { th: 'กลาง ๆ', color: '#94a3b8', min: -0.49 }, { th: 'ดี', color: '#0ea5e9', min: 1 }, { th: 'ดีมาก', color: '#16a34a', min: 2 }]
 const sgn = (v) => `${v > 0 ? '+' : ''}${Math.round(v * 10) / 10}`
 
 function useWidth() {
@@ -97,10 +97,10 @@ export function TimeChart({ items, levels = TAKSA_LEVELS, x0, x1, ticks = [], no
           onPointerDown={(e) => { const { k } = pick(e); setSel(k); if (e.pointerType !== 'mouse') setTip(null) }}>
           {bands.map(({ l, top, bot }) => bot > top && <g key={l.th}><rect x={L} y={top} width={iw} height={bot - top} fill={l.color} opacity={0.1} /><text x={L - 5} y={(top + bot) / 2 + 3} textAnchor="end" fontSize="10" fill={l.color} fontWeight="700">{l.th}</text></g>)}
           <line x1={L} x2={L + iw} y1={Yv(0)} y2={Yv(0)} stroke="#94a3b8" strokeDasharray="2 3" />
-          {s && <rect x={X(Math.max(s.from, x0))} y={T} width={Math.max(2, X(Math.min(s.to, x1)) - X(Math.max(s.from, x0)))} height={ih} fill="#0ea5e9" opacity={0.12} />}
+          {s && <rect x={X(Math.max(s.from, x0))} y={T} width={Math.max(2, X(Math.min(s.to, x1)) - X(Math.max(s.from, x0)))} height={ih} fill="#64748b" opacity={0.14} />}
           <path d={path} fill="none" stroke="#334155" strokeWidth="2" strokeLinejoin="round" />
           {items.map((it, i) => { const a = X(Math.max(it.from, x0)), b = X(Math.min(it.to, x1)); return <rect key={i} x={a + 0.5} y={Yv(it.v) - 3} width={Math.max(1.5, b - a - 1)} height={6} rx={2} fill={levelOf(levels, it.v).color} stroke={i === sel ? '#0f172a' : 'none'} strokeWidth="1.5" /> })}
-          {nowX != null && nowX >= x0 && nowX <= x1 && <g><line x1={X(nowX)} x2={X(nowX)} y1={T} y2={T + ih} stroke="#0ea5e9" strokeWidth="1.5" strokeDasharray="4 3" /><text x={Math.min(X(nowX) + 3, L + iw - 30)} y={T + 9} fontSize="10" fill="#0284c7" fontWeight="700">วันนี้</text></g>}
+          {nowX != null && nowX >= x0 && nowX <= x1 && <g><line x1={X(nowX)} x2={X(nowX)} y1={T} y2={T + ih} stroke="#db2777" strokeWidth="1.5" strokeDasharray="4 3" /><text x={Math.min(X(nowX) + 3, L + iw - 30)} y={T + 9} fontSize="10" fill="#db2777" fontWeight="700">วันนี้</text></g>}
           <line x1={L} x2={L + iw} y1={T + ih} y2={T + ih} stroke="#64748b" />
           {ticks.map((t) => X(t.x) >= L - 1 && X(t.x) <= L + iw + 1 && <g key={t.x}><line x1={X(t.x)} x2={X(t.x)} y1={T + ih} y2={T + ih + 4} stroke="#64748b" /><text x={X(t.x)} y={T + ih + 15} textAnchor="middle" fontSize="10" fill="#475569">{t.label}</text></g>)}
           {xTitle && <text x={L + iw} y={h - 3} textAnchor="end" fontSize="9" fill="#64748b">{xTitle}</text>}
@@ -132,8 +132,8 @@ export function BlockChart({ items, levels, compact = false, testid }) {
         <div className="flex">
           {items.map((it, i) => { const l = lv(it); return (
             <div key={i} className="flex flex-col items-center" style={{ width: cw }} data-testid={testid && `${testid}-${i}`}>
-              <div className="text-[9px] h-3 leading-3 font-bold text-sky-600">{it.now ? (compact ? '▼' : 'ตอนนี้') : ''}</div>
-              <div className="grid place-items-center rounded-md text-white font-bold" style={{ width: Math.max(8, cw - (compact ? 2 : 4)), height: bh, background: l.color, outline: i === sel ? '2px solid #0f172a' : it.now ? '2px solid #0ea5e9' : undefined, outlineOffset: 1, fontSize: cw < 30 ? 10 : 12 }}>
+              <div className="text-[9px] h-3 leading-3 font-bold text-pink-600">{it.now ? (compact ? '▼' : 'ตอนนี้') : ''}</div>
+              <div className="grid place-items-center rounded-md text-white font-bold" style={{ width: Math.max(8, cw - (compact ? 2 : 4)), height: bh, background: l.color, outline: i === sel ? '2px solid #0f172a' : it.now ? '2px solid #db2777' : undefined, outlineOffset: 1, fontSize: cw < 30 ? 10 : 12 }}>
                 {!compact && (it.top ?? sgn(it.v))}
               </div>
               {it.icon && !compact && <PxIcon name={it.icon} size={Math.min(16, cw - 6)} className="mt-0.5" />}
