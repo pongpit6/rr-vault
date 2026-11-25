@@ -1,5 +1,8 @@
 // Lesson map for EN (titles, goals and tasks from the owner's curriculum file). Bodies are added section by section.
 import S1 from './en1.js'
+import S2 from './en2.js'
+import S3 from './en3.js'
+import S4 from './en4.js'
 const META = [
 {
 "id": "EN-01",
@@ -322,7 +325,7 @@ const META = [
 "task": "ฟัง/อ่านโจทย์ใหม่ สนทนา 3–5 นาทีแบบมีตัวช่วยน้อย และเขียน 60–80 คำหรือเท่าที่ข้อมูลจำเป็นครบ"
 }
 ]
-const BODY = S1
+const BODY = { ...S1, ...S2, ...S3, ...S4 }
 export default {
   LANG: 'en',
   SECTIONS: {"1": "เริ่มรู้จักเสียง ตัวอักษร และตัวตน", "2": "ชีวิตประจำวันและข้อมูลรอบตัว", "3": "ทำธุระและสื่อสารในเมือง", "4": "อดีต แผน และการบูรณาการ"},

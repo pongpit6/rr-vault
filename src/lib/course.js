@@ -58,7 +58,8 @@ export const pathNow = (lang) => cache[lang] || null
 /* ---------- answer checking ---------- */
 const CONTRACT = [[/\bi'm\b/g, 'i am'], [/\byou're\b/g, 'you are'], [/\bwe're\b/g, 'we are'], [/\bthey're\b/g, 'they are'], [/\bhe's\b/g, 'he is'], [/\bshe's\b/g, 'she is'], [/\bit's\b/g, 'it is'],
   [/\bwhat's\b/g, 'what is'], [/\bwho's\b/g, 'who is'], [/\bwhere's\b/g, 'where is'], [/\bthat's\b/g, 'that is'], [/\bisn't\b/g, 'is not'], [/\baren't\b/g, 'are not'], [/\bdon't\b/g, 'do not'],
-  [/\bdoesn't\b/g, 'does not'], [/\bcan't\b/g, 'cannot'], [/\bcan not\b/g, 'cannot'], [/\bi'd\b/g, 'i would'], [/\blet's\b/g, 'let us']]
+  [/\bdoesn't\b/g, 'does not'], [/\bdidn't\b/g, 'did not'], [/\bwasn't\b/g, 'was not'], [/\bweren't\b/g, 'were not'], [/\bshouldn't\b/g, 'should not'], [/\bwon't\b/g, 'will not'],
+  [/\bi'll\b/g, 'i will'], [/\bwe'll\b/g, 'we will'], [/\bi've\b/g, 'i have'], [/\bthere's\b/g, 'there is'], [/\bhow's\b/g, 'how is'], [/\bwhen's\b/g, 'when is'], [/\bcan't\b/g, 'cannot'], [/\bcan not\b/g, 'cannot'], [/\bi'd\b/g, 'i would'], [/\blet's\b/g, 'let us']]
 export function norm(s = '') {
   let t = String(s).toLowerCase().normalize('NFKC').replace(/[‘’`´]/g, "'").replace(/[“”]/g, '"')
   t = t.replace(/[.!?。！？、,，;:"]/g, ' ').replace(/\s+/g, ' ').trim()

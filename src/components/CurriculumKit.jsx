@@ -490,7 +490,7 @@ export function QuestionRunner({ lang, qs, intro, extra, onDone, onAnswer }) {
           {!answered && <Button disabled={built.length !== toks.length} onClick={() => submit(built.map((n) => toks[n]).join(' '))} data-testid="q-submit">ตอบ</Button>}
         </div>}
         {answered && <div className={`text-xs rounded p-2 ${ok ? 'bg-emerald-50 text-emerald-800' : 'bg-rose-50 text-rose-800'}`} data-testid="q-feedback">
-          {ok ? 'ถูกต้อง' : 'ยังไม่ถูก'}{(q.k === 'type' || q.k === 'order') && <> · คำตอบตัวอย่าง: <b>{keyOf(q)}</b>{q.k === 'type' && !ok && <span> (คำตอบอื่นที่ความหมายและรูปถูกก็ใช้ได้)</span>}</>}
+          {ok ? 'ถูกต้อง' : 'ยังไม่ถูก'}{(q.k === 'type' || q.k === 'order') && (keyOf(q) ? <> · คำตอบตัวอย่าง: <b>{keyOf(q)}</b>{q.k === 'type' && !ok && <span> (คำตอบอื่นที่ความหมายและรูปถูกก็ใช้ได้)</span>}</> : <> · ข้อนี้ตอบได้หลายแบบตามข้อมูลของคุณ</>)}
           {q.why && <div className="mt-0.5">{q.why}</div>}
           {q.k === 'listen' && <div className="mt-0.5 text-slate-600">ประโยคที่ได้ยิน: {q.say}</div>}
         </div>}

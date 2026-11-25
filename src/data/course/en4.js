@@ -1,0 +1,423 @@
+// English section 4 (EN-25..32): the past, plans, and putting it all together. Original lesson content written for this app.
+
+export default {
+  'EN-25': {
+    words: [
+      ['yesterday', 'เยส-เตอร์-เดย์', 'เมื่อวาน', 'I was at home yesterday.', 'เมื่อวานฉันอยู่บ้าน', ''],
+      ['was', 'วอส', 'เป็น/อยู่ (อดีต เอกพจน์)', 'It was hot.', 'อากาศร้อน (อดีต)', ''],
+      ['were', 'เวอร์', 'เป็น/อยู่ (อดีต พหูพจน์/you)', 'We were at the office.', 'เราอยู่ที่ออฟฟิศ (อดีต)', ''],
+      ['last week', 'ลาสท์ วีค', 'สัปดาห์ที่แล้ว', 'I was in Phuket last week.', 'สัปดาห์ที่แล้วฉันอยู่ภูเก็ต', 'last night'],
+      ['office', 'ออฟ-ฟิศ', 'สำนักงาน', 'She was at the office.', 'เธออยู่ที่ออฟฟิศ', ''],
+      ['tired', 'ไทร์ด', 'เหนื่อย', 'I was very tired.', 'ฉันเหนื่อยมาก', ''],
+      ['ago', 'อะ-โก', 'ที่แล้ว (ก่อนนี้)', 'two days ago', 'สองวันก่อน', ''],
+      ['born', 'บอร์น', 'เกิด', 'I was born in 1995.', 'ฉันเกิดปี 1995', 'be born'],
+    ],
+    dialog: {
+      lines: [['A', 'Where were you yesterday? I called you.', 'เมื่อวานอยู่ไหน ฉันโทรหา'], ['B', 'I was at the office all day. It was very busy.', 'ฉันอยู่ออฟฟิศทั้งวัน ยุ่งมาก'], ['A', 'Were you tired?', 'เหนื่อยไหม'], ['B', 'Yes, I was. And the trains were very full.', 'เหนื่อย แล้วรถไฟก็แน่นมาก'], ['A', "My day wasn't busy. I was at home with my cat.", 'วันของฉันไม่ยุ่งเลย อยู่บ้านกับแมว']],
+      qs: [
+        { k: 'choose', q: 'เมื่อวาน B อยู่ที่ไหน', o: ['บ้าน', 'ออฟฟิศ', 'สถานีรถไฟ'], a: 1 },
+        { k: 'choose', q: 'รถไฟเป็นอย่างไร', o: ['ว่าง', 'แน่น', 'เสีย'], a: 1 },
+        { k: 'choose', q: 'A อยู่กับใคร', o: ['เพื่อน', 'แมว', 'ครอบครัว'], a: 1 },
+      ],
+    },
+    grammar: [
+      { h: 'was / were = am/is/are ในอดีต', body: 'I/he/she/it → was · you/we/they → were · ใช้กับสถานที่ ความรู้สึก สภาพ ในอดีต', ex: [['I was at home.', 'ฉันอยู่บ้าน (อดีต)'], ['They were happy.', 'พวกเขามีความสุข (อดีต)']] },
+      { h: "ปฏิเสธและคำถาม", body: "ปฏิเสธ: wasn't / weren't · คำถาม: Was he ...? / Were you ...? · Wh-: Where were you?", ex: [["It wasn't cold.", 'อากาศไม่หนาว'], ['Were you at work? — No, I wasn\'t.', 'อยู่ที่ทำงานไหม ไม่']] },
+      { h: 'คำบอกเวลาอดีต', body: 'yesterday · last night / last week / last year · two days ago · in 2020 วางท้ายประโยคหรือต้นประโยคก็ได้', ex: [['I was in Japan two years ago.', 'สองปีก่อนฉันอยู่ญี่ปุ่น'], ['Last night it was very hot.', 'เมื่อคืนร้อนมาก']] },
+    ],
+    drills: [
+      { k: 'choose', q: 'We ___ at the beach last weekend.', o: ['was', 'were', 'are'], a: 1 },
+      { k: 'choose', q: 'She ___ tired yesterday.', o: ['was', 'were', 'is'], a: 0 },
+      { k: 'type', q: 'ถามว่า "เมื่อวานคุณอยู่ที่ไหน"', a: ['where were you yesterday'] },
+      { k: 'type', q: "ปฏิเสธ: It was cold. → It ...", a: ["it wasn't cold", 'it was not cold'] },
+      { k: 'order', q: 'เรียงคำ: ฉันอยู่บ้านเมื่อวาน', a: ['I was at home yesterday'] },
+      { k: 'listen', say: 'I was in Chiang Rai three days ago.', q: 'อยู่เชียงรายเมื่อไร', o: ['เมื่อวาน', 'สามวันก่อน', 'สัปดาห์หน้า'], a: 1 },
+    ],
+    tasks: [
+      { brief: 'ตอบคำถามอดีต 5 ข้อจากเสียง แล้วเขียนไดอารีสั้น', data: 'ไดอารีของ Fon: เมื่อวาน', qs: [
+        { k: 'listen', say: 'Yesterday I was at my grandmother\'s house.', q: 'Fon อยู่ที่ไหน', o: ['บ้านยาย', 'ออฟฟิศ', 'ห้าง'], a: 0 },
+        { k: 'listen', say: 'The weather was beautiful. It was sunny and warm.', q: 'อากาศเป็นอย่างไร', o: ['ฝนตก', 'แดดอุ่น', 'หนาว'], a: 1 },
+        { k: 'listen', say: 'My cousins were there too. They were very funny.', q: 'ใครอยู่ที่นั่นด้วย', o: ['พี่น้องลูกพี่ลูกน้อง', 'เพื่อนร่วมงาน', 'ไม่มีใคร'], a: 0 },
+        { k: 'listen', say: "The food wasn't spicy. Grandma's soup was great.", q: 'อาหารเป็นอย่างไร', o: ['เผ็ด', 'ไม่เผ็ด', 'เค็ม'], a: 1 },
+        { k: 'type', q: 'ถาม Fon: "เมื่อวานคุณเหนื่อยไหม"', a: ['were you tired yesterday'] },
+      ] },
+      { brief: 'ไดอารีใหม่: วันหยุดของ Pete', qs: [
+        { k: 'listen', say: 'Last weekend I was in Hua Hin with my friends.', q: 'Pete ไปไหน', o: ['หัวหิน', 'พัทยา', 'เชียงใหม่'], a: 0 },
+        { k: 'listen', say: 'The hotel was small, but it was clean.', q: 'โรงแรมเป็นอย่างไร', o: ['ใหญ่และสกปรก', 'เล็กแต่สะอาด', 'แพงมาก'], a: 1 },
+        { k: 'listen', say: "The beach wasn't busy on Sunday morning.", q: 'ชายหาดเช้าวันอาทิตย์', o: ['คนเยอะ', 'คนไม่เยอะ', 'ปิด'], a: 1 },
+        { k: 'listen', say: 'We were very happy, but the traffic home was terrible.', q: 'อะไรที่แย่', o: ['ทะเล', 'อาหาร', 'รถติดขากลับ'], a: 2 },
+        { k: 'type', q: 'บอกว่าเมื่อวานคุณอยู่ที่ไหน (I was ...)', a: ['/^(yesterday )?i was (at|in) [a-z ]+( yesterday)?$/'] },
+      ] },
+    ],
+    speak: { repeat: ['Where were you yesterday?', 'I was at the office all day.', 'Were you tired? Yes, I was.', "It wasn't busy."], prompt: 'เล่าเมื่อวานของคุณ 4 ประโยคด้วย was/were (อยู่ที่ไหน อากาศ รู้สึกยังไง ใครอยู่ด้วย)', model: "Yesterday I was at work. It was very hot. I was tired in the evening. My colleagues were nice, so it wasn't a bad day." },
+    write: { prompt: 'เขียนไดอารีเมื่อวาน 4–5 ประโยค ใช้ was/were และ wasn\'t/weren\'t', model: "Yesterday was Sunday. I was at home in the morning. In the afternoon I was at the mall with my sister. It was very crowded. We were tired, but it wasn't a bad day.", check: ['was กับ I/he/she/it, were กับ you/we/they', 'มีปฏิเสธ 1 ประโยค', 'มีคำบอกเวลาอดีต'] },
+  },
+
+  'EN-26': {
+    words: [
+      ['visited', 'วิส-ซิท-ทิด', 'ไปเยี่ยม (อดีต)', 'I visited my friend yesterday.', 'เมื่อวานฉันไปหาเพื่อน', 'visit'],
+      ['watched', 'วอทช์ท', 'ดู (อดีต)', 'We watched a movie.', 'เราดูหนัง', 'watch'],
+      ['went', 'เว้นท์', 'ไป (อดีตของ go)', 'She went to the market.', 'เธอไปตลาด', 'go'],
+      ['ate', 'เอท', 'กิน (อดีตของ eat)', 'I ate noodles for lunch.', 'ฉันกินก๋วยเตี๋ยวมื้อเที่ยง', 'eat'],
+      ['had', 'แฮด', 'มี/กิน (อดีตของ have)', 'We had a great time.', 'เราสนุกมาก', 'have'],
+      ['saw', 'ซอ', 'เห็น (อดีตของ see)', 'I saw an elephant!', 'ฉันเห็นช้าง', 'see'],
+      ['bought', 'บอท', 'ซื้อ (อดีตของ buy)', 'He bought a new phone.', 'เขาซื้อโทรศัพท์ใหม่', 'buy'],
+      ['then', 'เด็น', 'จากนั้น', 'Then we went home.', 'จากนั้นเรากลับบ้าน', ''],
+    ],
+    dialog: {
+      lines: [['A', 'How was your weekend?', 'สุดสัปดาห์เป็นยังไง'], ['B', 'Great! I visited my aunt in Ayutthaya.', 'ดีมาก ไปหาน้าที่อยุธยา'], ['A', 'What did you do there?', 'ไปทำอะไรที่นั่น'], ['B', 'We went to an old temple and ate boat noodles. Then I saw some elephants!', 'ไปวัดเก่า กินก๋วยเตี๋ยวเรือ แล้วก็เห็นช้างด้วย'], ['A', 'Wow. I just stayed home and watched TV.', 'ว้าว ฉันแค่อยู่บ้านดูทีวี']],
+      qs: [
+        { k: 'choose', q: 'B ไปหาใคร', o: ['น้า', 'ยาย', 'เพื่อน'], a: 0 },
+        { k: 'choose', q: 'B กินอะไร', o: ['ข้าวผัด', 'ก๋วยเตี๋ยวเรือ', 'ส้มตำ'], a: 1 },
+        { k: 'choose', q: 'A ทำอะไร', o: ['ไปอยุธยา', 'อยู่บ้านดูทีวี', 'ไปวัด'], a: 1 },
+      ],
+    },
+    grammar: [
+      { h: 'Past simple บอกเล่า: กริยาปกติ +ed', body: 'เหตุการณ์จบแล้ว ใช้รูปเดียวทุกประธาน: visit → visited, watch → watched, stay → stayed · ลงท้าย e เติม d: live → lived · พยัญชนะ+y เปลี่ยน y เป็น ied: study → studied', ex: [['I watched a movie last night.', 'เมื่อคืนฉันดูหนัง'], ['She studied English.', 'เธอเรียนภาษาอังกฤษ']] },
+      { h: 'กริยาอดีตผิดรูปที่ใช้บ่อย', body: 'go → went · eat → ate · have → had · see → saw · buy → bought · get → got · make → made · take → took ต้องจำเป็นคำ ๆ', ex: [['We went to the beach.', 'เราไปทะเล'], ['I had coffee with Ann.', 'ฉันกินกาแฟกับแอน']] },
+      { h: 'เสียง -ed สามแบบ', body: 'watched / worked (เสียง ท) · played / lived (เสียง ด) · visited / wanted (เสียง อิด — เฉพาะคำที่ลงท้าย t/d)', ex: [['watched · played · visited', 'วอทช์ท · เพลด · วิส-ซิท-ทิด']] },
+    ],
+    drills: [
+      { k: 'choose', q: 'Yesterday I ___ to the bank.', o: ['go', 'goed', 'went'], a: 2 },
+      { k: 'choose', q: 'อดีตของ buy คือ', o: ['buyed', 'bought', 'brought'], a: 1 },
+      { k: 'type', q: 'อดีตของ study', a: ['studied'] },
+      { k: 'listen', say: 'We ate pizza and watched a movie.', q: 'พวกเขาทำอะไร', o: ['กินพิซซ่าและดูหนัง', 'ทำพิซซ่า', 'ไปโรงหนัง'], a: 0 },
+      { k: 'order', q: 'เรียงคำ: ฉันไปหาเพื่อนเมื่อวาน', a: ['I visited my friend yesterday'] },
+      { k: 'type', q: 'แปล: เราสนุกมาก (have a great time)', a: ['we had a great time', 'we had a great time there'] },
+    ],
+    tasks: [
+      { brief: 'เรียงเหตุการณ์ 4 ภาพแล้วเล่าด้วยคำอดีต', data: 'ภาพ: วันเสาร์ของ Jim', qs: [
+        { k: 'listen', say: 'First, Jim got up late and had breakfast at ten.', q: 'Jim กินข้าวเช้ากี่โมง', o: ['8:00', '10:00', '12:00'], a: 1 },
+        { k: 'listen', say: 'Then he went to the mall and bought some shoes.', q: 'ที่ห้าง Jim ซื้ออะไร', o: ['เสื้อ', 'รองเท้า', 'โทรศัพท์'], a: 1 },
+        { k: 'listen', say: 'In the afternoon he played football with his friends.', q: 'ตอนบ่ายทำอะไร', o: ['ฟุตบอล', 'ว่ายน้ำ', 'นอน'], a: 0 },
+        { k: 'listen', say: 'In the evening he cooked dinner and watched a game on TV.', q: 'ตอนเย็นทำอะไร', o: ['ไปร้านอาหาร', 'ทำอาหารและดูกีฬา', 'ไปปาร์ตี้'], a: 1 },
+        { k: 'type', q: 'เล่าภาพที่ 2: Jim ไปห้างและซื้อรองเท้า', a: ['he went to the mall and bought some shoes', 'jim went to the mall and bought some shoes', 'he went to the mall and bought shoes', 'jim went to the mall and bought shoes', 'then he went to the mall and bought some shoes'] },
+      ] },
+      { brief: 'ภาพชุดใหม่: วันทำงานของ Lisa', qs: [
+        { k: 'listen', say: 'Lisa took a taxi to work because it rained.', q: 'ทำไม Lisa นั่งแท็กซี่', o: ['ตื่นสาย', 'ฝนตก', 'รถเสีย'], a: 1 },
+        { k: 'listen', say: 'She had a long meeting in the morning.', q: 'ตอนเช้า Lisa ทำอะไร', o: ['ประชุมนาน', 'ไปหาหมอ', 'กินข้าว'], a: 0 },
+        { k: 'listen', say: 'At lunch she ate a salad with her boss.', q: 'Lisa กินข้าวกับใคร', o: ['เพื่อน', 'หัวหน้า', 'คนเดียว'], a: 1 },
+        { k: 'listen', say: 'After work she visited her mother.', q: 'หลังเลิกงานไปไหน', o: ['ยิม', 'บ้านแม่', 'ตลาด'], a: 1 },
+        { k: 'type', q: 'เล่าสิ่งที่คุณทำเมื่อวาน 1 ประโยค (Yesterday I ...)', a: ['/^yesterday i ([a-z]+ed|went|ate|had|saw|bought|got|made|took|did|met|read|wrote|drank|slept|ran|swam|came)( [a-z0-9 ,]+)?$/'] },
+      ] },
+    ],
+    speak: { repeat: ['How was your weekend?', 'I visited my aunt.', 'We went to an old temple and ate noodles.', 'watched · played · visited'], prompt: 'เล่าวันหยุดที่ผ่านมา 5 ประโยค เรียงด้วย first / then / after that', model: 'Last Sunday I got up at eight. First I had breakfast with my family. Then we went to the market and bought some fruit. After that I watched a movie. In the evening I studied English.' },
+    write: { prompt: 'เขียนเล่าเหตุการณ์ 1 วันที่ผ่านมา 5 ประโยค ใช้กริยาปกติและผิดรูปอย่างละ 2 คำขึ้นไป', model: 'Last Saturday I visited my friend in Nonthaburi. We cooked lunch together. Then we went to a cafe and had cake. I bought a book there. I got home at nine.', check: ['กริยาอดีตทุกประโยค', 'มีทั้ง -ed และผิดรูป', 'มีคำเรียงลำดับ first/then'] },
+  },
+
+  'EN-27': {
+    words: [
+      ['did', 'ดิด', 'ช่วยถาม/ปฏิเสธในอดีต', 'Did you go to work?', 'คุณไปทำงานไหม', ''],
+      ["didn't", 'ดิด-เดิ้นท์', 'ไม่ได้ (อดีต)', "I didn't go.", 'ฉันไม่ได้ไป', ''],
+      ['last night', 'ลาสท์ ไนท์', 'เมื่อคืน', 'What did you do last night?', 'เมื่อคืนทำอะไร', ''],
+      ['travel', 'แทรฟ-เวิล', 'เดินทาง ท่องเที่ยว', 'Did you travel last year?', 'ปีที่แล้วไปเที่ยวไหม', ''],
+      ['when', 'เว็น', 'เมื่อไร', 'When did you arrive?', 'คุณมาถึงเมื่อไร', ''],
+      ['arrive', 'อะ-ไรฟว์', 'มาถึง', 'We arrived at ten.', 'เรามาถึงสิบโมง', 'arrive at'],
+      ['meet', 'มีท', 'พบ (อดีต met)', 'I met Ann at the station.', 'ฉันเจอแอนที่สถานี', ''],
+      ['sleep', 'สลีพ', 'นอน (อดีต slept)', "I didn't sleep well.", 'ฉันนอนไม่ค่อยหลับ', ''],
+    ],
+    dialog: {
+      lines: [['A', 'You look tired. Did you sleep well?', 'ดูเหนื่อยนะ นอนหลับดีไหม'], ['B', "No, I didn't. I arrived home very late.", 'ไม่ ฉันถึงบ้านดึกมาก'], ['A', 'Why? Did you work late?', 'ทำไม ทำงานดึกเหรอ'], ['B', 'No. I went to a concert with my brother.', 'เปล่า ไปคอนเสิร์ตกับน้องชาย'], ['A', 'When did it finish?', 'จบกี่โมง'], ['B', 'At midnight! But it was amazing.', 'เที่ยงคืน แต่สนุกมาก']],
+      qs: [
+        { k: 'choose', q: 'B นอนหลับดีไหม', o: ['ดี', 'ไม่ดี', 'ไม่ได้บอก'], a: 1 },
+        { k: 'choose', q: 'B ทำงานดึกไหม', o: ['ใช่', 'ไม่ใช่ ไปคอนเสิร์ต', 'ไปหาหมอ'], a: 1 },
+        { k: 'choose', q: 'คอนเสิร์ตจบกี่โมง', o: ['สี่ทุ่ม', 'เที่ยงคืน', 'ตีสอง'], a: 1 },
+      ],
+    },
+    grammar: [
+      { h: 'Did + กริยารูปพื้นฐาน?', body: 'คำถามอดีตใช้ Did + ประธาน + กริยารูปพื้นฐาน (did รับความเป็นอดีตไปแล้ว ห้ามใช้ went/ate ซ้ำ) · ตอบสั้น Yes, I did. / No, I didn\'t.', ex: [['Did you go to work? — No, I didn\'t.', 'คุณไปทำงานไหม ไม่ได้ไป'], ['Did she eat lunch?', 'เธอกินข้าวเที่ยงไหม (ไม่ใช่ Did she ate)']] },
+      { h: "ปฏิเสธ: didn't + กริยารูปพื้นฐาน", body: "I didn't go. / He didn't buy it. (ไม่ใช่ didn't went)", ex: [["I didn't see the message.", 'ฉันไม่เห็นข้อความ']] },
+      { h: 'Wh- + did', body: 'What / Where / When / Who did you ...?', ex: [['Where did you go?', 'คุณไปไหนมา'], ['What did you buy?', 'คุณซื้ออะไร']] },
+      { h: 'was/were แยกจาก did', body: 'ประโยคที่ไม่มีกริยาอื่น (สถานที่ ความรู้สึก) ใช้ was/were · ประโยคที่มีกริยาการกระทำใช้ did', ex: [['Were you tired? / Did you sleep?', 'เหนื่อยไหม / ได้นอนไหม'], ['Where were you? / Where did you go?', 'อยู่ไหน / ไปไหนมา']] },
+    ],
+    drills: [
+      { k: 'choose', q: 'Did you ___ the news?', o: ['see', 'saw', 'seen'], a: 0 },
+      { k: 'choose', q: "She didn't ___ breakfast.", o: ['ate', 'eat', 'eats'], a: 1 },
+      { k: 'choose', q: '___ you at home last night?', o: ['Did', 'Were', 'Was'], a: 1, why: 'อยู่ที่ไหน (ไม่มีกริยาอื่น) ใช้ were' },
+      { k: 'type', q: 'ถาม: "เมื่อวานคุณไปไหนมา"', a: ['where did you go yesterday'] },
+      { k: 'type', q: 'ปฏิเสธ: I bought it. → I ...', a: ["i didn't buy it", 'i did not buy it'] },
+      { k: 'order', q: 'เรียงคำ: คุณมาถึงเมื่อไร', a: ['When did you arrive'] },
+    ],
+    tasks: [
+      { brief: 'สัมภาษณ์เรื่องวันก่อนหน้า 5 คำถาม แล้วสรุป', data: 'คนที่สัมภาษณ์: Noi (เมื่อวานวันหยุด)', qs: [
+        { k: 'type', q: 'ถาม Noi ว่า "เมื่อวานคุณทำอะไร"', a: ['what did you do yesterday'] },
+        { k: 'listen', say: 'I went to the dentist in the morning.', q: 'ตอนเช้า Noi ไปไหน', o: ['หมอฟัน', 'ยิม', 'ตลาด'], a: 0 },
+        { k: 'type', q: 'ถามต่อ: "เจ็บไหม" (Did it hurt?)', a: ['did it hurt'] },
+        { k: 'listen', say: "No, it didn't. Then I met my friends for lunch.", q: 'มื้อเที่ยง Noi ทำอะไร', o: ['กินคนเดียว', 'เจอเพื่อน', 'ไม่ได้กิน'], a: 1 },
+        { k: 'type', q: 'สรุปให้คนอื่นฟัง: Noi ไปหาหมอฟันแล้วเจอเพื่อน', a: ['noi went to the dentist and met her friends', 'she went to the dentist and met her friends', 'noi went to the dentist and then met her friends', 'she went to the dentist and then met her friends', 'noi went to the dentist and met her friends for lunch', 'she went to the dentist and met her friends for lunch'] },
+      ] },
+      { brief: 'สัมภาษณ์ใหม่: Tony กลับจากเที่ยว', qs: [
+        { k: 'type', q: 'ถาม Tony ว่า "คุณไปไหนมา"', a: ['where did you go'] },
+        { k: 'listen', say: 'I went to Vietnam for five days.', q: 'Tony ไปกี่วัน', o: ['3', '5', '7'], a: 1 },
+        { k: 'type', q: 'ถามต่อ: "คุณกินเฝอไหม" (pho)', a: ['did you eat pho', 'did you try pho', 'did you have pho'] },
+        { k: 'listen', say: "Yes, I did. But I didn't like the coffee. It was too strong.", q: 'Tony ไม่ชอบอะไร', o: ['เฝอ', 'กาแฟ', 'โรงแรม'], a: 1 },
+        { k: 'type', q: 'ถามว่า "คุณกลับมาเมื่อไร" (come back)', a: ['when did you come back', 'when did you get back', 'when did you arrive'] },
+      ] },
+    ],
+    speak: { repeat: ['Did you sleep well?', "No, I didn't.", 'Where did you go?', "I didn't buy it."], prompt: 'ถาม-ตอบเรื่องเมื่อวาน 3 คำถามด้วย Did/Where/What แล้วตอบจริงของคุณ', model: "What did you do yesterday? I worked until six. Did you go to the gym? No, I didn't. I was too tired. Where did you eat dinner? I ate at home." },
+    write: { prompt: 'เขียนคำถามอดีต 3 ข้อถามเพื่อน และคำตอบสมมติ (มีปฏิเสธ 1 ข้อ)', model: "Did you watch the game last night? Yes, I did. Where did you watch it? At a cafe. Did your team win? No, it didn't.", check: ['Did + กริยารูปพื้นฐาน', "didn't + กริยารูปพื้นฐาน", 'was/were ใช้เมื่อไม่มีกริยาอื่น'] },
+  },
+
+  'EN-28': {
+    words: [
+      ['going to', 'โก-อิ้ง ทู', 'ตั้งใจจะ', "I'm going to study tonight.", 'คืนนี้ฉันตั้งใจจะเรียน', ''],
+      ['tonight', 'ทู-ไนท์', 'คืนนี้', 'What are you going to do tonight?', 'คืนนี้จะทำอะไร', ''],
+      ['next week', 'เน็กซ์ วีค', 'สัปดาห์หน้า', "I'm going to visit Japan next week.", 'สัปดาห์หน้าจะไปญี่ปุ่น', 'next month'],
+      ['plan', 'แพลน', 'แผน วางแผน', 'Do you have any plans?', 'มีแผนอะไรไหม', ''],
+      ['save', 'เซฟ', 'เก็บ (เงิน) ออม', "I'm going to save money.", 'ฉันจะเก็บเงิน', 'save money'],
+      ['learn', 'เลิร์น', 'เรียนรู้', "She's going to learn to swim.", 'เธอจะเรียนว่ายน้ำ', ''],
+      ['soon', 'ซูน', 'เร็ว ๆ นี้', "We're going to move soon.", 'เร็ว ๆ นี้เราจะย้ายบ้าน', ''],
+      ['this weekend', 'ดิส วีค-เอ็นด์', 'สุดสัปดาห์นี้', 'this weekend', 'เสาร์อาทิตย์นี้', ''],
+    ],
+    dialog: {
+      lines: [['A', 'Do you have any plans for this weekend?', 'เสาร์อาทิตย์นี้มีแผนอะไรไหม'], ['B', "Yes. I'm going to clean my room on Saturday.", 'มี วันเสาร์จะทำความสะอาดห้อง'], ['A', 'And on Sunday?', 'แล้ววันอาทิตย์ล่ะ'], ['B', "I'm going to visit my parents. What about you?", 'จะไปหาพ่อแม่ คุณล่ะ'], ['A', "I'm not going to do anything. I'm going to relax!", 'จะไม่ทำอะไรเลย จะพักผ่อน'], ['B', 'Good plan!', 'แผนดี']],
+      qs: [
+        { k: 'choose', q: 'วันเสาร์ B จะทำอะไร', o: ['ไปหาพ่อแม่', 'ทำความสะอาดห้อง', 'พักผ่อน'], a: 1 },
+        { k: 'choose', q: 'วันอาทิตย์ B จะทำอะไร', o: ['ไปหาพ่อแม่', 'ไปทำงาน', 'ดูหนัง'], a: 0 },
+        { k: 'choose', q: 'A จะทำอะไร', o: ['ทำงาน', 'พักผ่อน', 'ไปเที่ยว'], a: 1 },
+      ],
+    },
+    grammar: [
+      { h: 'be going to + กริยารูปพื้นฐาน = ตั้งใจ/วางแผนไว้แล้ว', body: "I'm / He's / They're + going to + กริยา · ใช้กับแผนที่คิดไว้ก่อนพูด", ex: [["I'm going to study tonight.", 'คืนนี้ฉันตั้งใจจะเรียน'], ["They're going to buy a car.", 'พวกเขาจะซื้อรถ']] },
+      { h: 'คำถามและปฏิเสธ', body: "Are you going to ...? · What are you going to do? · ปฏิเสธ: I'm not going to ...", ex: [['Are you going to join us?', 'จะมาด้วยไหม'], ["She isn't going to come.", 'เธอจะไม่มา']] },
+      { h: 'คำบอกเวลาอนาคต', body: 'tonight · tomorrow · this weekend · next week / next month / next year · soon', ex: [["I'm going to travel next month.", 'เดือนหน้าจะไปเที่ยว']] },
+      { h: 'สะพานสู่ A2', body: 'ตอนนี้คุณพูดได้ 3 เวลา: ปกติ (present simple) · ตอนนี้ (continuous) · อดีต (past) · แผน (going to) ลองเล่าเรื่องเดียวกันด้วยทุกเวลา', ex: [["I usually cook. Yesterday I ate out. Tonight I'm going to cook again.", '']] },
+    ],
+    drills: [
+      { k: 'choose', q: "We're going ___ a new phone.", o: ['buy', 'to buy', 'buying'], a: 1 },
+      { k: 'choose', q: '___ you going to watch the game?', o: ['Do', 'Are', 'Will'], a: 1 },
+      { k: 'type', q: 'ถาม: "สุดสัปดาห์นี้คุณจะทำอะไร"', a: ['what are you going to do this weekend'] },
+      { k: 'type', q: 'บอกว่า "คืนนี้ฉันจะเรียนภาษาอังกฤษ"', a: ["i'm going to study english tonight", 'i am going to study english tonight', "tonight i'm going to study english", 'tonight i am going to study english'] },
+      { k: 'order', q: 'เรียงคำ: เดือนหน้าเธอจะเรียนว่ายน้ำ', a: ['She is going to learn to swim next month', "She's going to learn to swim next month"] },
+      { k: 'listen', say: "I'm not going to eat sugar this month.", q: 'คนพูดตั้งใจทำอะไร', o: ['กินน้ำตาลเพิ่ม', 'ไม่กินน้ำตาล', 'ทำขนม'], a: 1 },
+    ],
+    tasks: [
+      { brief: 'เล่าแผน 3 อย่าง ถามแผนคู่สนทนา และยืนยันวันเวลา', data: 'แผนของคุณ: เสาร์เช้าวิ่ง · เสาร์เย็นดูหนัง · อาทิตย์ไปตลาด', qs: [
+        { k: 'type', q: 'บอกแผนเสาร์เช้า', a: ["i'm going to go running on saturday morning", 'i am going to go running on saturday morning', "i'm going to run on saturday morning", 'i am going to run on saturday morning', "on saturday morning i'm going to go running", "on saturday morning i'm going to run"] },
+        { k: 'type', q: 'ถามคู่สนทนาว่า "แล้วคุณจะทำอะไรเสาร์นี้"', a: ['what are you going to do on saturday', 'what are you going to do this saturday', 'what about you', 'and you what are you going to do on saturday'] },
+        { k: 'listen', say: "I'm going to see a movie on Saturday evening too! Let's go together.", q: 'คู่สนทนาเสนออะไร', o: ['ไปวิ่งด้วยกัน', 'ไปดูหนังด้วยกัน', 'ไปตลาด'], a: 1 },
+        { k: 'listen', say: 'The movie starts at seven thirty. Let\'s meet at seven.', q: 'นัดกี่โมง', o: ['7:00', '7:30', '8:00'], a: 0 },
+        { k: 'type', q: 'ยืนยัน: "เสาร์ทุ่มนึง โอเค"', a: ['saturday at seven ok', 'ok saturday at seven', 'so saturday at seven', 'saturday at seven sounds good', 'sounds good saturday at seven'] },
+      ] },
+      { brief: 'แผนใหม่: ปีหน้า', qs: [
+        { k: 'listen', say: "Next year I'm going to save money for a trip to Korea.", q: 'จะเก็บเงินไปไหน', o: ['ญี่ปุ่น', 'เกาหลี', 'จีน'], a: 1 },
+        { k: 'listen', say: "I'm going to learn Korean, and I'm not going to buy new clothes.", q: 'จะไม่ทำอะไร', o: ['เรียนภาษาเกาหลี', 'ซื้อเสื้อผ้าใหม่', 'เก็บเงิน'], a: 1 },
+        { k: 'type', q: 'ถามว่า "คุณจะไปเมื่อไร"', a: ['when are you going to go', 'when are you going to go to korea', 'when are you going'] },
+        { k: 'listen', say: "We're going to go in October.", q: 'จะไปเดือนไหน', o: ['สิงหาคม', 'ตุลาคม', 'ธันวาคม'], a: 1 },
+        { k: 'type', q: 'บอกแผนปีหน้าของคุณ 1 อย่าง (Next year I\'m going to ...)', a: ['/^next year i am going to [a-z ]+$/'] },
+      ] },
+    ],
+    speak: { repeat: ['Do you have any plans for this weekend?', "I'm going to visit my parents.", "I'm not going to do anything.", 'What are you going to do tonight?'], prompt: 'บอกแผน 3 อย่าง (คืนนี้ / สุดสัปดาห์นี้ / ปีหน้า) และถามกลับ 1 คำถาม', model: "Tonight I'm going to study English for twenty minutes. This weekend I'm going to visit my parents. Next year I'm going to save money for a trip to Japan. What are you going to do this weekend?" },
+    write: { prompt: 'เขียนแผน 4 ประโยค มีปฏิเสธ 1 ประโยค และคำบอกเวลาทุกประโยค', model: "This weekend I'm going to clean my house. On Sunday I'm going to meet my friends. Next month I'm going to start a cooking class. I'm not going to buy coffee every day.", check: ['be + going to + กริยารูปพื้นฐาน', 'มีปฏิเสธ', 'มีคำบอกเวลาอนาคต'] },
+  },
+
+  'EN-29': {
+    words: [
+      ['need to', 'นีด ทู', 'ต้อง (จำเป็น)', 'I need to check the time.', 'ฉันต้องดูเวลา', ''],
+      ['should', 'ชู้ด', 'ควร', 'You should rest.', 'คุณควรพักผ่อน', ''],
+      ["shouldn't", 'ชู้ด-เดิ้นท์', 'ไม่ควร', "You shouldn't worry.", 'ไม่ต้องกังวลนะ', ''],
+      ['rest', 'เรสท์', 'พักผ่อน', 'You need to rest.', 'คุณต้องพัก', ''],
+      ['check', 'เช็ค', 'ตรวจ เช็ก', 'Check your bag.', 'เช็กกระเป๋า', 'check the time'],
+      ['bring', 'บริง', 'นำมา เอาไปด้วย', 'Bring your passport.', 'เอาพาสปอร์ตไปด้วย', ''],
+      ['forget', 'เฟอร์-เก็ท', 'ลืม (อดีต forgot)', 'I forgot my wallet.', 'ฉันลืมกระเป๋าตังค์', ''],
+      ['problem', 'พรอบ-เบล็ม', 'ปัญหา', "What's the problem?", 'มีปัญหาอะไร', ''],
+    ],
+    dialog: {
+      lines: [['A', 'Oh no. I forgot my wallet at home.', 'แย่แล้ว ลืมกระเป๋าตังค์ไว้บ้าน'], ['B', 'Do you need to go back?', 'ต้องกลับไปเอาไหม'], ['A', 'Yes, but the train leaves in twenty minutes.', 'ใช่ แต่รถไฟออกในยี่สิบนาที'], ['B', "You should check the next train. I can pay for your coffee now.", 'ลองดูรถไฟเที่ยวถัดไป ตอนนี้ฉันจ่ายค่ากาแฟให้ก่อนได้'], ['A', 'Thanks! I need to call my boss too.', 'ขอบคุณ ต้องโทรบอกหัวหน้าด้วย'], ['B', "You shouldn't worry. The next one is at nine.", 'ไม่ต้องกังวล เที่ยวต่อไปเก้าโมง']],
+      qs: [
+        { k: 'choose', q: 'A ลืมอะไร', o: ['โทรศัพท์', 'กระเป๋าตังค์', 'กุญแจ'], a: 1 },
+        { k: 'choose', q: 'B แนะนำอะไร', o: ['ดูรถไฟเที่ยวถัดไป', 'นั่งแท็กซี่', 'ไม่ต้องไปทำงาน'], a: 0 },
+        { k: 'choose', q: 'รถไฟเที่ยวถัดไปกี่โมง', o: ['8:00', '9:00', '10:00'], a: 1 },
+      ],
+    },
+    grammar: [
+      { h: 'need to + กริยา = จำเป็นต้อง', body: "I need to ... · He needs to ... (เติม s ที่ need) · ไม่จำเป็น: don't/doesn't need to", ex: [['I need to buy a ticket.', 'ฉันต้องซื้อตั๋ว'], ["You don't need to bring food.", 'ไม่ต้องเอาอาหารมา']] },
+      { h: "should / shouldn't + กริยา = ควร/ไม่ควร", body: 'ใช้ให้คำแนะนำ รูปเดียวทุกประธาน ไม่มี to (You should rest. ไม่ใช่ should to rest)', ex: [['You should see a doctor.', 'คุณควรไปหาหมอ'], ["You shouldn't drive tonight.", 'คืนนี้ไม่ควรขับรถ']] },
+      { h: 'ให้เหตุผลสั้นด้วย because / so', body: 'You should leave now because the traffic is bad. · It\'s raining, so you should take an umbrella.', ex: [['You should take a taxi because it\'s late.', 'ควรนั่งแท็กซี่เพราะดึกแล้ว']] },
+    ],
+    drills: [
+      { k: 'choose', q: 'You ___ drink more water.', o: ['should', 'should to', 'shoulds'], a: 0 },
+      { k: 'choose', q: 'She ___ to finish the report today.', o: ['need', 'needs', 'should'], a: 1 },
+      { k: 'type', q: 'แนะนำเพื่อนที่ปวดหัว: "คุณควรพักผ่อน"', a: ['you should rest', 'you should take a rest', 'you should get some rest'] },
+      { k: 'type', q: 'บอกว่า "คุณไม่ควรกังวล"', a: ["you shouldn't worry", 'you should not worry'] },
+      { k: 'order', q: 'เรียงคำ: ฉันต้องเช็กเวลา', a: ['I need to check the time'] },
+      { k: 'listen', say: "You don't need to bring your laptop.", q: 'ต้องเอาแล็ปท็อปไหม', o: ['ต้อง', 'ไม่ต้อง', 'ไม่แน่ใจ'], a: 1 },
+    ],
+    tasks: [
+      { brief: 'ช่วยแก้ปัญหา 3 กรณี พร้อมเหตุผลง่าย ๆ', data: 'กรณี: ลืมพาสปอร์ต · ตกรถเมล์ · ปวดหัวก่อนประชุม', qs: [
+        { k: 'listen', say: 'I forgot my passport, and my flight is at six.', q: 'ปัญหาคืออะไร', o: ['ลืมพาสปอร์ต', 'เครื่องดีเลย์', 'ลืมตั๋ว'], a: 0 },
+        { k: 'type', q: 'แนะนำ: "คุณควรกลับไปเอาตอนนี้เลย"', a: ['you should go back now', 'you should go back and get it now', 'you should go home now', 'you should go back home now'] },
+        { k: 'listen', say: 'I missed the bus. The next one is in forty minutes.', q: 'รถเมล์คันถัดไปอีกกี่นาที', o: ['14', '40', '50'], a: 1 },
+        { k: 'type', q: 'แนะนำให้นั่งแท็กซี่ พร้อมเหตุผล (because ...)', a: ["/^you should take a taxi because .+$/"] },
+        { k: 'listen', say: 'I have a headache, but I need to give a presentation.', q: 'ปัญหาคืออะไร', o: ['ปวดหัวแต่ต้องนำเสนอ', 'ลืมไฟล์', 'มาสาย'], a: 0 },
+      ] },
+      { brief: 'กรณีใหม่: ก่อนไปเที่ยวต่างประเทศ', data: 'เพื่อนจะไปโตเกียวพรุ่งนี้ · อากาศหนาว · ยังไม่แลกเงิน', qs: [
+        { k: 'listen', say: "I'm going to Tokyo tomorrow, but I didn't change any money.", q: 'เพื่อนยังไม่ได้ทำอะไร', o: ['แลกเงิน', 'จองโรงแรม', 'ซื้อตั๋ว'], a: 0 },
+        { k: 'type', q: 'แนะนำ: "คุณต้องแลกเงินวันนี้"', a: ['you need to change money today', 'you need to change some money today', 'you should change money today', 'you should change some money today'] },
+        { k: 'listen', say: "It's very cold there. Do I need a jacket?", q: 'เพื่อนถามอะไร', o: ['ต้องเอาแจ็กเก็ตไหม', 'ต้องเอาร่มไหม', 'ต้องจองไหม'], a: 0 },
+        { k: 'type', q: 'ตอบพร้อมเหตุผล (Yes, you should ... because ...)', a: ["/^yes,? you should (bring|take|wear) a (warm )?jacket because .+$/"] },
+        { k: 'listen', say: "You don't need to bring a lot of cash. You can use your card.", q: 'คำแนะนำคืออะไร', o: ['พกเงินสดเยอะ', 'ไม่ต้องพกเงินสดเยอะ', 'ไม่ใช้บัตร'], a: 1 },
+      ] },
+    ],
+    speak: { repeat: ['I forgot my wallet.', 'You should check the next train.', "You shouldn't worry.", 'I need to call my boss.'], prompt: 'เพื่อนลืมกุญแจบ้าน ให้คำแนะนำ 3 ข้อพร้อมเหตุผล', model: "You should call your roommate because she has a key. You need to stay calm. You shouldn't wait outside in the rain, so you should go to the cafe next door." },
+    write: { prompt: 'เขียนข้อความแนะนำเพื่อนที่จะสัมภาษณ์งานพรุ่งนี้ 4 ประโยค', model: "You should go to bed early tonight. You need to bring your CV. You shouldn't be late, so you should leave home at seven. Good luck!", check: ["should/shouldn't + กริยา ไม่มี to", 'need to + กริยา', 'มีเหตุผล because/so 1 ครั้ง'] },
+  },
+
+  'EN-30': {
+    words: [
+      ['cheap', 'ชีพ', 'ถูก (ราคา)', 'This bag is cheaper than that one.', 'กระเป๋าใบนี้ถูกกว่าใบนั้น', ''],
+      ['expensive', 'อิก-สเปน-ซีฟ', 'แพง', 'more expensive', 'แพงกว่า', ''],
+      ['fast', 'ฟาสท์', 'เร็ว', 'The train is faster than the bus.', 'รถไฟเร็วกว่ารถเมล์', ''],
+      ['better', 'เบท-เทอร์', 'ดีกว่า', 'This one is better.', 'อันนี้ดีกว่า', 'good → better'],
+      ['worse', 'เวิร์ส', 'แย่กว่า', 'The traffic is worse today.', 'วันนี้รถติดกว่า', 'bad → worse'],
+      ['than', 'แดน', 'กว่า', 'bigger than', 'ใหญ่กว่า', ''],
+      ['light', 'ไลท์', 'เบา', 'a lighter laptop', 'แล็ปท็อปที่เบากว่า', ''],
+      ['comfortable', 'คัม-ฟอร์-ทะ-เบิ้ล', 'สบาย', 'more comfortable', 'สบายกว่า', ''],
+    ],
+    dialog: {
+      lines: [['A', 'Which bag should I buy, the red one or the black one?', 'ควรซื้อใบไหน แดงหรือดำ'], ['B', 'The red one is cheaper.', 'ใบแดงถูกกว่า'], ['A', 'But the black one is bigger and more comfortable.', 'แต่ใบดำใหญ่กว่าและสบายกว่า'], ['B', 'How much is it?', 'ราคาเท่าไร'], ['A', "It's 1,200 baht. The red one is 800.", '1,200 บาท ใบแดง 800'], ['B', 'The black one is better for work. I think you should buy it.', 'ใบดำดีกว่าสำหรับไปทำงาน คิดว่าควรซื้อ']],
+      qs: [
+        { k: 'choose', q: 'ใบไหนถูกกว่า', o: ['แดง', 'ดำ', 'ราคาเท่ากัน'], a: 0 },
+        { k: 'choose', q: 'ใบดำราคาเท่าไร', o: ['800', '1,200', '2,100'], a: 1 },
+        { k: 'choose', q: 'B แนะนำใบไหน', o: ['แดง', 'ดำ', 'ไม่ซื้อ'], a: 1 },
+      ],
+    },
+    grammar: [
+      { h: 'คำสั้น + -er + than', body: 'คำพยางค์เดียวเติม -er: cheap → cheaper, fast → faster · ลงท้าย e เติม r: large → larger · สระเดียว+พยัญชนะเดียวเบิ้ล: big → bigger · ลงท้าย y → ier: easy → easier', ex: [['The bus is cheaper than the taxi.', 'รถเมล์ถูกกว่าแท็กซี่'], ['My room is bigger than yours.', 'ห้องฉันใหญ่กว่าของคุณ']] },
+      { h: 'คำยาว: more + คำ + than', body: 'คำ 2 พยางค์ขึ้นไป (ส่วนใหญ่) ใช้ more: more expensive, more comfortable, more interesting', ex: [['The hotel is more expensive than the hostel.', 'โรงแรมแพงกว่าโฮสเทล']] },
+      { h: 'รูปพิเศษ', body: 'good → better · bad → worse · far → farther (ไม่พูด more better / gooder)', ex: [['This phone is better.', 'โทรศัพท์เครื่องนี้ดีกว่า'], ['The weather is worse today.', 'วันนี้อากาศแย่กว่า']] },
+      { h: 'ใช้เปรียบเทียบเพื่อเลือก', body: 'บอก 2–3 เหตุผลแล้วตัดสิน: I\'ll take the ... because it\'s ...', ex: [["I'll take the train because it's faster.", 'ฉันจะนั่งรถไฟเพราะเร็วกว่า']] },
+    ],
+    drills: [
+      { k: 'choose', q: 'The MRT is ___ than the bus.', o: ['fast', 'faster', 'more fast'], a: 1 },
+      { k: 'choose', q: 'This phone is ___ than my old one.', o: ['more expensive', 'expensiver', 'more expensiver'], a: 0 },
+      { k: 'choose', q: 'good → ?', o: ['gooder', 'more good', 'better'], a: 2 },
+      { k: 'type', q: 'เปรียบเทียบ: big →', a: ['bigger'] },
+      { k: 'order', q: 'เรียงคำ: กระเป๋าใบนี้ถูกกว่าใบนั้น', a: ['This bag is cheaper than that one'] },
+      { k: 'listen', say: 'The small hotel is more comfortable than the big one.', q: 'โรงแรมไหนสบายกว่า', o: ['เล็ก', 'ใหญ่', 'เท่ากัน'], a: 0 },
+    ],
+    tasks: [
+      { brief: 'อ่านป้ายสินค้า 3 แบบแล้วอธิบายเหตุผลการเลือก', data: 'หูฟัง A: 990 บาท · หนัก 250 g · แบต 20 ชม.\nหูฟัง B: 1,590 บาท · หนัก 180 g · แบต 30 ชม.\nหูฟัง C: 690 บาท · หนัก 300 g · แบต 10 ชม.', qs: [
+        { k: 'choose', q: 'อันไหนถูกที่สุด', o: ['A', 'B', 'C'], a: 2 },
+        { k: 'choose', q: 'ประโยคไหนตรงกับข้อมูล', o: ['A is lighter than B.', 'B is lighter than A.', 'C is lighter than B.'], a: 1 },
+        { k: 'type', q: 'เปรียบเทียบราคา B กับ A (B is ... than A)', a: ['b is more expensive than a'] },
+        { k: 'type', q: 'เปรียบเทียบแบต B กับ C (B is better / B lasts longer ...)', a: ['b is better than c', 'b lasts longer than c', "b's battery is better than c's", 'the battery of b is better than c', "b's battery is longer than c's"] },
+        { k: 'type', q: 'เลือก 1 อัน พร้อมเหตุผล (I\'ll take ... because ...)', a: ['/^i (will|would like to) (take|buy) [abc]( headphones)? because .+$/', '/^i will take (headphones )?[abc] because .+$/'] },
+      ] },
+      { brief: 'ข้อมูลใหม่: เลือกทางไปสนามบิน', data: 'แท็กซี่: 450 บาท · 40 นาที (รถติดอาจ 90 นาที)\nแอร์พอร์ตลิงก์: 45 บาท · 30 นาที\nรถตู้: 120 บาท · 60 นาที', qs: [
+        { k: 'choose', q: 'อะไรถูกที่สุด', o: ['แท็กซี่', 'แอร์พอร์ตลิงก์', 'รถตู้'], a: 1 },
+        { k: 'choose', q: 'ประโยคไหนถูก', o: ['The van is faster than the train.', 'The taxi is more expensive than the van.', 'The train is more expensive than the taxi.'], a: 1 },
+        { k: 'type', q: 'เปรียบเทียบเวลา: รถไฟกับรถตู้ (The train is ... than the van)', a: ['the train is faster than the van', 'the airport link is faster than the van'] },
+        { k: 'listen', say: 'I have three big suitcases.', q: 'เพื่อนมีกระเป๋ากี่ใบ', o: ['1', '2', '3'], a: 2 },
+        { k: 'type', q: 'แนะนำเพื่อนที่มีกระเป๋า 3 ใบ (You should take ... because ...)', a: ['/^you should take (a|the) (taxi|van) because .+$/'] },
+      ] },
+    ],
+    speak: { repeat: ['The red one is cheaper.', 'The black one is more comfortable.', 'This one is better.', "I'll take the train because it's faster."], prompt: 'เปรียบเทียบของ 2 อย่างที่คุณใช้ (โทรศัพท์ ร้านกาแฟ เส้นทางไปทำงาน) 3 ประโยค แล้วบอกว่าเลือกอะไร', model: "The BTS is faster than the bus, but it's more expensive. The bus is cheaper and sometimes more comfortable. I usually take the BTS because it's faster." },
+    write: { prompt: 'เขียนเปรียบเทียบตัวเลือก 2–3 อย่าง 3 ประโยค + ประโยคตัดสิน', model: "Phone A is cheaper than Phone B. Phone B is lighter, and its camera is better. Phone A has a bigger battery. I'll take Phone B because I take a lot of photos.", check: ['-er / more ถูกตามความยาวคำ', 'มี than', 'มีประโยคตัดสิน + because'] },
+  },
+
+  'EN-31': {
+    words: [
+      ['appointment', 'อะ-พอยท์-เมนท์', 'นัดหมาย', 'I have an appointment at three.', 'ฉันมีนัดบ่ายสาม', 'doctor\'s appointment'],
+      ['message', 'เมส-เสจ', 'ข้อความ', 'Thanks for your message.', 'ขอบคุณสำหรับข้อความ', 'send a message'],
+      ['late', 'เลท', 'สาย ช้า', "I'm going to be late.", 'ฉันจะไปสาย', ''],
+      ['because', 'บิ-คอส', 'เพราะว่า', "I'm late because of the traffic.", 'ฉันสายเพราะรถติด', ''],
+      ['but', 'บัท', 'แต่', 'I can come, but I need to leave early.', 'ไปได้ แต่ต้องกลับเร็ว', ''],
+      ['instead', 'อิน-สเตด', 'แทน', 'Can we meet on Friday instead?', 'เจอวันศุกร์แทนได้ไหม', ''],
+      ['let me know', 'เล็ท มี โนว์', 'แจ้งให้ทราบด้วย', 'Let me know if that is OK.', 'บอกด้วยนะว่าได้ไหม', ''],
+      ['best', 'เบสท์', 'ด้วยความนับถือ (ลงท้าย)', 'Best, Ron', 'ด้วยความนับถือ รณ', 'best regards'],
+    ],
+    dialog: {
+      lines: [['A', '(message) Hi Ron, sorry! I\'m going to be late for our meeting. The traffic is terrible.', 'หวัดดีรณ ขอโทษนะ จะไปประชุมสาย รถติดมาก'], ['B', '(message) No problem. What time can you arrive?', 'ไม่เป็นไร มาถึงได้กี่โมง'], ['A', '(message) Maybe 2:30. Can we start at 2:45 instead?', 'อาจจะบ่ายสองครึ่ง เริ่มบ่ายสองสี่สิบห้าแทนได้ไหม'], ['B', '(message) Sure. I\'ll tell the team. See you soon.', 'ได้ จะบอกทีมให้ แล้วเจอกัน'], ['A', '(message) Thank you so much!', 'ขอบคุณมาก']],
+      qs: [
+        { k: 'choose', q: 'ทำไม A จะไปสาย', o: ['ป่วย', 'รถติด', 'ลืมนัด'], a: 1 },
+        { k: 'choose', q: 'A ขอเริ่มประชุมกี่โมง', o: ['2:30', '2:45', '3:00'], a: 1 },
+        { k: 'choose', q: 'Ron จะทำอะไร', o: ['ยกเลิกประชุม', 'บอกทีม', 'โทรหา A'], a: 1 },
+      ],
+    },
+    grammar: [
+      { h: 'โครงข้อความสั้นให้ครบ', body: 'ทักทาย → เรื่องหลัก (เกิดอะไร/ต้องการอะไร) → ข้อมูลสำคัญ (วัน เวลา สถานที่) → ขอให้ตอบ/ขอบคุณ → ลงท้าย', ex: [['Hi Mook, / I can\'t come on Monday. / Can we meet on Tuesday at 10 instead? / Let me know. / Thanks, Ron', '']] },
+      { h: 'and / but / because', body: 'and = และ (เพิ่มข้อมูล) · but = แต่ (ขัดแย้ง) · because = เพราะ (เหตุผล) ใช้เชื่อมประโยคสั้นให้เป็นประโยคเดียว', ex: [["I'm sorry, but I can't come because I'm sick.", 'ขอโทษ แต่ไปไม่ได้เพราะไม่สบาย']] },
+      { h: 'ขอโทษ + เปลี่ยนนัด สุภาพ', body: "I'm sorry, + ปัญหา · Can we ... instead? · Is that OK? / Let me know. · Thank you for understanding.", ex: [["I'm sorry. I'm going to be late.", 'ขอโทษ จะไปสาย'], ['Is 4 p.m. OK for you?', 'บ่ายสี่สะดวกไหม']] },
+    ],
+    drills: [
+      { k: 'choose', q: "I can't come ___ I'm sick.", o: ['and', 'but', 'because'], a: 2 },
+      { k: 'choose', q: "I'd like to come, ___ I'm busy.", o: ['and', 'but', 'because'], a: 1 },
+      { k: 'type', q: 'เขียนบอกว่า "ขอโทษ ฉันจะไปสาย"', a: ["i'm sorry i'm going to be late", 'sorry i am going to be late', "sorry i'm going to be late", "i'm sorry i'll be late", "sorry i'll be late", 'i am sorry i am going to be late'] },
+      { k: 'type', q: 'ขอเลื่อน: "เจอวันศุกร์แทนได้ไหม"', a: ['can we meet on friday instead', 'could we meet on friday instead'] },
+      { k: 'order', q: 'เรียงคำ: บอกด้วยนะว่าได้ไหม', a: ['Let me know if that is OK', "Let me know if that's OK", 'Let me know if it is OK'] },
+      { k: 'choose', q: 'ข้อความไหนครบที่สุด', o: ['Late.', "Hi Ann, I'm sorry. I'm going to be 15 minutes late because my train stopped. See you at 9:15.", 'I late train.'], a: 1 },
+    ],
+    tasks: [
+      { brief: 'อ่านข้อความเปลี่ยนนัด แล้วตอบพร้อมเวลาใหม่และเหตุผล', data: 'ข้อความจากคลินิก: "Dear Mr. Ron, your dental appointment on Thursday at 10:00 is cancelled because the dentist is sick. Can you come on Friday at 10:00 or 3:00? Please reply. Thank you."', qs: [
+        { k: 'choose', q: 'ทำไมนัดถูกยกเลิก', o: ['คนไข้ป่วย', 'หมอฟันป่วย', 'คลินิกปิดปรับปรุง'], a: 1 },
+        { k: 'choose', q: 'เวลาใหม่ที่เสนอมีอะไรบ้าง', o: ['พฤหัส 10:00', 'ศุกร์ 10:00 หรือ 15:00', 'ศุกร์ 9:00'], a: 1 },
+        { k: 'listen', say: 'I have a meeting on Friday morning.', q: 'คุณว่างตอนเช้าวันศุกร์ไหม', o: ['ว่าง', 'ไม่ว่าง'], a: 1 },
+        { k: 'type', q: 'ตอบเลือกเวลา 3 โมงพร้อมเหตุผล (Friday at 3:00 is better because ...)', a: ['/^(friday at (3|three)( ?(00|pm|p m))?|3 ?pm on friday|3:00 on friday) is (better|good|fine)( for me)? because .+$/', '/.*friday at (3|three).*because .+/'] },
+        { k: 'type', q: 'ปิดข้อความอย่างสุภาพ', a: ['thank you', 'thanks', 'thank you best ron', 'thank you very much', 'thanks best ron', 'best ron', 'best regards ron'] },
+      ] },
+      { brief: 'ข้อความใหม่: เพื่อนร่วมงาน', data: 'ข้อความจาก Kate: "Hi! Our team lunch is on Wednesday at 12:00 at Somtam House. Can you come? Kate"', qs: [
+        { k: 'choose', q: 'ทานข้าวที่ไหน', o: ['Somtam House', 'Kate\'s house', 'ออฟฟิศ'], a: 0 },
+        { k: 'listen', say: 'You have a call with a customer until 12:30 on Wednesday.', q: 'วันพุธคุณติดอะไร', o: ['โทรคุยลูกค้าถึงเที่ยงครึ่ง', 'ประชุมทั้งวัน', 'ลาพักร้อน'], a: 0 },
+        { k: 'type', q: 'ตอบว่าไปได้แต่จะสาย (I can come, but ...)', a: ["/^(hi kate )?(yes )?i can come but i (am going to|will) be (a (little|bit) )?late.*$/", "/^(hi kate )?i can come but i (have|am on) a call.*$/"] },
+        { k: 'type', q: 'บอกเหตุผล (because ...)', a: ['/^because i have a (call|meeting).*$/', '/.*because i have a (call|meeting).*/'] },
+        { k: 'listen', say: "No problem! We'll order for you. What would you like?", q: 'Kate ถามอะไร', o: ['จะกินอะไร', 'มากี่โมง', 'จ่ายยังไง'], a: 0 },
+      ] },
+    ],
+    speak: { repeat: ["I'm sorry. I'm going to be late.", 'Can we meet on Friday instead?', 'Let me know if that is OK.', 'Thank you for understanding.'], prompt: 'ฝากข้อความเสียงถึงเพื่อน: ขอโทษที่ต้องเลื่อนนัด บอกเหตุผล และเสนอเวลาใหม่', model: "Hi Ploy, it's Ron. I'm sorry, but I can't meet you tonight because I need to work late. Can we meet on Saturday at noon instead? Let me know. Thanks!" },
+    write: { prompt: 'เขียนข้อความเปลี่ยนนัดถึงหัวหน้าหรือลูกค้า 4–5 ประโยค (ทักทาย ขอโทษ เหตุผล เวลาใหม่ ลงท้าย)', model: "Dear Ms. Kim, I'm sorry, but I can't come to the meeting on Monday at 10:00 because I have to visit a customer. Can we meet on Tuesday at 2:00 instead? Please let me know if that is OK. Best, Ron", check: ['มีทักทายและลงท้าย', 'มีเหตุผลด้วย because', 'เสนอวันเวลาใหม่ครบ', 'ขอให้ตอบกลับ'] },
+  },
+
+  'EN-32': {
+    check: true,
+    words: [
+      ['project', 'โปร-เจ็กท์', 'โครงการ งาน', 'This is my English project.', 'นี่คือโปรเจกต์ภาษาอังกฤษของฉัน', ''],
+      ['introduce', 'อิน-โทร-ดิวซ์', 'แนะนำ', 'Let me introduce myself.', 'ขอแนะนำตัว', ''],
+      ['goal', 'โกล', 'เป้าหมาย', 'My goal is to travel alone.', 'เป้าหมายของฉันคือเที่ยวคนเดียว', ''],
+      ['improve', 'อิม-พรูฟว์', 'พัฒนา ดีขึ้น', 'I want to improve my English.', 'ฉันอยากพัฒนาภาษาอังกฤษ', ''],
+      ['experience', 'อิก-สเปีย-เรียนซ์', 'ประสบการณ์', 'a good experience', 'ประสบการณ์ที่ดี', ''],
+    ],
+    dialog: {
+      lines: [['A', 'Hi! Nice to meet you. Can you tell me about yourself?', 'สวัสดี ยินดีที่ได้รู้จัก เล่าเกี่ยวกับตัวคุณหน่อยได้ไหม'], ['B', "Sure. I'm Ron. I live in Bangkok and I work at a car dealership.", 'ได้ครับ ผมชื่อรณ อยู่กรุงเทพฯ ทำงานที่โชว์รูมรถ'], ['A', 'What do you usually do after work?', 'หลังเลิกงานปกติทำอะไร'], ['B', 'I usually study English. Last month I finished a short course.', 'ปกติเรียนภาษาอังกฤษ เดือนที่แล้วเพิ่งจบคอร์สสั้น ๆ'], ['A', 'Great! What are your plans?', 'เยี่ยม แล้วมีแผนอะไร'], ['B', "I'm going to travel to London next year, so I need to practise speaking. I think English is easier than Japanese for me!", 'ปีหน้าจะไปลอนดอน เลยต้องฝึกพูด คิดว่าอังกฤษง่ายกว่าญี่ปุ่นสำหรับผม']],
+      qs: [
+        { k: 'choose', q: 'Ron ทำงานที่ไหน', o: ['ธนาคาร', 'โชว์รูมรถ', 'โรงเรียน'], a: 1 },
+        { k: 'choose', q: 'เดือนที่แล้ว Ron ทำอะไร', o: ['ไปลอนดอน', 'จบคอร์สสั้น', 'เปลี่ยนงาน'], a: 1 },
+        { k: 'choose', q: 'แผนปีหน้าคืออะไร', o: ['ไปลอนดอน', 'ไปญี่ปุ่น', 'ย้ายบ้าน'], a: 0 },
+        { k: 'choose', q: 'Ron คิดว่าภาษาไหนง่ายกว่าสำหรับเขา', o: ['อังกฤษ', 'ญี่ปุ่น', 'เท่ากัน'], a: 0 },
+      ],
+    },
+    grammar: [
+      { h: 'ทบทวนทั้งหลักสูตร: 4 เวลา', body: 'ปกติ: I work ... / She works ... · ตอนนี้: I\'m studying ... · อดีต: I visited / I was ... · แผน: I\'m going to ... · บวกเครื่องมือ: can, should, need to, -er than, and/but/because', ex: [["I usually work late, but today I'm working from home.", ''], ["Last year I went to Japan. Next year I'm going to visit London.", '']] },
+      { h: 'แยกผลทักษะจริงจากชื่อระดับ', body: 'จบหลักสูตรนี้ไม่ได้แปลว่า "ได้ระดับ A2/B1" โดยอัตโนมัติ ดูจากสิ่งที่ทำได้จริงในสมุดบันทึก: ทำธุระ ฟังข้อมูลใหม่ เขียนข้อความครบ ถ้าต้องการใบรับรองต้องสอบจริง', ex: [['Can-do: I can order food, ask for directions, change an appointment, and talk about my past and plans.', '']] },
+    ],
+    drills: [
+      { k: 'choose', q: 'Last weekend I ___ my parents.', o: ['visit', 'visited', 'am visiting'], a: 1 },
+      { k: 'choose', q: 'Look! It ___ outside.', o: ['snows', 'is snowing', 'snowed'], a: 1 },
+      { k: 'choose', q: 'She ___ to work every day.', o: ['drive', 'drives', 'is drive'], a: 1 },
+      { k: 'type', q: 'บอกแผน: "ปีหน้าฉันจะไปลอนดอน"', a: ["i'm going to go to london next year", 'i am going to go to london next year', "next year i'm going to go to london", 'next year i am going to go to london', "i'm going to travel to london next year", "i'm going to visit london next year", 'i am going to visit london next year', 'i am going to travel to london next year'] },
+      { k: 'type', q: 'ถาม: "เมื่อวานคุณทำอะไร"', a: ['what did you do yesterday'] },
+      { k: 'choose', q: 'The train is ___ than the bus.', o: ['fast', 'faster', 'more fast'], a: 1 },
+      { k: 'type', q: 'แนะนำเพื่อน: "คุณควรฝึกพูดทุกวัน"', a: ['you should practise speaking every day', 'you should practice speaking every day', 'you should practise every day', 'you should practice every day'] },
+    ],
+    tasks: [
+      { brief: 'จุดตรวจสุดท้าย: ฟังโจทย์ใหม่แล้วสนทนาด้วยตัวช่วยน้อย', data: 'สถานการณ์: คุณพบเพื่อนใหม่ (Emma) ในงานสัมมนาที่ต่างประเทศ', qs: [
+        { k: 'listen', say: "Hi, I'm Emma. I'm from Canada. I work in marketing.", q: 'Emma ทำงานด้านไหน', o: ['การตลาด', 'บัญชี', 'ไอที'], a: 0 },
+        { k: 'type', q: 'แนะนำตัว: ชื่อ งาน และเมืองที่อยู่ (1–2 ประโยค)', a: ['/^(hi |hello )?(i am|my name is) [a-z ]+.*(work|live).*$/'] },
+        { k: 'listen', say: 'Did you arrive yesterday?', q: 'Emma ถามอะไร', o: ['มาถึงเมื่อวานไหม', 'จะกลับเมื่อไร', 'พักที่ไหน'], a: 0 },
+        { k: 'type', q: 'ตอบ: "ไม่ ฉันมาถึงสองวันก่อน"', a: ['no i arrived two days ago', "no i didn't i arrived two days ago", 'no i did not i arrived two days ago'] },
+        { k: 'listen', say: "I'm going to visit the old city tomorrow. Would you like to come?", q: 'Emma ชวนทำอะไร', o: ['ไปเมืองเก่าพรุ่งนี้', 'กินข้าวเย็นคืนนี้', 'ไปสนามบิน'], a: 0 },
+        { k: 'type', q: 'ตอบรับและถามเวลานัด', a: ['/^(sure|yes|i would love to|sounds good).*(what time|when).*$/'] },
+      ] },
+      { brief: 'จุดตรวจ ชุดใหม่: โทรหาโรงแรม', data: 'สถานการณ์: คุณจองโรงแรมไว้ แต่เที่ยวบินดีเลย์ 3 ชั่วโมง', qs: [
+        { k: 'listen', say: 'Good evening, Riverside Hotel. How can I help you?', q: 'ใครรับสาย', o: ['โรงแรม', 'สายการบิน', 'ร้านอาหาร'], a: 0 },
+        { k: 'type', q: 'บอกว่าคุณมีการจอง และคุณจะมาถึงช้า', a: ['/.*i have a (booking|reservation).*(late|delay).*/', '/.*(late|delay).*i have a (booking|reservation).*/'] },
+        { k: 'listen', say: 'No problem. What time are you going to arrive?', q: 'พนักงานถามอะไร', o: ['จะมาถึงกี่โมง', 'กี่คืน', 'ชื่ออะไร'], a: 0 },
+        { k: 'type', q: 'ตอบเวลาประมาณ เที่ยงคืน และเหตุผล', a: ['/.*(midnight|12|twelve).*because.*/', '/.*because.*(midnight|12|twelve).*/'] },
+        { k: 'listen', say: 'OK. The front desk is open twenty-four hours. You should take a taxi from the airport. It is faster than the train at night.', q: 'พนักงานแนะนำอะไร', o: ['นั่งรถไฟ', 'นั่งแท็กซี่', 'นอนสนามบิน'], a: 1 },
+        { k: 'type', q: 'ขอบคุณและปิดสาย', a: ['thank you very much', 'thank you bye', 'thank you so much', 'thanks see you tonight', 'thank you see you later', 'thank you goodbye', 'thank you'] },
+      ] },
+    ],
+    speak: { repeat: ['Let me introduce myself.', 'I usually study English after work.', "Last month I finished a short course.", "Next year I'm going to travel to London."], prompt: 'สนทนา 3–5 นาที (หรือพูดคนเดียว): แนะนำตัว วันธรรมดา เรื่องที่เกิดขึ้นเมื่อสัปดาห์ก่อน แผนข้างหน้า และขอคำแนะนำ 1 เรื่อง', model: "Let me introduce myself. My name is Ron. I live in Bangkok and I work at a car dealership. On weekdays I start work at eight thirty, and I usually study English after work. Last weekend I visited my parents and we ate at a seafood restaurant. It was great, but the traffic was terrible. Next year I'm going to travel to London, so I need to improve my speaking. What should I do? Should I take a class or practise online?" },
+    write: { prompt: 'เขียนแนะนำตัวและเรื่องราวของคุณ 60–80 คำ: ตัวเอง วันธรรมดา เรื่องที่ผ่านมา แผน', model: "My name is Ron and I live in Bangkok. I work at a car dealership, and I study English after work. I usually wake up at six and go to the gym on weekends. Last month I finished my first English course. It was hard, but it was fun. Next year I'm going to travel to London, so I need to practise speaking every day. I think I can do it!", check: ['มี 4 เวลา: ปกติ ตอนนี้/อดีต แผน', 'ใช้ and/but/because/so', 'ยาว 60–80 คำ', 'อ่านทวน ตรวจ -s, -ed, be ก่อนส่ง'] },
+  },
+}
