@@ -1,6 +1,6 @@
 import { Emo } from './px'
 import { useMemo, useState } from 'react'
-import { Shirt, Ghost, Images, Cake, Flag, PxIcon, SLOT_ICON } from './px'
+import { Shirt, Ghost, Images, Cake, Flag, SLOT_ICON } from './px'
 import { Portrait } from './RpgBits'
 import { Money, Sheet } from './ui'
 import { useStore, selectList } from '../store'
@@ -49,15 +49,6 @@ export function HeroCard({ rpg }) {
           <div className="text-[9px] text-slate-500">Lv.{x.lv}</div>
         </div>
       ))}</div>
-      <div className="grid grid-cols-5 gap-1.5 mt-3">
-        {rpg.gear.map((g) => (
-          <div key={g.slot} className="px-inner p-1.5 text-center" title={`${g.name} · ${g.how}: ${g.valueText}`}>
-            <PxIcon name={`gr_${g.slot}${g.tier}`} size={28} />
-            <div className="text-[10px] text-slate-500 mt-1">{g.label}</div>
-            <div className="text-[10px] font-bold" style={{ color: g.color }}>{g.tierName}</div>
-          </div>
-        ))}
-      </div>
       {c && (
         <div className="mt-3 px-inner p-2.5 text-xs flex items-start gap-2" data-testid="hero-condition">
           <Emo k={c.id === 'rest' ? 'hb_rest' : `cd_${c.id}`} e={c.emoji} size={28} />
@@ -67,7 +58,7 @@ export function HeroCard({ rpg }) {
           </div>
         </div>
       )}
-      <div className="text-[11px] text-slate-400 mt-2">ชุดแต่ละชิ้นมาจากชีวิตจริง: อาวุธ = จ่ายหนี้ · เสื้อคลุม = เงินสำรอง · รองเท้า = ออกกำลังกาย · กระเป๋า = ความรู้ · แหวน = เงินที่ส่งเข้าลงทุนสะสม · ชุดเปลี่ยนตามยศ และเปลี่ยนลุคได้ด้วยสกินในร้านค้า</div>
+      <div className="text-[11px] text-slate-400 mt-2">ชุดเปลี่ยนตามยศ และเปลี่ยนลุคได้ด้วยสกินในร้านค้า · อุปกรณ์แต่ละชิ้นอยู่ในการ์ด GEAR ด้านล่าง</div>
     </Section>
   )
 }

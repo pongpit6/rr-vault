@@ -1,6 +1,6 @@
 import { Emo, EmoText, PxIcon } from '../components/px'
 import { useState } from 'react'
-import { Flame, Swords, Check, Lock, Trophy, ScrollText, Sparkles, MapPin, Backpack, Users, Shield, Store, Map as MapIcon, BookOpen, Eye, Castle } from '../components/px'
+import { Flame, Swords, Check, Lock, Trophy, ScrollText, Sparkles, MapPin, Backpack, Users, Shield, Store, Map as MapIcon, BookOpen, Eye, Castle, Gem } from '../components/px'
 import { ItemSprite, AssetIcon } from '../components/Logos'
 import { assetLabel, amcName, fundKind, FUND_KIND_TH, ASSET_TYPES } from '../lib/portfolio'
 import BattleScene from '../components/BattleScene'
@@ -15,7 +15,9 @@ import { LifeStatsCard } from '../components/GrowthKit'
 import { MonthBossCard, MonthRecapCard, MonthEndSheet } from '../components/MonthKit'
 import { HeroCard, AlbumCard, BirthdayCard, ActCard } from '../components/HeroKit'
 import { freeSkin } from '../lib/hero'
-import FarmTab, { SkillTree, EnhanceCard, ShadowCard } from '../components/FarmKit'
+import ItemGrid, { DetailHead } from '../components/ItemGrid'
+import FarmTab, { SkillTree, ShadowCard } from '../components/FarmKit'
+import { enhStep, ENH_FX } from '../lib/farm'
 
 function Section({ icon: I, title, right, children }) {
   return (
@@ -181,39 +183,7 @@ function PartyTab({ rpg }) {
   return (
     <div className="space-y-3">
       <ShadowCard rpg={rpg} />
-      {rpg.party.map((m) => {
-        const skills = rpg.skills.filter((k) => k.member === m.id)
-        return (
-          <section key={m.id} className={`px-card p-3.5 ${m.joined ? '' : 'bg-slate-50'}`}>
-            <div className="flex gap-3">
-              <div className="w-20 h-20 grid place-items-center shrink-0 border-2 border-slate-800" style={{ background: m.joined ? `${m.color}18` : '#f1f5f9' }}>
-                <Portrait sprite={m.sprite} size={72} dim={!m.joined} hue={m.id === 'knight' ? rpg.skin?.hue : 0} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className="font-bold">{m.name}</span>
-                  <span className="text-xs text-slate-500 truncate">{m.role}</span>
-                  {m.joined && <span className="ml-auto px-font text-[9px] px-1.5 py-0.5 bg-slate-900 text-white">LV.{m.lv}</span>}
-                </div>
-                <div className="text-xs text-slate-600 mt-0.5">ดูแลเรื่อง: <b>{m.area}</b></div>
-                {m.joined ? (
-                  <div className="mt-2">
-                    <Bar pct={m.pct} color={m.color} />
-                    <div className="text-[11px] text-slate-500 mt-1">เลเวลถัดไป: {m.nextText}</div>
-                  </div>
-                ) : (
-                  <div className="mt-2 text-xs text-amber-700 bg-amber-50 px-2 py-1.5 flex items-start gap-1.5"><Lock size={13} className="shrink-0 mt-0.5" /> จะเข้าร่วมเมื่อ: {m.join}</div>
-                )}
-              </div>
-            </div>
-            <div className="flex flex-wrap gap-1.5 mt-2.5">
-              {skills.map((k) => (
-                <span key={k.id} className={`text-[11px] px-2 py-1 border ${k.unlocked ? 'border-slate-800 bg-white' : 'border-slate-200 text-slate-400'}`}><Emo k={`sk_${k.id}`} e={k.icon} size={16} /> {k.name}{!k.unlocked && ` · ${k.lockText}`}</span>
-              ))}
-            </div>
-          </section>
-        )
-      })}
+      <PartyGrid rpg={rpg} />
       {rpg.growth?.pet && (
         <section className="px-card p-3.5 flex items-center gap-3" data-testid="growth-pet">
           <div className="w-14 h-14 grid place-items-center border-2 border-slate-800 bg-amber-50 shrink-0"><Portrait sprite={rpg.pet.sprite} size={[30, 38, 48][rpg.growth.pet.stage - 1]} /></div>
@@ -228,35 +198,91 @@ function PartyTab({ rpg }) {
   )
 }
 
+/** party members as compact tiles; tap one for the full card (skills, next level) */
+function PartyGrid({ rpg }) {
+  const [sel, setSel] = useState(null)
+  const m = sel && rpg.party.find((x) => x.id === sel)
+  return (
+    <section className="px-card p-3" data-testid="party-grid">
+      <div className="grid grid-cols-2 gap-2">
+        {rpg.party.map((x) => (
+          <button key={x.id} onClick={() => setSel(x.id)} className={`px-inner p-2 flex items-center gap-2 text-left ${x.joined ? '' : 'opacity-60'}`} data-testid={`party-${x.id}`}>
+            <div className="w-12 h-12 grid place-items-center shrink-0 border-2 border-slate-800" style={{ background: x.joined ? `${x.color}18` : '#f1f5f9' }}><Portrait sprite={x.sprite} size={44} dim={!x.joined} hue={x.id === 'knight' ? rpg.skin?.hue : 0} /></div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-1"><b className="text-sm truncate">{x.name}</b>{x.joined ? <span className="ml-auto px-font text-[8px] px-1 py-0.5 bg-slate-900 text-white shrink-0">LV.{x.lv}</span> : <Lock size={12} className="ml-auto shrink-0" />}</div>
+              <div className="text-[10px] text-slate-500 truncate">{x.role}</div>
+              {x.joined ? <div className="mt-1"><Bar pct={x.pct} color={x.color} /></div> : <div className="text-[10px] text-amber-700 truncate">ยังไม่เข้าร่วม</div>}
+            </div>
+          </button>
+        ))}
+      </div>
+      {m && (
+        <Sheet open onClose={() => setSel(null)} title={`${m.name} · ${m.role}`}>
+          <div className="space-y-2 text-xs" data-testid="party-sheet">
+            <DetailHead art={<Portrait sprite={m.sprite} size={72} dim={!m.joined} hue={m.id === 'knight' ? rpg.skin?.hue : 0} />} lines={[<span key="a">ดูแลเรื่อง: <b>{m.area}</b></span>, m.joined && <span key="l">เลเวล {m.lv}</span>]} />
+            {m.joined ? <><Bar pct={m.pct} color={m.color} /><div className="text-slate-600">เลเวลถัดไป: {m.nextText}</div></>
+              : <div className="text-amber-700 bg-amber-50 px-2 py-1.5 flex items-start gap-1.5"><Lock size={13} className="shrink-0 mt-0.5" /> จะเข้าร่วมเมื่อ: {m.join}</div>}
+            <div className="flex flex-wrap gap-1.5">
+              {rpg.skills.filter((k) => k.member === m.id).map((k) => <span key={k.id} className={`text-[11px] px-2 py-1 border ${k.unlocked ? 'border-slate-800 bg-white' : 'border-slate-200 text-slate-400'}`}><Emo k={`sk_${k.id}`} e={k.icon} size={16} /> {k.name}{!k.unlocked && ` · ${k.lockText}`}</span>)}
+            </div>
+          </div>
+        </Sheet>
+      )}
+    </section>
+  )
+}
+
 /* ---------------- gear ---------------- */
 function GearTab({ rpg }) {
   return (
     <div className="space-y-3">
       <HeroCard rpg={rpg} />
-      <EnhanceCard rpg={rpg} />
-      {rpg.gear.map((g) => (
-        <section key={g.slot} className="px-card p-3.5">
-          <div className="flex gap-3 items-center">
-            <div className="w-16 h-16 grid place-items-center border-2 border-slate-800 shrink-0" style={{ background: `${g.color}22` }}><GearIcon slot={g.slot} tier={g.tier} size={48} /></div>
-            <div className="flex-1 min-w-0">
-              <div className="text-xs text-slate-500">{g.label} · ขั้น <b style={{ color: g.color }}>{g.tierName}</b></div>
-              <div className="font-bold leading-tight">{g.name}</div>
-              <div className="text-xs text-slate-500 mt-0.5">{g.how}: <b className="text-slate-800">{g.valueText}</b></div>
-            </div>
-          </div>
-          <div className="flex gap-1 mt-3">
-            {GEAR_TIERS.map((t, i) => <div key={i} className="flex-1 h-2" style={{ background: i <= g.tier ? t.color : '#e2e8f0' }} title={t.name} />)}
-          </div>
-          {g.nextName ? (
-            <div className="mt-2">
-              <Bar pct={g.pct} color={GEAR_TIERS[g.tier + 1].color} />
-              <div className="text-[11px] text-slate-600 mt-1">ขั้นถัดไป “{g.nextName}”: {g.toNext}</div>
-            </div>
-          ) : <div className="text-[11px] text-amber-700 mt-2">ขั้นสูงสุดแล้ว! 👑</div>}
-        </section>
-      ))}
+      <GearList rpg={rpg} />
       <div className="text-[11px] text-slate-400 px-1">ชุดของคุณขึ้นตามยศ ส่วนอุปกรณ์แต่ละชิ้นขึ้นตามชีวิตจริง · ในฉาก: สีคมดาบตอนฟัน = ขั้นอาวุธ · วงแสงใต้เท้าฮีโร่ = ขั้นเกราะ · ประกายรอบตัว = ขั้นแหวน (ตั้งแต่ขั้นเงิน)</div>
     </div>
+  )
+}
+
+/** the 5 gear pieces in one card: tier from real life + enhance level; tap a row for progress and enhancing */
+function GearList({ rpg }) {
+  const showToast = useStore((s) => s.showToast)
+  const [sel, setSel] = useState(null)
+  const bag = rpg.farm.bag || {}, enh = rpg.farm.enh || {}
+  const g = sel && rpg.gear.find((x) => x.slot === sel)
+  const n = g ? enh[g.slot] || 0 : 0, st = g && enhStep(n)
+  return (
+    <Section icon={Gem} title="GEAR · อุปกรณ์และตีบวก" right={<span className="text-[11px]">คริสตัลเวท <b>{bag.mcrystal || 0}</b></span>}>
+      <div className="text-[11px] text-slate-500 mb-2">ขั้นมาจากชีวิตจริง: อาวุธ = จ่ายหนี้ · เสื้อคลุม = เงินสำรอง · รองเท้า = ออกกำลังกาย · กระเป๋า = ความรู้ · แหวน = เงินที่ส่งเข้าลงทุน · +ตีบวก มาจากการล่า · แตะเพื่อดูรายละเอียดและตีบวก</div>
+      <div className="space-y-1.5" data-testid="enhance">
+        {rpg.gear.map((x) => {
+          const e = enh[x.slot] || 0
+          return (
+            <button key={x.slot} onClick={() => setSel(x.slot)} className="w-full px-inner p-2 flex items-center gap-2 text-left" data-testid={`enh-${x.slot}`}>
+              <div className="relative shrink-0"><GearIcon slot={x.slot} tier={x.tier} size={32} />{e >= 7 && <span className="absolute -inset-1 rounded-full animate-pulse" style={{ boxShadow: '0 0 10px 2px rgba(250,204,21,.7)' }} />}</div>
+              <div className="flex-1 min-w-0">
+                <div className="text-xs font-semibold truncate">{x.name} <span className="text-amber-600">+{e}</span> <span className="text-[10px] font-normal" style={{ color: x.color }}>· {x.tierName}</span></div>
+                <div className="flex gap-0.5 mt-1">{GEAR_TIERS.map((t, i) => <div key={i} className="flex-1 h-1.5" style={{ background: i <= x.tier ? t.color : i === x.tier + 1 ? `linear-gradient(90deg, ${t.color} ${Math.round((x.pct || 0) * 100)}%, #e2e8f0 0)` : '#e2e8f0' }} />)}</div>
+              </div>
+            </button>
+          )
+        })}
+      </div>
+      {g && (
+        <Sheet open onClose={() => setSel(null)} title={`${g.name} +${n}`}>
+          <div className="space-y-2.5 text-xs" data-testid="gear-sheet">
+            <DetailHead art={<GearIcon slot={g.slot} tier={g.tier} size={64} />} lines={[`${g.label} · ขั้น ${g.tierName}`, <span key="v">{g.how}: <b>{g.valueText}</b></span>]} />
+            <div className="flex gap-1">{GEAR_TIERS.map((t, i) => <div key={i} className="flex-1 h-2" style={{ background: i <= g.tier ? t.color : '#e2e8f0' }} title={t.name} />)}</div>
+            {g.nextName ? <><Bar pct={g.pct} color={GEAR_TIERS[g.tier + 1].color} /><div className="text-slate-600">ขั้นถัดไป “{g.nextName}”: {g.toNext}</div></> : <div className="text-amber-700">ขั้นสูงสุดแล้ว!</div>}
+            <div className="px-inner p-2 space-y-1">
+              <b>ตีบวก +{n}</b> · {ENH_FX[g.slot]} +{n}%
+              <div className="text-slate-600">{st ? `ต่อไป +${n + 1}: โอกาส ${Math.round(st.p * 100)}% · คริสตัล ${st.c} · ${st.fiat} FIAT${st.down ? ' · พลาดลด 1 ขั้น' : ''}` : 'ตีบวกสูงสุดแล้ว'}</div>
+              <div className="text-[10px] text-slate-500">ไม่มีแตก · ตั้งแต่ +5 ถ้าพลาดจะลด 1 ขั้น</div>
+              {st && <button className="px-btn w-full justify-center" disabled={(bag.mcrystal || 0) < st.c || rpg.fiat < st.fiat} onClick={() => { const r = rpg.enhance(g.slot); if (r) showToast(r.ok ? `สำเร็จ! ${g.name} +${r.to}` : `ไม่สำเร็จ${r.to < r.from ? ` ลดเหลือ +${r.to}` : ''}`) }} data-testid="enh-go">ตีบวก</button>}
+            </div>
+          </div>
+        </Sheet>
+      )}
+    </Section>
   )
 }
 
@@ -285,47 +311,29 @@ function ShopTab({ rpg }) {
       {types.map(([type, label]) => (
         <Section key={type} icon={Store} title={label.toUpperCase()} right={type === 'skin' ? <span className="text-[10px] text-slate-500">ซื้อแล้วโบนัสติดตัวถาวร ใส่ชุดไหนก็ได้</span> : type === 'pet' ? <span className="text-[10px] text-slate-500">โตได้ 3 ร่างตามความสม่ำเสมอ</span> : null}>
           {type === 'skin' && rpg.town.skinPerk && Object.keys(rpg.town.skinPerk).length > 0 && <div className="text-[11px] text-emerald-700 bg-emerald-50 px-2 py-1.5 mb-2" data-testid="skin-perks">โบนัสจากชุดที่มี: {Object.entries(rpg.town.skinPerk).map(([k, v]) => `${{ townPct: 'รายได้เมือง', habitPct: 'FIAT นิสัย', chestPct: 'หีบรายวัน', nospendPct: 'วันไม่ใช้เงิน', questPct: 'เควสต์', xpPct: 'XP', shopPct: 'ส่วนลดร้าน' }[k]} +${v}%`).join(' · ')}</div>}
-          <div className="grid grid-cols-2 gap-2">
-            {type === 'pet' && (
-              <ShopCard name="จิ้งจอกมิ้นต์" desc="สัตว์เลี้ยงตัวแรก" art={<Portrait sprite="pet_fox" size={44} />} owned equipped={rpg.pet.id === 'pet_fox'} onEquip={() => rpg.setEquip({ pet: null })} />
-            )}
-            {type === 'skin' && (
-              <ShopCard name={`ชุดตามยศ: ${rpg.outfit.name}`} desc="เปลี่ยนเองเมื่อเลื่อนยศ" art={<Portrait sprite={`hero${rpg.outfit.stage}`} size={48} />} owned equipped={!rpg.skin} onEquip={() => rpg.setEquip({ skin: null })} />
-            )}
-            {type === 'skin' && Object.keys(rpg.owned).map(freeSkin).filter(Boolean).map((i) => (
-              <ShopCard key={i.id} name={i.name} desc={i.desc} art={<Portrait sprite={i.sheet} size={48} hue={i.hue} />} owned equipped={rpg.skin?.id === i.id} onEquip={() => rpg.setEquip({ skin: rpg.skin?.id === i.id ? null : i.id })} />
-            ))}
-            {SHOP.filter((i) => i.type === type).map((i) => {
-              const owned = !!rpg.owned[i.id]
-              const equipped = type === 'deco' ? !!rpg.decos[i.id] : type === 'pet' ? rpg.pet.id === i.id : rpg.skin?.id === i.id
-              const art = i.type === 'pet' ? <Portrait sprite={i.sprite} size={44} /> : i.type === 'skin' ? <Portrait sprite={i.art ? i.sheet || i.id : 'hero'} size={48} hue={i.hue} /> : <span className="text-3xl">{i.id === 'deco_flowers' ? '🌷' : i.id === 'deco_lanterns' ? '🏮' : '🚩'}</span>
-              return (
-                <ShopCard key={i.id} name={i.name} desc={i.desc} art={art} price={<Price p={rpg.shopPrice(i)} rpg={rpg} />} owned={owned} equipped={equipped} canBuy={rpg.afford(rpg.shopPrice(i))}
-                  onBuy={() => { if (rpg.buy(i)) showToast(`ซื้อ “${i.name}” แล้ว!`) }}
-                  onEquip={() => (type === 'deco' ? rpg.toggleDeco(i.id) : rpg.setEquip({ [type]: equipped ? null : i.id }))} deco={type === 'deco'} />
-              )
-            })}
-          </div>
+          <ItemGrid testid={`shop-${type}`} items={[
+            ...(type === 'pet' ? [{ id: 'pet_fox', name: 'จิ้งจอกมิ้นต์', desc: 'สัตว์เลี้ยงตัวแรก', big: <Portrait sprite="pet_fox" size={56} />, art: <Portrait sprite="pet_fox" size={36} />, owned: true, on: rpg.pet.id === 'pet_fox', use: () => rpg.setEquip({ pet: null }) }] : []),
+            ...(type === 'skin' ? [{ id: 'rank', name: `ชุดตามยศ: ${rpg.outfit.name}`, desc: 'เปลี่ยนเองเมื่อเลื่อนยศ', big: <Portrait sprite={`hero${rpg.outfit.stage}`} size={64} />, art: <Portrait sprite={`hero${rpg.outfit.stage}`} size={40} />, owned: true, on: !rpg.skin, use: () => rpg.setEquip({ skin: null }) },
+              ...Object.keys(rpg.owned).map(freeSkin).filter(Boolean).map((i) => ({ id: i.id, name: i.name, desc: i.desc, big: <Portrait sprite={i.sheet} size={64} />, art: <Portrait sprite={i.sheet} size={40} />, owned: true, on: rpg.skin?.id === i.id, use: () => rpg.setEquip({ skin: rpg.skin?.id === i.id ? null : i.id }) }))] : []),
+            ...SHOP.filter((i) => i.type === type).map((i) => {
+              const owned = !!rpg.owned[i.id], on = type === 'pet' ? rpg.pet.id === i.id : rpg.skin?.id === i.id
+              const sp = i.type === 'pet' ? i.sprite : i.art ? i.sheet || i.id : 'hero'
+              return { id: i.id, name: i.name, desc: i.desc, owned, on, dim: !owned && !rpg.afford(rpg.shopPrice(i)), big: <Portrait sprite={sp} size={64} hue={i.hue} />, art: <Portrait sprite={sp} size={type === 'pet' ? 36 : 40} hue={i.hue} />,
+                badge: owned ? null : <Price p={rpg.shopPrice(i)} rpg={rpg} />, price: rpg.shopPrice(i),
+                buy: () => { if (rpg.buy(i)) showToast(`ซื้อ “${i.name}” แล้ว!`) }, use: () => rpg.setEquip({ [type]: on ? null : i.id }) }
+            }),
+          ].map((x) => ({ ...x, badge: x.badge ?? <span className="text-teal-700">{x.on ? 'ใช้อยู่' : 'มีแล้ว'}</span> }))} detail={(x, close) => (
+            <div className="space-y-2">
+              <DetailHead art={x.big} lines={[x.desc]} />
+              {x.owned ? <button className={`w-full py-2 text-sm font-semibold border-2 border-slate-800 ${x.on ? 'bg-teal-500 text-white' : 'bg-white'}`} onClick={() => { x.use(); close() }}>{x.on ? (x.id === 'rank' || x.id === 'pet_fox' ? 'ใช้อยู่ ✓' : 'ใช้อยู่ ✓ · แตะเพื่อถอด') : 'ใช้'}</button>
+                : <button onClick={() => { x.buy(); close() }} disabled={!rpg.afford(x.price)} className="w-full py-2 text-sm font-semibold border-2 border-slate-800 bg-violet-500 text-white disabled:bg-slate-200 disabled:border-slate-300 flex items-center justify-center gap-1 [&_span]:!text-white disabled:[&_span]:!text-slate-500">ซื้อ <Price p={x.price} rpg={rpg} /></button>}
+            </div>
+          )} />
         </Section>
       ))}
     </div>
   )
 }
-function ShopCard({ name, desc, art, price, owned, equipped, canBuy, onBuy, onEquip, deco }) {
-  return (
-    <div className={`px-inner p-2.5 flex flex-col items-center text-center ${equipped ? 'ring-2 ring-teal-500' : ''}`}>
-      <div className="h-14 grid place-items-center">{art}</div>
-      <div className="text-xs font-semibold mt-1 leading-tight">{name}</div>
-      <div className="text-[10px] text-slate-500 leading-tight mt-0.5 min-h-[2em]">{desc}</div>
-      {owned ? (
-        <button onClick={onEquip} className={`mt-2 w-full py-1.5 text-xs font-semibold border-2 border-slate-800 ${equipped ? 'bg-teal-500 text-white' : 'bg-white'}`}>{equipped ? (deco ? 'เปิดอยู่ ✓' : 'ใช้อยู่ ✓') : deco ? 'ปิดอยู่' : 'ใช้'}</button>
-      ) : (
-        <button onClick={onBuy} disabled={!canBuy} className="mt-2 w-full py-1.5 text-xs font-semibold border-2 border-slate-800 bg-violet-500 text-white disabled:bg-slate-200 disabled:border-slate-300 flex items-center justify-center gap-1 [&_span]:!text-white disabled:[&_span]:!text-slate-500">{price}</button>
-      )}
-    </div>
-  )
-}
-
 /* ---------------- world map ---------------- */
 function MapTab({ rpg, onPreview, privacy }) {
   const net = rpg.realmNet ?? rpg.vault.summary.net
@@ -364,6 +372,8 @@ function MapTab({ rpg, onPreview, privacy }) {
 /* ---------------- bosses + quests ---------------- */
 function QuestsTab({ rpg, onAdd }) {
   const groups = ['รายวัน', 'รายสัปดาห์', 'รายเดือน', 'เควสต์หลัก']
+  const [qTab, setQTab] = useState(null)
+  const qTabNow = qTab || groups.find((g) => rpg.quests.some((q) => q.tier === g && q.claimable)) || groups.find((g) => rpg.quests.some((q) => q.tier === g && !q.done)) || groups[0]
   return (
     <div className="space-y-4">
       <ActCard rpg={rpg} />
@@ -393,13 +403,16 @@ function QuestsTab({ rpg, onAdd }) {
         )}
       </Section>
       <Section icon={ScrollText} title="QUESTS · เควสต์">
+        <div className="flex gap-1.5 mb-2 flex-wrap" data-testid="quest-tabs">
+          {groups.map((gname) => { const qs = rpg.quests.filter((q) => q.tier === gname), d = qs.filter((q) => q.done).length, c = qs.some((q) => q.claimable)
+            return <button key={gname} onClick={() => setQTab(gname)} className={`px-tab ${qTabNow === gname ? 'on' : ''}`}>{gname} <span className="opacity-70">{d}/{qs.length}</span>{c && <span className="ml-1 inline-block w-1.5 h-1.5 rounded-full bg-rose-500 align-middle" />}</button> })}
+        </div>
         <div className="space-y-4">
-          {groups.map((gname) => (
+          {groups.filter((gname) => gname === qTabNow).map((gname) => (
             <div key={gname}>
-              <div className="text-xs font-semibold text-slate-500 mb-2">{gname}</div>
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 {rpg.quests.filter((q) => q.tier === gname).map((q) => (
-                  <div key={q.name} className={`px-inner p-2.5 flex items-center gap-3 ${q.done ? 'bg-emerald-50' : ''}`}>
+                  <div key={q.name} className={`px-inner p-2 flex items-center gap-2.5 ${q.done ? 'bg-emerald-50' : ''}`}>
                     <div className={`w-6 h-6 grid place-items-center shrink-0 ${q.done ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-slate-400'}`}>{q.done ? <Check size={14} strokeWidth={3} /> : <span className="w-1.5 h-1.5 bg-current" />}</div>
                     <div className="flex-1 min-w-0">
                       <div className={`text-sm ${q.done ? 'text-emerald-700' : ''}`}><EmoText text={q.name} size={14} /></div>
@@ -436,23 +449,26 @@ function AchIcon({ a, on, size = 18 }) {
 function Achievements({ list }) {
   const [g, setG] = useState('game')
   const [sel, setSel] = useState(null)
-  const items = list.filter((a) => achGroup(a) === g)
+  const [pg, setPg] = useState(0)
+  const all = list.filter((a) => achGroup(a) === g), PER = 12, pages = Math.ceil(all.length / PER), page = Math.min(pg, pages - 1)
+  const items = all.slice(page * PER, page * PER + PER)
   return (
     <div className="space-y-3">
-      <div className="flex gap-1.5 overflow-x-auto">{ACH_GROUPS.map(([k, t]) => { const all = list.filter((a) => achGroup(a) === k), n = all.filter((a) => a.unlockedAt || a.ready).length; return <button key={k} onClick={() => setG(k)} className={`px-btn !py-1 text-xs shrink-0 ${g === k ? '' : 'opacity-50'}`} data-testid={`ach-tab-${k}`}>{t} {n}/{all.length}</button> })}</div>
-      <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+      <div className="flex gap-1.5 overflow-x-auto">{ACH_GROUPS.map(([k, t]) => { const all = list.filter((a) => achGroup(a) === k), n = all.filter((a) => a.unlockedAt || a.ready).length; return <button key={k} onClick={() => { setG(k); setPg(0) }} className={`px-btn !py-1 text-xs shrink-0 ${g === k ? '' : 'opacity-50'}`} data-testid={`ach-tab-${k}`}>{t} {n}/{all.length}</button> })}</div>
+      <div className="grid grid-cols-4 gap-1.5">
         {items.map((a) => {
           const on = a.unlockedAt || a.ready
           return (
-            <button key={a.id} onClick={() => setSel(a)} className={`px-inner p-2 text-center ${on ? '' : 'opacity-60'}`} data-testid={`ach-${a.id}`}>
-              <div className={`mx-auto w-9 h-9 grid place-items-center ${on ? 'bg-amber-100 text-amber-600' : 'bg-slate-100 text-slate-400'}`}><AchIcon a={a} on={on} /></div>
-              <div className="text-[11px] font-semibold mt-1.5 leading-tight">{a.name}</div>
+            <button key={a.id} onClick={() => setSel(a)} className={`px-inner p-1.5 text-center min-w-0 ${on ? '' : 'opacity-60'}`} data-testid={`ach-${a.id}`}>
+              <div className={`mx-auto w-8 h-8 grid place-items-center ${on ? 'bg-amber-100 text-amber-600' : 'bg-slate-100 text-slate-400'}`}><AchIcon a={a} on={on} /></div>
+              <div className="text-[10px] font-semibold mt-1 leading-tight line-clamp-2">{a.name}</div>
               {!on && a.prog ? <div className="px-xp !h-1.5 mt-1"><div style={{ width: `${Math.min(1, a.prog[0] / a.prog[1]) * 100}%`, background: '#14b8a6' }} /></div>
-                : <div className="text-[9px] text-slate-500 leading-tight mt-0.5">{on && a.unlockedAt ? new Date(a.unlockedAt).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit' }) : a.desc}</div>}
+                : on && a.unlockedAt ? <div className="text-[9px] text-slate-500 leading-tight mt-0.5">{new Date(a.unlockedAt).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit' })}</div> : null}
             </button>
           )
         })}
       </div>
+      {pages > 1 && <div className="flex items-center justify-center gap-3 text-xs"><button className="px-btn !py-0.5 !px-2.5" disabled={page === 0} onClick={() => setPg(page - 1)} aria-label="หน้าก่อน">◀</button><span className="num text-slate-600">{page + 1}/{pages}</span><button className="px-btn !py-0.5 !px-2.5" disabled={page >= pages - 1} onClick={() => setPg(page + 1)} aria-label="หน้าถัดไป">▶</button></div>}
       {sel && (
         <Sheet open onClose={() => setSel(null)} title={sel.name}>
           <div className="space-y-3 text-sm" data-testid="ach-sheet">
@@ -506,7 +522,9 @@ function StatusTab({ rpg, go }) {
       </Section>
       <Section icon={Sparkles} title="XP · ที่มาของค่าประสบการณ์">
         {rpg.xpParts.length ? (
-          <div className="space-y-1.5 text-sm">{rpg.xpParts.map(([label, v]) => <div key={label} className="flex justify-between"><span className="text-slate-600">{label}</span><span className="px-font text-[10px] text-amber-600">+{v}</span></div>)}</div>
+          <details data-testid="xp-parts"><summary className="cursor-pointer text-sm flex items-center gap-2"><span className="flex-1">รวม <b className="num">{rpg.xpParts.reduce((t, [, v]) => t + v, 0).toLocaleString()}</b> XP · มากสุดจาก{[...rpg.xpParts].sort((a, b) => b[1] - a[1])[0][0]}</span><span className="text-[11px] ui-link">ดูที่มา</span></summary>
+            <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs mt-2">{rpg.xpParts.map(([label, v]) => <div key={label} className="flex justify-between gap-1"><span className="text-slate-600 truncate">{label}</span><span className="px-font text-[9px] text-amber-600 shrink-0">+{v}</span></div>)}</div>
+          </details>
         ) : <div className="text-sm text-slate-500">เริ่มบันทึกรายการเพื่อรับ XP แรก</div>}
         <div className="text-[11px] text-slate-500 mt-2">XP ส่วนใหญ่มาจากชีวิตจริง (บันทึกรายการ จ่ายหนี้ ออม ลงทุน นิสัย หนังสือ คำศัพท์) · การล่าให้ชนะตัวละ 1 สูงสุดวันละ 30 · ทุกเลเวลได้แต้มสกิล 1 แต้ม (หีบวินัยให้เพิ่มอีก 1–2)</div>
       </Section>

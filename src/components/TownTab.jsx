@@ -1,3 +1,4 @@
+import ItemGrid, { DetailHead } from './ItemGrid'
 import { Emo, EmoText, PxIcon } from './px'
 import { useState, useEffect , useRef} from 'react'
 import TownFull from './TownFull'
@@ -217,30 +218,20 @@ export default function TownTab({ rpg }) {
 
       <Section icon={Users} title={`NPC · ชาวเมือง (${T.npcs.length}/${T.npcSlots})`}>
         {!T.npcSlots && <div className="text-xs text-slate-500 mb-2">สร้าง <PxIcon name="Beer" size={13} /> โรงเตี๊ยมก่อน เพื่อมีที่พักให้ NPC ที่จ้างมา</div>}
-        <div className="grid grid-cols-2 gap-2">
-          {RESIDENTS.map((n) => (
-            <div key={n.id} className="px-inner p-2.5 flex items-center gap-2">
-              <Portrait sprite={n.sprite} size={40} />
-              <div className="min-w-0"><div className="text-xs font-semibold">{n.name}</div><div className="text-[10px] text-slate-500">ชาวบ้านดั้งเดิม</div></div>
+        <ItemGrid testid="npc-grid" perPage={8} items={[
+          ...RESIDENTS.map((n) => ({ id: n.id, n, res: true, owned: true, name: n.name, art: <Portrait sprite={n.sprite} size={36} />, badge: <span className="text-slate-500">ชาวบ้าน</span> })),
+          ...NPCS.map((n) => { const hired = T.npcs.includes(n.id); return { id: n.id, n, hired, owned: hired, testid: `npc-${n.id}`, dim: !hired && !T.npcSlots, name: n.name, art: <Portrait sprite={n.sprite} size={36} dim={!hired && !T.npcSlots} />, badge: hired ? <span className="text-teal-700">ทำงานอยู่</span> : <Price p={priceOf(n.cost, rpg.econData)} rpg={rpg} /> } }),
+        ]} detail={({ n, res, hired }, close) => {
+          const p = !res && priceOf(n.cost, rpg.econData)
+          return (
+            <div className="space-y-2 text-xs">
+              <DetailHead art={<Portrait sprite={n.sprite} size={64} />} lines={res ? ['ชาวบ้านดั้งเดิมของเมือง'] : [<span key="p" className="text-teal-700 font-semibold">{n.perkText}</span>, `ค่าจ้าง ${n.wage} FIAT/วัน (ถ้าเงินไม่พอก็ยังทำงาน)`]} />
+              {(res || hired) && <div className="italic text-slate-600">“{townLines(rpg).find((l) => l.id === n.id)?.text || n.line || ''}”</div>}
+              {!res && !hired && <button className={`${btn} w-full bg-violet-500 text-white flex items-center justify-center gap-1 [&_span]:!text-white`} disabled={T.npcs.length >= T.npcSlots || !rpg.afford(p)} onClick={() => { ok(rpg.hire(n.id), `${n.name}ย้ายเข้าเมืองแล้ว!`); close() }} data-testid="npc-hire">จ้าง <Price p={p} rpg={rpg} /></button>}
+              {!res && !hired && T.npcs.length >= T.npcSlots && <div className="text-slate-500">{T.npcSlots ? 'ที่พักเต็มแล้ว ขยายโรงเตี๊ยมเพื่อเพิ่มที่' : 'ต้องสร้างโรงเตี๊ยมก่อน'}</div>}
             </div>
-          ))}
-          {NPCS.map((n) => {
-            const hired = T.npcs.includes(n.id), p = priceOf(n.cost, rpg.econData)
-            return (
-              <div key={n.id} className={`px-inner p-2.5 ${hired ? 'bg-teal-50' : ''}`} data-testid={`npc-${n.id}`}>
-                <div className="flex items-center gap-2">
-                  <Portrait sprite={n.sprite} size={40} dim={!hired && !T.npcSlots} />
-                  <div className="min-w-0 flex-1"><div className="text-xs font-semibold">{n.name}</div><div className="text-[10px] text-teal-700">{n.perkText}</div><div className="text-[10px] text-slate-500">ค่าจ้าง {n.wage} FIAT/วัน (ถ้าเงินไม่พอก็ยังทำงาน)</div></div>
-                </div>
-                {hired ? <div className="text-[10px] text-slate-500 mt-1.5 italic">“{townLines(rpg).find((l) => l.id === n.id)?.text || n.line}”</div> : (
-                  <div className="mt-1.5 flex items-center justify-between gap-1"><Price p={p} rpg={rpg} />
-                    <button className={`${btn} bg-violet-500 text-white`} disabled={T.npcs.length >= T.npcSlots || !rpg.afford(p)} onClick={() => ok(rpg.hire(n.id), `${n.name}ย้ายเข้าเมืองแล้ว!`)}>จ้าง</button>
-                  </div>
-                )}
-              </div>
-            )
-          })}
-        </div>
+          )
+        }} />
       </Section>
 
       <Section icon={Sparkles} title="DECOR · ตกแต่งเมือง">
@@ -251,22 +242,25 @@ export default function TownTab({ rpg }) {
         {DECOR_GROUPS.filter((g) => g.key === decTab).map((grp) => (
           <div key={grp.key} className="mb-3" data-testid={`decor-${grp.key}`}>
             <div className="text-[10px] text-slate-500 mb-1.5">{grp.note}</div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-              {grp.list.map((d) => {
-                const own = T.decor.includes(d.id), p = rpg.decorPrice ? rpg.decorPrice(d) : priceOf(d.cost, rpg.econData)
-                const onSale = !d.event || decorOnSale(d, rpg.world)
-                return (
-                  <div key={d.id} className={`px-inner p-2 text-center ${own ? 'bg-teal-50' : ''} ${!own && (d.craft || !onSale) ? 'opacity-70' : ''}`}>
-                    {d.event && <div className={`text-[9px] font-bold ${onSale ? 'text-rose-600' : 'text-slate-500'}`}><PxIcon name="em_hourglass" size={11} /> {onSale ? 'ขายอยู่ตอนนี้ · ' : ''}เทศกาล{d.event === 'sale' ? 'วันเลขเบิ้ล' : EVENTS[d.event]?.name || ''}</div>}
-                    <Art name={DECOR_ART[d.id] || d.id} size={32} fallback={d.emoji} /><div className="text-[11px] font-semibold">{d.name}</div><div className="text-[10px] text-teal-700">ความสุข +{d.happy}</div>{d.scene && <div className="text-[10px] text-slate-500">{d.scene}</div>}
-                    {own ? <div className="text-[10px] text-slate-500 mt-1">ติดตั้งแล้ว ✓</div>
-                      : d.craft ? <div className="text-[10px] text-slate-500 mt-1">สร้างจากวัสดุที่ชาวเมือง</div>
-                      : !onSale ? <div className="text-[10px] text-slate-500 mt-1">รอเทศกาลรอบหน้า</div>
-                      : <button className={`${btn} mt-1 w-full bg-white`} disabled={!rpg.afford(p)} onClick={() => ok(rpg.buyDecor(d.id), `ติดตั้ง${d.name}แล้ว`)}><Price p={p} rpg={rpg} /></button>}
-                  </div>
-                )
-              })}
-            </div>
+            <ItemGrid testid={`decor-grid-${grp.key}`} items={grp.list.map((d) => {
+              const own = T.decor.includes(d.id), onSale = !d.event || decorOnSale(d, rpg.world)
+              return { id: d.id, d, own, onSale, owned: own, dim: !own && (d.craft || !onSale), name: d.name, art: <Art name={DECOR_ART[d.id] || d.id} size={32} fallback={d.emoji} />,
+                badge: <span className="text-teal-700">+{d.happy}</span> }
+            })} detail={({ d, own, onSale }, close) => {
+              const p = rpg.decorPrice ? rpg.decorPrice(d) : priceOf(d.cost, rpg.econData)
+              return (
+                <div className="space-y-2">
+                  <DetailHead art={<Art name={DECOR_ART[d.id] || d.id} size={64} fallback={d.emoji} />} lines={[
+                    <span key="h" className="text-teal-700 font-semibold">ความสุข +{d.happy}</span>, d.scene,
+                    d.event && <span key="e" className={onSale ? 'text-rose-600 font-semibold' : 'text-slate-500'}>{onSale ? 'ขายอยู่ตอนนี้ · ' : ''}ของเทศกาล{d.event === 'sale' ? 'วันเลขเบิ้ล' : EVENTS[d.event]?.name || ''}</span>,
+                  ]} />
+                  {own ? <div className="text-sm text-teal-700 font-semibold">ติดตั้งแล้ว ✓</div>
+                    : d.craft ? <div className="text-xs text-slate-600">สร้างจากวัสดุมอนสเตอร์ที่แท็บชาวเมือง (ล่า → ชาวเมือง) ไม่มีขายในร้าน</div>
+                    : !onSale ? <div className="text-xs text-slate-600">รอเทศกาลรอบหน้า</div>
+                    : <button className={`${btn} w-full bg-white`} disabled={!rpg.afford(p)} onClick={() => { ok(rpg.buyDecor(d.id), `ติดตั้ง${d.name}แล้ว`); close() }} data-testid="decor-buy">ซื้อและติดตั้ง <Price p={p} rpg={rpg} /></button>}
+                </div>
+              )
+            }} />
           </div>
         ))}
       </Section>
@@ -441,20 +435,21 @@ function FestivalCalendar({ T }) {
   const piece = (ev) => EVENT_DECOR.find((d) => d.event === ev)
   return (
     <Section icon={Sparkles} title="FESTIVALS · ปฏิทินเทศกาล">
-      <div className="space-y-1.5 text-xs" data-testid="festival-calendar">
+      <div className="space-y-1 text-xs" data-testid="festival-calendar">
+        <div className="text-[10px] text-slate-500">แตะชื่อเทศกาลเพื่อดูโบนัสและของเฉพาะเทศกาล</div>
         {rows.map(([id, when]) => {
           const e = EVENTS[id], d = piece(id)
           return (
-            <div key={id} className="flex items-start gap-2">
-              <span className="text-base leading-none"><Emo e={e.emoji} size={16} /></span>
-              <div className="flex-1 min-w-0"><b>{e.name}</b> <span className="text-slate-500">· {when}</span><div className="text-[10px] text-slate-500">{e.bonus}<EmoText size={12} text={d ? ` · ของเฉพาะเทศกาล: ${d.emoji} ${d.name}${T.decor.includes(d.id) ? ' ✓ มีแล้ว' : ''}` : ''} /></div></div>
-            </div>
+            <details key={id} className="px-inner px-2 py-1">
+              <summary className="cursor-pointer flex items-center gap-2"><Emo e={e.emoji} size={16} /><b className="flex-1">{e.name}</b><span className="text-slate-500">{when}</span></summary>
+              <div className="text-[10px] text-slate-500 mt-1">{e.bonus}<EmoText size={12} text={d ? ` · ของเฉพาะเทศกาล: ${d.emoji} ${d.name}${T.decor.includes(d.id) ? ' ✓ มีแล้ว' : ''}` : ''} /></div>
+            </details>
           )
         })}
-        <div className="flex items-start gap-2">
-          <PxIcon name="ShoppingBag" size={16} />
-          <div className="flex-1 min-w-0"><b>วันเลขเบิ้ล</b> <span className="text-slate-500">· 1.1 ถึง 12.12</span><div className="text-[10px] text-slate-500">ร้านในเมืองลด 10–30% (11.11 ลดมากสุด) · ไม่ใช้เงินในวันนั้นรับ +1 GOLD · ของเฉพาะ: <PxIcon name="em_sign" size={12} /> ป้าย “ไม่ช้อปก็รวยได้”</div></div>
-        </div>
+        <details className="px-inner px-2 py-1">
+          <summary className="cursor-pointer flex items-center gap-2"><PxIcon name="ShoppingBag" size={16} /><b className="flex-1">วันเลขเบิ้ล</b><span className="text-slate-500">1.1 ถึง 12.12</span></summary>
+          <div><div className="text-[10px] text-slate-500 mt-1">ร้านในเมืองลด 10–30% (11.11 ลดมากสุด) · ไม่ใช้เงินในวันนั้นรับ +1 GOLD · ของเฉพาะ: <PxIcon name="em_sign" size={12} /> ป้าย “ไม่ช้อปก็รวยได้”</div></div>
+        </details>
       </div>
     </Section>
   )
