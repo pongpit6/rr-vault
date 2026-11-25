@@ -29,7 +29,7 @@ function Tip({ tip, w }) {
   if (!tip) return null
   const left = Math.min(Math.max(tip.x - 90, 0), w - 180)
   return (
-    <div className="absolute z-10 pointer-events-none w-[180px] rounded-md border-2 border-slate-800 bg-white dark:bg-slate-900 px-2 py-1 text-[11px] leading-snug shadow" style={{ left, top: tip.y }} data-testid="chart-tip">
+    <div className="absolute z-10 pointer-events-none w-[180px] rounded-md border-2 border-slate-800 bg-white px-2 py-1 text-[11px] leading-snug shadow" style={{ left, top: tip.y }} data-testid="chart-tip">
       <div className="font-bold">{tip.it.title}</div>
       {tip.it.sub && <div className="text-slate-500">{tip.it.sub}</div>}
       <div style={{ color: tip.l.color }} className="font-semibold">{tip.l.th}{tip.it.v != null ? ` · ${sgn(tip.it.v)}` : ''}</div>
@@ -42,11 +42,11 @@ function Detail({ it, l, onPrev, onNext, testid }) {
   return (
     <div className="px-inner p-2 text-xs space-y-1" data-testid={testid}>
       <div className="flex items-center gap-1.5">
-        <button className="w-7 h-7 shrink-0 grid place-items-center rounded-md border-2 border-slate-700 bg-white dark:bg-slate-800 text-[11px] font-bold" onClick={onPrev} aria-label="ก่อนหน้า" data-testid={testid && `${testid}-prev`}>◀</button>
+        <button className="px-btn shrink-0 !px-2.5 !py-1 text-xs" onClick={onPrev} aria-label="ก่อนหน้า" data-testid={testid && `${testid}-prev`}>◀</button>
         {it.icon && <PxIcon name={it.icon} size={18} />}
         <b className="flex-1 min-w-0 truncate">{it.title}</b>
         <Chip l={l} />
-        <button className="w-7 h-7 shrink-0 grid place-items-center rounded-md border-2 border-slate-700 bg-white dark:bg-slate-800 text-[11px] font-bold" onClick={onNext} aria-label="ถัดไป" data-testid={testid && `${testid}-next`}>▶</button>
+        <button className="px-btn shrink-0 !px-2.5 !py-1 text-xs" onClick={onNext} aria-label="ถัดไป" data-testid={testid && `${testid}-next`}>▶</button>
       </div>
       {it.sub && <div className="text-slate-500">{it.sub}{it.now ? ' · ตอนนี้' : ''}</div>}
       {it.text && <div className="line-clamp-3">{it.text}</div>}

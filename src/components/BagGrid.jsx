@@ -44,7 +44,7 @@ export default function BagGrid({ items, icon, tip, selected, onSelect, minRows 
         const r = Math.floor(hover / cols), c = hover % cols
         const left = Math.min(Math.max(c * (cell + 4) + cell / 2 - 110, 0), w - 220)
         return (
-          <div className="absolute z-20 pointer-events-none w-[220px] rounded-md border-2 border-slate-800 bg-white dark:bg-slate-900 p-2 text-[11px] leading-snug shadow-lg" style={{ left, top: (r + 1) * (cell + 4) + 2 }} data-testid="bag-tip">
+          <div className="absolute z-20 pointer-events-none w-[220px] rounded-md border-2 border-slate-800 bg-white p-2 text-[11px] leading-snug shadow-lg" style={{ left, top: (r + 1) * (cell + 4) + 2 }} data-testid="bag-tip">
             {tip(hv)}
           </div>
         )

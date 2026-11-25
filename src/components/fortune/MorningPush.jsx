@@ -59,7 +59,7 @@ export default function MorningPush() {
     denied: 'แจ้งเตือนถูกบล็อกไว้ ไปเปิดในตั้งค่าเบราว์เซอร์/แอปก่อน แล้วกลับมากดใหม่',
   }[st]
   return (
-    <div className="rounded-lg border border-slate-200 dark:border-slate-700 p-2 space-y-2" data-testid="push-box">
+    <div className="rounded-lg border border-slate-200 p-2 space-y-2" data-testid="push-box">
       <div className="text-xs"><b>ดวงเช้า 06:00 น.</b> ส่งจากเซิร์ฟเวอร์ ขึ้นแม้ปิดแอปอยู่ บอกเสาวันนี้ ระดับดวง เหตุการณ์ BaZi และคู่ดาวเสวยอายุ</div>
       {note ? <div className="text-xs text-amber-600">{note}</div> : (
         <div className="flex gap-2">
