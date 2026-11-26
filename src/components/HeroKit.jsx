@@ -241,7 +241,7 @@ export function ActCard({ rpg }) {
   if (a.id === 1) {
     return (
       <Section icon={Flag} title="ภาคที่ 1 · ปลดหนี้" testid="story-act">
-        <div className="text-xs text-slate-600">ปราบหนี้ให้หมด แล้วเรื่องจะเข้าสู่ภาค 2 “สร้างอาณาจักร”</div>
+        <div className="text-xs text-slate-600">ทุกครั้งที่สะสางภาระ ทางกลับเมืองก็ชัดขึ้น · ผ่านภาคนี้แล้วเข้าสู่ภาค 2 “สร้างอาณาจักร”</div>
         <div className="mt-2"><Bar pct={a.act1Pct} color="#ef4444" /></div>
         <div className="text-[11px] text-slate-500 mt-1">ปราบไปแล้ว {Math.round(a.act1Pct * 100)}% · หนี้คงเหลือ <Money value={a.owed} decimals={false} /> · เงินกู้ {a.loansLeft} ก้อน · บัตร {a.cardsLeft} ใบ</div>
         <div className="text-[11px] text-slate-400 mt-1">จบภาคเมื่อ: ไม่มีเงินกู้เหลือ และยอดบัตรเครดิตที่ค้างอยู่มีเงินกันจ่ายครบ 100%</div>
@@ -250,7 +250,7 @@ export function ActCard({ rpg }) {
   }
   return (
     <Section icon={Flag} title="ภาคที่ 2 · สร้างอาณาจักร" testid="story-act">
-      <div className="text-xs text-slate-600">หนี้ไม่กดดันแล้ว เป้าหมายใหม่คือให้เงินลงทุนทำงานแทนคุณ</div>
+      <div className="text-xs text-slate-600">จากการเปิดทางกลับบ้าน สู่การสร้างเมืองที่ดูแลชีวิตในระยะยาว · เป้าหมายใหม่คือให้เงินลงทุนทำงานแทนคุณ</div>
       <div className="mt-2"><Bar pct={a.freedom} color="#f59e0b" /></div>
       <div className="text-[11px] text-slate-500 mt-1">อิสรภาพทางการเงิน <b>{(a.freedom * 100).toFixed(1)}%</b> · เงินลงทุนจ่ายได้ราว <Money value={a.monthlyPassive} decimals={false} />/เดือน</div>
       <div className="flex gap-1 mt-2">{FREEDOM_STEPS.map((s) => <span key={s} className={`text-[10px] px-1.5 py-0.5 border ${a.freedom * 100 >= s ? 'bg-amber-100 border-amber-400' : 'border-slate-200 text-slate-400'}`}>{s}%</span>)}</div>

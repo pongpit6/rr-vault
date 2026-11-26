@@ -45,14 +45,14 @@ export const EVENT_DECOR = [
 /* ---------- visitors: one guest per festival walks the street and talks ---------- */
 // sprite = what is drawn today (an existing sprite); art = the PixelLab character to make later
 export const VISITORS = {
-  newyear: { name: 'นักจุดพลุ', sprite: 'visitor_newyear', art: 'firework maker with a lantern pole', lines: ['ปีใหม่แล้ว! ตั้งเป้าออมปีนี้ไว้หรือยัง', 'พลุสวยแป๊บเดียว แต่เงินออมสวยไปทั้งปี'] },
-  cny: { name: 'เถ้าแก่ใจดี', sprite: 'visitor_cny', art: 'chinese merchant uncle in red, holding red envelopes', lines: ['ซินเจียยู่อี่ ซินนี้ฮวดไช้! เปิดหีบวันนี้อาจเจออั่งเปาทอง', 'เงินแต๊ะเอียเก็บเข้าบัญชีออมก่อนนะ อาตี๋'] },
-  songkran: { name: 'เด็กสาดน้ำ', sprite: 'visitor_songkran', art: 'kid with a water gun and floral shirt', lines: ['สาดน้ำไม่ต้องใช้เงิน! วันไม่ใช้เงินช่วงนี้ได้ FIAT สองเท่า', 'เย็นฉ่ำ ๆ สบายกระเป๋าด้วย'] },
-  phansa: { name: 'ชาวบ้านแห่เทียน', sprite: 'visitor_phansa', art: 'villager carrying a lent candle', lines: ['เข้าพรรษาแล้ว ลองงดของฟุ่มเฟือยสักเดือน', 'สัปดาห์ไหนไม่เกินงบ ได้ GOLD 1 เหรียญนะ'] },
-  loy: { name: 'นางนพมาศ', sprite: 'visitor_loy', art: 'thai lady in traditional dress holding a krathong', lines: ['ลอยความฟุ่มเฟือยไปกับสายน้ำ เหลือไว้แต่เงินออม', 'แท่นกระทงดาวเรืองมีขายเฉพาะช่วงนี้นะ ตั้งไว้หน้าบ้านสวยทั้งปี'] },
-  xmas: { name: 'พ่อค้าตลาดฤดูหนาว', sprite: 'visitor_xmas', art: 'winter market seller with a scarf and cocoa', lines: ['สรุปปีนี้ของท่านเป็นยังไงบ้าง ไปดูบันทึกเดือนได้เลย', 'ช่วงนี้รายได้เมืองเก็บได้ 1.5 เท่า'] },
-  payday: { name: 'พ่อค้าตลาดนัด', sprite: 'visitor_payday', art: 'cheerful market vendor', lines: ['เงินเดือนออกแล้ว! แบ่งเข้ากันหนี้และลงทุนก่อนค่อยมาเดินตลาดนะ', 'ร้านในเมืองลด 10% วันนี้วันเดียว'] },
-  sale: { name: 'เซลส์แมนเสียงดัง', sprite: 'visitor_sale', art: 'loud salesman with a megaphone and sale tags', lines: ['ลดกระหน่ำ! …แต่ถ้าท่านเดินผ่านไปเฉย ๆ วันนี้ ข้าจะยอมแพ้ให้ 1 GOLD', 'ของลดราคาที่ไม่ได้ใช้ ก็ยังแพงอยู่ดีนะ'] },
+  newyear: { name: 'นักจุดพลุ', sprite: 'visitor_newyear', art: 'firework maker with a lantern pole', lines: ['ปีใหม่แล้ว! ข้าจุดพลุให้ทั้งคนที่เดินต่อกับคนที่เพิ่งกลับมาเริ่ม', 'พลุดับเร็ว แต่เรื่องที่นั่งดูด้วยกันยังเล่าถึงปีหน้าได้'] },
+  cny: { name: 'เถ้าแก่ใจดี', sprite: 'visitor_cny', art: 'chinese merchant uncle in red, holding red envelopes', lines: ['ซินเจียยู่อี่ ซินนี้ฮวดไช้! เปิดหีบวันนี้อาจเจออั่งเปาทอง', 'อั่งเปาซองนี้มีคำอวยพรด้วย เก็บส่วนหนึ่งไว้ดูแลตัวเองนะ อาตี๋'] },
+  songkran: { name: 'เด็กสาดน้ำ', sprite: 'visitor_songkran', art: 'kid with a water gun and floral shirt', lines: ['ข้ารอเล่นน้ำหน้าเมืองเลย! วันไม่ใช้เงินช่วงนี้ได้ FIAT สองเท่า', 'เล่นเสร็จไปนั่งร่มด้วยกันนะ ข้ามีเรื่องจากบ้านข้างแม่น้ำจะเล่า'] },
+  phansa: { name: 'ชาวบ้านแห่เทียน', sprite: 'visitor_phansa', art: 'villager carrying a lent candle', lines: ['ข้าพาเทียนมาให้ลานเมือง คืนนี้ลองวางเรื่องวุ่น ๆ แล้วนั่งดูแสงด้วยกัน', 'สัปดาห์ไหนไม่เกินงบ ได้ GOLD 1 เหรียญนะ'] },
+  loy: { name: 'นางนพมาศ', sprite: 'visitor_loy', art: 'thai lady in traditional dress holding a krathong', lines: ['คืนนี้คนกลับเมืองมาพบกันริมท่า ลอยกระทงแล้วอย่าลืมเก็บเรื่องดี ๆ กลับบ้านด้วย', 'แท่นกระทงดาวเรืองมีขายเฉพาะช่วงนี้นะ ตั้งไว้หน้าบ้านสวยทั้งปี'] },
+  xmas: { name: 'พ่อค้าตลาดฤดูหนาว', sprite: 'visitor_xmas', art: 'winter market seller with a scarf and cocoa', lines: ['ข้าเอาเรื่องจากทางหนาวมาฝาก ท่านก็มีเรื่องปีนี้อยู่ในบันทึกเดือนใช่ไหม', 'ช่วงนี้รายได้เมืองเก็บได้ 1.5 เท่า'] },
+  payday: { name: 'พ่อค้าตลาดนัด', sprite: 'visitor_payday', art: 'cheerful market vendor', lines: ['ตลาดนัดกลับมาแล้ว! จัดส่วนกันหนี้และลงทุนก่อน แล้วค่อยแวะมาดูของที่ได้ใช้กัน', 'ร้านในเมืองลด 10% วันนี้วันเดียว'] },
+  sale: { name: 'เซลส์แมนเสียงดัง', sprite: 'visitor_sale', art: 'loud salesman with a megaphone and sale tags', lines: ['ลดกระหน่ำ! …แต่ถ้าท่านเดินผ่านไปเฉย ๆ วันนี้ ข้าจะยอมแพ้ให้ 1 GOLD', 'ข้าพูดเสียงดังไปหน่อย แต่ท่านมีสิทธิ์เดินผ่านนะ ของที่ไม่ได้ใช้ยังแพงอยู่ดี'] },
 }
 
 /** today's visitor (major festival first, then a double date) */

@@ -55,13 +55,13 @@ export const SKILLS = [
 
 /* ---------------- shop ---------------- */
 export const SHOP = [
-  { id: 'pet_owl', type: 'pet', name: 'นกฮูกหิมะ', desc: 'สัตว์เลี้ยงเดินตามปาร์ตี้', price: 60, sprite: 'pet_owl' },
-  { id: 'pet_drake', type: 'pet', name: 'มังกรน้อยทองคำ', desc: 'สัตว์เลี้ยงหายาก', price: 150, sprite: 'pet_drake' },
-  { id: 'pet_cat', type: 'pet', name: 'แมวส้มขี้อ้อน', desc: 'สัตว์เลี้ยงโตได้ 3 ร่าง', price: 60, sprite: 'pet_cat' },
-  { id: 'pet_bunny', type: 'pet', name: 'กระต่ายหิมะ', desc: 'สัตว์เลี้ยงโตได้ 3 ร่าง', price: 60, sprite: 'pet_bunny' },
-  { id: 'pet_turtle', type: 'pet', name: 'เต่าเหรียญทอง', desc: 'ช้าแต่ชัวร์ เหมือนเงินออม', price: 90, sprite: 'pet_turtle' },
-  { id: 'pet_piggy', type: 'pet', name: 'หมูออมสิน', desc: 'โตตามความสม่ำเสมอ', price: 90, sprite: 'pet_piggy' },
-  { id: 'pet_phoenix', type: 'pet', name: 'ฟีนิกซ์เพลิงทอง', desc: 'สัตว์เลี้ยงตำนาน', price: 250, sprite: 'pet_phoenix' },
+  { id: 'pet_owl', type: 'pet', name: 'นกฮูกหิมะ', desc: 'นกฮูกที่จำทางกลับเมืองได้ · สัตว์เลี้ยงเดินตามปาร์ตี้', price: 60, sprite: 'pet_owl' },
+  { id: 'pet_drake', type: 'pet', name: 'มังกรน้อยทองคำ', desc: 'มังกรน้อยชอบประกาย แต่ยอมทิ้งของเพื่อเดินตามเพื่อน · สัตว์เลี้ยงหายาก', price: 150, sprite: 'pet_drake' },
+  { id: 'pet_cat', type: 'pet', name: 'แมวส้มขี้อ้อน', desc: 'แมวที่เลือกตักอุ่นมากกว่าหีบทอง · สัตว์เลี้ยงโตได้ 3 ร่าง', price: 60, sprite: 'pet_cat' },
+  { id: 'pet_bunny', type: 'pet', name: 'กระต่ายหิมะ', desc: 'กระต่ายที่คุ้นกับหลักพักบนเขา · สัตว์เลี้ยงโตได้ 3 ร่าง', price: 60, sprite: 'pet_bunny' },
+  { id: 'pet_turtle', type: 'pet', name: 'เต่าเหรียญทอง', desc: 'เต่าที่ค่อย ๆ เดินกลับจุดนัดพบ ไม่เคยยอมให้เหรียญบนหลังหนักเกินไป', price: 90, sprite: 'pet_turtle' },
+  { id: 'pet_piggy', type: 'pet', name: 'หมูออมสิน', desc: 'หมูที่ชอบเสียงหยอดกระปุกมากกว่าขนาดของเหรียญ · โตตามความสม่ำเสมอ', price: 90, sprite: 'pet_piggy' },
+  { id: 'pet_phoenix', type: 'pet', name: 'ฟีนิกซ์เพลิงทอง', desc: 'นกเพลิงที่ยังจำทางกลับบ้านหลังเกิดใหม่ · สัตว์เลี้ยงตำนาน', price: 250, sprite: 'pet_phoenix' },
   ...[
     ['skin_royal', 'ชุดเกราะม่วงราชา', 80], ['skin_flame', 'ชุดเกราะกุหลาบ', 80], ['skin_ninja', 'ชุดนินจาเงา', 90], ['skin_ranger', 'ชุดพรานป่า', 90],
     ['skin_samurai', 'ชุดซามูไรแดง', 110], ['skin_scholar', 'ชุดนักปราชญ์', 110], ['skin_pirate', 'ชุดกัปตันโจรสลัด', 110], ['skin_thai', 'ชุดนักรบไทย', 100],
@@ -206,7 +206,7 @@ function buildLog({ txns, accById, catById, pm, gearBy, has, data, privacy, avgD
       push(day, { at, who: h ? 'healer' : 'knight', icon: '💰', tone: 'good', text: `ได้รับเงินรางวัล “${label || 'รายรับ'}”${h ? ' · ลูน่าร่ายแสงฟื้นฟูทั้งปาร์ตี้' : ''}`, amount: `+${M(t.amount)}` })
     } else if (t.kind === 'expense') {
       d.out += t.amount; d.cats[t.category] = (d.cats[t.category] || 0) + t.amount
-      if (t.amount >= big) push(day, { at, who: 'boss', icon: '💸', tone: 'bad', text: `กระเป๋าโดนโจมตีหนัก: “${label || 'ค่าใช้จ่าย'}”`, amount: `-${M(t.amount)}` })
+      if (t.amount >= big) push(day, { at, who: 'boss', icon: '💸', tone: 'bad', text: `บันทึกค่าใช้จ่ายก้อนใหญ่: “${label || 'ค่าใช้จ่าย'}”`, amount: `-${M(t.amount)}` })
     }
   }
   // one line per day for everyday spending

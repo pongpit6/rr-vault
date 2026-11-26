@@ -43,16 +43,16 @@ export const HALL = { name: 'ศาลากลาง', emoji: '🏛️', cost: 
 /* NPCs: a one-time hiring price, then a small daily wage paid when the town income is collected.
    If FIAT runs short the wage is simply skipped — NPCs keep working, nothing is lost. */
 export const NPCS = [
-  { id: 'guard', sprite: 'npc_guard', name: 'ทหารยาม', cost: [300, 0], wage: 6, perk: { happy: 12 }, perkText: 'ความสุข +12', line: 'ข้าเฝ้าประตูเมืองให้ ไม่มีรายจ่ายแปลกปลอมเล็ดลอดเข้ามาได้!' },
-  { id: 'fisher', sprite: 'npc_fisher', name: 'ชาวประมง', cost: [350, 0], wage: 8, perk: { fiat: 35, happy: 3 }, perkText: '+35 FIAT/วัน · ความสุข +3', line: 'ตกปลาต้องใจเย็น เหมือนการลงทุนนั่นแหละ' },
-  { id: 'baker', sprite: 'npc_baker', name: 'คนทำขนมปัง', cost: [400, 0], wage: 10, perk: { fiat: 45 }, perkText: '+45 FIAT/วัน', line: 'ขนมปังอบเองถูกกว่าซื้อกาแฟทุกเช้านะ~' },
-  { id: 'bard', sprite: 'npc_bard', name: 'นักกวีพเนจร', cost: [500, 0], wage: 8, perk: { happy: 18 }, perkText: 'ความสุข +18', line: '♪ ออมวันละนิด จิตแจ่มใส ♪' },
-  { id: 'smith', sprite: 'npc_smith', name: 'ช่างตีเหล็ก', cost: [0, 6], wage: 15, perk: { discount: 15 }, perkText: 'ค่าก่อสร้าง FIAT −15%', line: 'สร้างของดีครั้งเดียว ใช้ได้ทั้งชีวิต' },
-  { id: 'banker', sprite: 'npc_banker', name: 'นักเวทนายธนาคาร', cost: [0, 10], wage: 20, perk: { bankBoost: 100 }, perkText: 'เพดานดอกเบี้ยธนาคาร ×2', line: 'เงินกระดาษพิมพ์เพิ่มได้ แต่ทองคำ… ต้องขุดเอา' },
+  { id: 'guard', sprite: 'npc_guard', name: 'ทหารยาม', cost: [300, 0], wage: 6, perk: { happy: 12 }, perkText: 'ความสุข +12', line: 'ข้าเฝ้าประตูและจดทุกเวรไว้ พอถึงเวลาส่งต่อก็ไปพัก ยามที่ดีต้องจำทางกลับบ้านด้วย' },
+  { id: 'fisher', sprite: 'npc_fisher', name: 'ชาวประมง', cost: [350, 0], wage: 8, perk: { fiat: 35, happy: 3 }, perkText: '+35 FIAT/วัน · ความสุข +3', line: 'ดูน้ำก่อนหย่อนเบ็ดเสมอ วันไหนได้พอ ข้าก็เก็บเบ็ดกลับไปกินข้าวกับคนที่บ้าน' },
+  { id: 'baker', sprite: 'npc_baker', name: 'คนทำขนมปัง', cost: [400, 0], wage: 10, perk: { fiat: 45 }, perkText: '+45 FIAT/วัน', line: 'เตาข้าร้อนพอดีสำหรับขนมปัง แต่ไม่ต้องรีบกินนะ นั่งพักให้หายเหนื่อยก่อนก็ได้' },
+  { id: 'bard', sprite: 'npc_bard', name: 'นักกวีพเนจร', cost: [500, 0], wage: 8, perk: { happy: 18 }, perkText: 'ความสุข +18', line: '♪ เรื่องของเมืองมีหลายเสียง ข้าฟังก่อนค่อยแต่งเพลง ♪' },
+  { id: 'smith', sprite: 'npc_smith', name: 'ช่างตีเหล็ก', cost: [0, 6], wage: 15, perk: { discount: 15 }, perkText: 'ค่าก่อสร้าง FIAT −15%', line: 'รอยซ่อมไม่ทำให้ของเสียค่า เอามาให้ข้าดูก่อน บางชิ้นยังมีทางเดินต่ออีกไกล' },
+  { id: 'banker', sprite: 'npc_banker', name: 'นักเวทนายธนาคาร', cost: [0, 10], wage: 20, perk: { bankBoost: 100 }, perkText: 'เพดานดอกเบี้ยธนาคาร ×2', line: 'ข้าเก็บทั้งเหรียญและบันทึกที่มา คลังที่ดีต้องรู้ด้วยว่าสิ่งข้างในมีไว้ดูแลอะไร' },
 ]
 export const NPC_BY_ID = Object.fromEntries(NPCS.map((n) => [n.id, n]))
 // villagers who live in town for free
-export const RESIDENTS = [{ id: 'farmer', sprite: 'npc_farmer', name: 'ชาวนา', line: 'บันทึกทุกวัน เหมือนรดน้ำต้นไม้ทุกเช้า' }, { id: 'merchant', sprite: 'npc_merchant', name: 'พ่อค้า', line: 'FIAT มีเท่าไหร่ รีบใช้สร้างเมืองก่อนของขึ้นราคานะ!' }]
+export const RESIDENTS = [{ id: 'farmer', sprite: 'npc_farmer', name: 'ชาวนา', line: 'ข้าดูดินก่อนรดน้ำทุกเช้า ต้นไม้แต่ละวันต้องการไม่เท่ากัน คนเราก็เหมือนกัน' }, { id: 'merchant', sprite: 'npc_merchant', name: 'พ่อค้า', line: 'ดูของได้เต็มที่ ข้าไม่คิดค่ามองนะ เลือกชิ้นที่ได้ใช้จริงแล้วค่อยมาคุยกัน' }]
 
 // every decoration also shows up in the battle scene (flowers, lanterns, banner); price per happiness point stays ~30 FIAT
 export const DECOR = [
