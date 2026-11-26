@@ -42,11 +42,11 @@ function Reading({ id, rev }) {
     <div className="space-y-2.5">
       {row('ft_ball', 'ธีมวันนี้', c.theme)}
       {rev ? <>
-        {row('RotateCcw', 'ไพ่กลับหัวบอกว่า', c.rev)}
-        {row('AlertTriangle', 'แก้จุดนี้ก่อน', c.shadow)}
+        {row('RotateCcw', 'มุมพิจารณาเมื่อไพ่กลับหัว', c.rev)}
+        {row('AlertTriangle', 'อีกด้านที่ควรระวัง', c.shadow)}
         {row('Target', 'ลองทำวันนี้', c.action)}
       </> : <>
-        {row('Sparkles', 'ด้านที่ช่วยคุณ', c.light)}
+        {row('Sparkles', 'มุมที่นำมาใช้ได้', c.light)}
         {row('AlertTriangle', 'จุดที่ควรระวัง', c.shadow)}
         {row('Target', 'ลองทำวันนี้', c.action)}
       </>}
@@ -87,7 +87,7 @@ export function CardSheet({ open, onClose, id, rev = false, both = false, day })
         <Reading id={cur} rev={showRev} />
         {lore && (
           <div className="space-y-2" data-testid="tarot-lore">
-            <div className="px-inner p-2.5 text-xs leading-relaxed"><div className="flex items-center gap-1.5 font-bold mb-1"><PxIcon name="BookOpen" size={16} /> ตำนานดั้งเดิม</div>{lore[0]}</div>
+            <div className="px-inner p-2.5 text-xs leading-relaxed"><div className="flex items-center gap-1.5 font-bold mb-1"><PxIcon name="BookOpen" size={16} /> ภาพและสัญลักษณ์ในสำรับ RWS</div>{lore[0]}</div>
             <div className="px-inner p-2.5 text-xs leading-relaxed"><div className="flex items-center gap-1.5 font-bold mb-1"><PxIcon name="Castle" size={16} /> ตำนานในโลก LifeQuest</div>{lore[1]}</div>
           </div>
         )}
@@ -97,7 +97,7 @@ export function CardSheet({ open, onClose, id, rev = false, both = false, day })
   )
 }
 
-const REVIEW = [['hit', 'ตรง', '#10b981'], ['part', 'ตรงบางส่วน', '#f59e0b'], ['miss', 'ไม่ตรง', '#94a3b8']]
+const REVIEW = [['hit', 'เกี่ยวข้อง', '#10b981'], ['part', 'บางส่วน', '#f59e0b'], ['miss', 'ไม่เกี่ยวข้อง', '#94a3b8']]
 
 export default function TarotTab() {
   const { tarot = {} } = useFortune()
@@ -121,7 +121,7 @@ export default function TarotTab() {
         {!d && phase === 'idle' && (
           <div className="text-center space-y-3">
             <div className="flex justify-center -space-x-12 py-2">{[0, 1, 2, 3, 4].map((i) => <div key={i} style={{ transform: `rotate(${(i - 2) * 7}deg) translateY(${Math.abs(i - 2) * 4}px)` }}><TarotCard back w={84} /></div>)}</div>
-            <div className="text-xs text-slate-500">ตั้งคำถามในใจ: “วันนี้ฉันควรใส่ใจเรื่องอะไร และระวังตัวเองตรงไหน?” แล้วจั่ววันละหนึ่งใบ ไพ่อาจออกตั้งตรงหรือกลับหัว และให้พลังในเกมต่างกันทั้ง 156 แบบ</div>
+            <div className="text-xs text-slate-500">ตั้งคำถามว่า “วันนี้ฉันควรใส่ใจเรื่องอะไร?” แล้วจั่ววันละหนึ่งใบ อ่านธีมและเลือกคำแนะนำที่ตรงกับสถานการณ์จริง ไพ่กลับหัวชวนดูอีกมุม ไม่ได้แปลว่าร้ายเสมอ ป้ายโบนัสบอกพลังในเกม ไม่ใช่คะแนนดวงของชีวิตจริง</div>
             <button className="px-btn mx-auto" onClick={draw} data-testid="tarot-draw"><PxIcon name="Sparkles" size={18} /> สับไพ่แล้วจั่ว</button>
           </div>
         )}
@@ -147,8 +147,8 @@ export default function TarotTab() {
             <Reading id={d.id} rev={d.rev} />
             <Effect id={d.id} rev={d.rev} />
             <div className="px-inner p-3 space-y-2" data-testid="tarot-review">
-              <div className="text-xs font-semibold">ทบทวนตอนเย็น: วันนี้ไพ่ตรงไหม?</div>
-              <textarea className="field w-full text-sm" rows={2} placeholder="วันนี้เกิดอะไรขึ้นจริง (ไม่บังคับ)" value={note} onChange={(e) => setNote(e.target.value)} />
+              <div className="text-xs font-semibold">ทบทวนตอนเย็น: ธีมนี้เกี่ยวข้องกับวันนี้อย่างไร?</div>
+              <textarea className="field w-full text-sm" rows={2} placeholder="อะไรเกี่ยวข้อง อะไรไม่เกี่ยว และฉันได้ลองทำอะไรบ้าง (ไม่บังคับ)" value={note} onChange={(e) => setNote(e.target.value)} />
               <div className="flex gap-2">{REVIEW.map(([v, t, col]) => <button key={v} onClick={() => review(v)} className="px-btn flex-1 justify-center text-xs" style={d.review?.v === v ? { background: col, color: '#fff' } : undefined} data-testid={`review-${v}`}>{t}</button>)}</div>
             </div>
           </div>

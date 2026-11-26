@@ -26,7 +26,7 @@ export function luckOf(id, rev = false) {
   if (!rev) return l
   return l >= 4 ? l - 2 : l === 3 ? 2 : l + 1
 }
-export const LUCK_TEXT = ['', 'ดวงต้องระวัง', 'ดวงเบา ๆ', 'ดวงกลาง ๆ', 'ดวงดี', 'ดวงดีมาก']
+export const LUCK_TEXT = ['', 'โบนัสพื้นฐาน: น้อย', 'โบนัสพื้นฐาน: ค่อนข้างน้อย', 'โบนัสพื้นฐาน: ปานกลาง', 'โบนัสพื้นฐาน: มาก', 'โบนัสพื้นฐาน: มากเป็นพิเศษ']
 export const LUCK_COLOR = ['', '#ef4444', '#f97316', '#64748b', '#0ea5e9', '#16a34a']
 
 /* ---------- game effect ---------- */
