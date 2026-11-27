@@ -8,7 +8,7 @@ import { PxIcon } from '../px'
 
 /** levels: [{ th, color, min }] from worst to best; a value belongs to the last level whose min ≤ v */
 export const levelOf = (levels, v) => levels.reduce((a, l) => (v >= l.min ? l : a), levels[0])
-export const TAKSA_LEVELS = [{ th: 'หนัก', color: '#dc2626', min: -99 }, { th: 'ระวัง', color: '#f97316', min: -1.5 }, { th: 'กลาง ๆ', color: '#94a3b8', min: -0.49 }, { th: 'ดี', color: '#0ea5e9', min: 1 }, { th: 'ดีมาก', color: '#16a34a', min: 2 }]
+export const TAKSA_LEVELS = [{ th: "ควรใส่ใจมาก", color: '#dc2626', min: -99 }, { th: 'ระวัง', color: '#f97316', min: -1.5 }, { th: 'กลาง ๆ', color: '#94a3b8', min: -0.49 }, { th: 'ดี', color: '#0ea5e9', min: 1 }, { th: 'ดีมาก', color: '#16a34a', min: 2 }]
 const sgn = (v) => `${v > 0 ? '+' : ''}${Math.round(v * 10) / 10}`
 
 function useWidth() {
