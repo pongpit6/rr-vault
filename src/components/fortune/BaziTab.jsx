@@ -171,13 +171,13 @@ export default function BaziTab({ birth, onEdit }) {
         <div className="flex items-center gap-2"><Stem s={N.dm} size={30} /><b className="text-sm">ดิถีของคุณ: {STEMS[N.dm]} {STEM_TH[N.dm]}</b></div>
         <div className="text-sm">{DM_TEXT[N.dm]}</div>
         <div className="px-inner p-3 text-xs space-y-1">
-          <div className="flex items-center gap-2"><b>กำลัง<T k="ดิถี" />:</b> {N.strength === 'strong' ? 'แข็ง' : N.strength === 'weak' ? 'อ่อน' : 'ค่อนข้างกลาง'} <span className="text-slate-400">(คะแนน {N.score})</span><button className="ui-link ml-auto" onClick={() => setShowEv(!showEv)}>{showEv ? 'ซ่อนเหตุผล' : 'ดูเหตุผล'}</button></div>
+          <div className="flex items-center gap-2"><b>กำลัง<T k="ดิถี" />:</b> {N.strength === 'strong' ? 'แข็ง' : N.strength === 'weak' ? 'อ่อน' : 'ค่อนข้างกลาง'} <span className="text-slate-400">(คะแนนตามสูตร {N.score})</span><button className="ui-link ml-auto" onClick={() => setShowEv(!showEv)}>{showEv ? 'ซ่อนเหตุผล' : 'ดูเหตุผล'}</button></div>
           <div>{STRENGTH_TEXT[N.strength]}</div>
           {showEv && <ul className="list-disc pl-4 text-slate-600">{N.ev.map((e, i) => <li key={i}>{e}</li>)}</ul>}
         </div>
         <div className="space-y-1.5 text-xs">
           <div className="flex flex-wrap items-center gap-1.5"><b><T k="ธาตุที่ช่วย">ธาตุที่ช่วยคุณ</T>:</b>{N.fav.map((e) => <ElChip key={e} e={e} />)}</div>
-          <div className="flex flex-wrap items-center gap-1.5"><b>ธาตุที่ทำร้ายคุณ:</b>{N.unfav.map((e) => <ElChip key={e} e={e} />)}</div>
+          <div className="flex flex-wrap items-center gap-1.5"><b>ธาตุที่ควรระวังตามผังนี้:</b>{N.unfav.map((e) => <ElChip key={e} e={e} />)}</div>
           {N.cold && <div className="text-slate-500">เกิดฤดูหนาว ไฟช่วยให้ดวงอุ่นขึ้น</div>}{N.hot && <div className="text-slate-500">เกิดฤดูร้อน น้ำช่วยให้ดวงชุ่มชื้นขึ้น</div>}
         </div>
         <div className="grid gap-1.5">{N.fav.map((e) => (
@@ -189,7 +189,7 @@ export default function BaziTab({ birth, onEdit }) {
       </section>
 
       <section className="px-card p-4 space-y-3" data-testid="bazi-react">
-        <div className="flex items-center gap-2"><PxIcon name="ev_triad" size={22} /><b className="text-sm">ปฏิกิริยาในดวง</b><span className="ml-auto text-[11px] text-slate-500">ช่องประ = สิ่งที่ขาด</span></div>
+        <div className="flex items-center gap-2"><PxIcon name="ev_triad" size={22} /><b className="text-sm">ปฏิกิริยาในดวง</b><span className="ml-auto text-[11px] text-slate-500">ช่องประ = ยังไม่พบในผัง</span></div>
         <div className="text-[11px] text-slate-600"><T k="คลัง" /> · <T k="สามประสาน" /> · <T k="รวมทิศ" /> · <T k="ชง" /> · <T k="ลงโทษ" /> · <T k="หกประสาน" /> · <T k="ว่าง" /> (แตะคำเพื่อดูความหมาย)</div>
         <div className="flex gap-1 overflow-x-auto">{GROUPS.map(([k, t, kinds]) => { const n = reacts.filter((c) => kinds.includes(c.kind)).length; return <button key={k} onClick={() => setGrp(k)} className={`px-btn text-xs shrink-0 ${grp === k ? '' : 'opacity-50'}`} data-testid={`react-tab-${k}`}>{t} {n}</button> })}</div>
         <div className="space-y-2">{reacts.filter((c) => GROUPS.find((g) => g[0] === grp)[2].includes(c.kind)).map((c, i) => <ReactionCard key={i} c={c} nextDay={nextDay} nextYear={nextYear} />)}

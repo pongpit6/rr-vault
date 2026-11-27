@@ -5,12 +5,12 @@ import { doneOf, addDays } from './habits'
  * until the art is generated the game shows the current sprite with a stand-in tint.
  */
 export const OUTFITS = [
-  { lv: 1, name: 'ชุดเดินทางผ้าฝ้าย', look: 'เสื้อผ้าฝ้าย กางเกงผ้า ผ้าพันคอ', art: 'simple cotton traveler tunic, cloth trousers, scarf', hue: 0 },
-  { lv: 5, name: 'ชุดหนังนักผจญภัย', look: 'เสื้อหนัง เข็มขัดมีกระเป๋า ถุงมือ', art: 'leather adventurer vest, belt pouches, gloves', hue: 0 },
-  { lv: 10, name: 'ชุดนักสะสม', look: 'เสื้อแจ็กเก็ตหลายกระเป๋า ผ้าคลุมสั้น', art: 'multi-pocket explorer jacket, short cape', hue: 0 },
-  { lv: 20, name: 'ชุดพ่อค้าเดินทาง', look: 'เสื้อคลุมยาวปักลาย ผ้าคาดเอว', art: 'long embroidered travel coat, sash', hue: 0 },
-  { lv: 30, name: 'ชุดขุนนางนักเดินทาง', look: 'เกราะเบาสลักลาย เสื้อคลุมกำมะหยี่', art: 'light engraved armor, velvet cloak', hue: 0 },
-  { lv: 50, name: 'ชุดเจ้าครองเกาะ', look: 'เสื้อคลุมขลิบทอง มงกุฎใบไม้', art: 'long gold-trimmed royal coat, laurel circlet', hue: 0 },
+  { lv: 1, name: 'ชุดเดินทางผ้าฝ้าย', look: "เสื้อผ้าฝ้าย กางเกงผ้า ผ้าพันคอ · งานช่างตัดเสื้อเมืองสำหรับคนเริ่มเดินทาง", art: 'simple cotton traveler tunic, cloth trousers, scarf', hue: 0 },
+  { lv: 5, name: 'ชุดหนังนักผจญภัย', look: "เสื้อหนัง เข็มขัดมีกระเป๋า ถุงมือ · แบบคุ้มกันเกวียนจากชายป่า", art: 'leather adventurer vest, belt pouches, gloves', hue: 0 },
+  { lv: 10, name: 'ชุดนักสะสม', look: "เสื้อแจ็กเก็ตหลายกระเป๋า ผ้าคลุมสั้น · ช่องแยกตัวอย่างตามแบบกิลด์", art: 'multi-pocket explorer jacket, short cape', hue: 0 },
+  { lv: 20, name: 'ชุดพ่อค้าเดินทาง', look: "เสื้อคลุมยาวปักลาย ผ้าคาดเอว · ลายปมจากคาราวานทะเลทราย", art: 'long embroidered travel coat, sash', hue: 0 },
+  { lv: 30, name: 'ชุดขุนนางนักเดินทาง', look: "เกราะเบาสลักลาย เสื้อคลุมกำมะหยี่ · งานพิธีรับผู้แทนที่ศาลากลาง", art: 'light engraved armor, velvet cloak', hue: 0 },
+  { lv: 50, name: 'ชุดเจ้าครองเกาะ', look: "เสื้อคลุมขลิบทอง มงกุฎใบไม้ · ใบไม้ตามข้อตกลงร่วมกับเผ่าป่า", art: 'long gold-trimmed royal coat, laurel circlet', hue: 0 },
 ]
 export function outfitOf(level) {
   let i = 0
@@ -84,16 +84,16 @@ export const bdaySkin = (id) => {
   const m = /^bday_(\d+)$/.exec(id || '')
   if (!m) return null
   const age = +m[1]
-  return { id, type: 'skin', name: `ชุดวันเกิดอายุ ${age}`, desc: 'ของสะสมประจำปี ได้ในสัปดาห์วันเกิด', hue: 0, art: true, sheet: `bday${age % 4}`, bday: age }
+  return { id, type: 'skin', name: `ชุดวันเกิดอายุ ${age}`, desc: "ช่างตัดเสื้อเตรียมให้ในงานวันเกิดที่ลานเมือง · ของสะสมประจำปี ได้ในสัปดาห์วันเกิด", hue: 0, art: true, sheet: `bday${age % 4}`, bday: age }
 }
 
 /** free graduation outfits from the language curriculum: looks only, no bonus */
 export const GRAD_SKINS = {
-  grad_en: { name: 'ชุดบัณฑิตภาษาอังกฤษ', desc: 'ได้ฟรีเมื่อรับประกาศนียบัตรภาษาอังกฤษ (จบช่วง 1)' },
-  grad_ja: { name: 'ชุดบัณฑิตภาษาญี่ปุ่น', desc: 'ได้ฟรีเมื่อรับประกาศนียบัตรภาษาญี่ปุ่น (จบช่วง 1)' },
-  grad_zh: { name: 'ชุดบัณฑิตภาษาจีน', desc: 'ได้ฟรีเมื่อรับประกาศนียบัตรภาษาจีน (จบช่วง 1)' },
-  grad_ko: { name: 'ชุดบัณฑิตภาษาเกาหลี', desc: 'ได้ฟรีเมื่อรับประกาศนียบัตรภาษาเกาหลี (จบช่วง 1)' },
-  grad_doctor: { name: 'ชุดดุษฎีบัณฑิต', desc: 'ได้ฟรีเมื่อจบปริญญาเอกสี่ภาษา' },
+  grad_en: { name: 'ชุดบัณฑิตภาษาอังกฤษ', desc: "แบบชุดที่ห้องเรียนภาษาฝากช่างตัดเสื้อทำ · ได้ฟรีเมื่อรับประกาศนียบัตรภาษาอังกฤษ (จบช่วง 1)" },
+  grad_ja: { name: 'ชุดบัณฑิตภาษาญี่ปุ่น', desc: "แบบชุดที่ห้องเรียนภาษาฝากช่างตัดเสื้อทำ · ได้ฟรีเมื่อรับประกาศนียบัตรภาษาญี่ปุ่น (จบช่วง 1)" },
+  grad_zh: { name: 'ชุดบัณฑิตภาษาจีน', desc: "แบบชุดที่ห้องเรียนภาษาฝากช่างตัดเสื้อทำ · ได้ฟรีเมื่อรับประกาศนียบัตรภาษาจีน (จบช่วง 1)" },
+  grad_ko: { name: 'ชุดบัณฑิตภาษาเกาหลี', desc: "แบบชุดที่ห้องเรียนภาษาฝากช่างตัดเสื้อทำ · ได้ฟรีเมื่อรับประกาศนียบัตรภาษาเกาหลี (จบช่วง 1)" },
+  grad_doctor: { name: 'ชุดดุษฎีบัณฑิต', desc: "ชุดพิธีจากครูและช่างเมือง · ได้ฟรีเมื่อจบปริญญาเอกสี่ภาษา" },
 }
 export const gradSkin = (id) => (GRAD_SKINS[id] ? { id, type: 'skin', ...GRAD_SKINS[id], desc: `${GRAD_SKINS[id].desc} · ใส่เท่ ๆ ไม่มีโบนัส`, hue: 0, art: true, sheet: id, grad: true } : null)
 /** any free outfit (birthday or graduation) by id */

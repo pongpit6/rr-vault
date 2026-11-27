@@ -114,4 +114,4 @@ export function pairScore(m, q, birthP) {
   return Math.round(s * 10) / 10
 }
 export const scoreColor = (s) => (s >= 2 ? '#16a34a' : s >= 1 ? '#0ea5e9' : s > -0.5 ? '#94a3b8' : s > -1.5 ? '#f97316' : '#dc2626')
-export const scoreText = (s) => (s >= 2 ? 'ดีมาก' : s >= 1 ? 'ดี' : s > -0.5 ? 'กลาง ๆ' : s > -1.5 ? 'ระวัง' : 'หนัก')
+export const scoreText = (s) => (s >= 2 ? 'ดีมาก' : s >= 1 ? 'ดี' : s > -0.5 ? 'กลาง ๆ' : s > -1.5 ? 'ระวัง' : "ควรใส่ใจมาก")

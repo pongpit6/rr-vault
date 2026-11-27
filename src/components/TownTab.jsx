@@ -213,7 +213,7 @@ export default function TownTab({ rpg }) {
             </button>
           ))}
         </div>
-        <div className="text-[11px] text-slate-500 mt-2">ที่ดินเพิ่มเมื่อขยายศาลากลาง และเมื่อเดินทางถึงดินแดนใหม่ (มูลค่าสุทธิเพิ่ม)</div>
+        <div className="text-[11px] text-slate-500 mt-2">เมืองตั้งอยู่ในหุบเขาตอนใต้ ทางเกวียนตะวันออกออกสู่ทุ่ง · ที่ดินเพิ่มเมื่อขยายศาลากลางและเมื่อระดับดินแดนสูงขึ้นตามมูลค่าสุทธิ</div>
       </Section>
 
       <Section icon={Users} title={`NPC · ชาวเมือง (${T.npcs.length}/${T.npcSlots})`}>

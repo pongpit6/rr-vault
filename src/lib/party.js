@@ -9,9 +9,9 @@ import { money, round2, todayISO } from './format'
 /* ---------------- party ---------------- */
 export const MEMBERS = [
   { id: 'knight', name: 'ฮีโร่', role: 'นักผจญภัย · ตัวคุณเอง', sprite: 'hero', color: '#10b981', area: 'วินัยการบันทึก + ชำระหนี้', join: 'อยู่กับคุณตั้งแต่วันแรก' },
-  { id: 'healer', name: 'ลูน่า', role: 'นักบวช', sprite: 'healer', color: '#14b8a6', area: 'เงินกันจ่ายหนี้ + เงินสำรอง', join: 'กันเงินจ่ายหนี้ให้ครบ 100%' },
-  { id: 'mage', name: 'ไพร์', role: 'นักเวท', sprite: 'mage', color: '#3b82f6', area: 'การลงทุน', join: 'ส่งเงินเข้าลงทุนครั้งแรก (เช่น เติม Bitkub)' },
-  { id: 'ranger', name: 'ฟิน', role: 'นักธนู', sprite: 'ranger', color: '#65a30d', area: 'วินัย + การออม', join: 'บันทึกต่อเนื่อง 7 วัน หรือมีเดือนที่ออมได้ 20%' },
+  { id: 'healer', name: 'ลูน่า', role: "นักบวชจากค่ายพักภูเขาหิมะ", sprite: 'healer', color: '#14b8a6', area: 'เงินกันจ่ายหนี้ + เงินสำรอง', join: 'กันเงินจ่ายหนี้ให้ครบ 100%' },
+  { id: 'mage', name: 'ไพร์', role: "นักเวทผู้ศึกษาผลึกส่งข่าว", sprite: 'mage', color: '#3b82f6', area: 'การลงทุน', join: 'ส่งเงินเข้าลงทุนครั้งแรก (เช่น เติม Bitkub)' },
+  { id: 'ranger', name: 'ฟิน', role: "นักธนูผู้รู้ทางชายป่า", sprite: 'ranger', color: '#65a30d', area: 'วินัย + การออม', join: 'บันทึกต่อเนื่อง 7 วัน หรือมีเดือนที่ออมได้ 20%' },
 ]
 export const memberById = Object.fromEntries(MEMBERS.map((m) => [m.id, m]))
 
@@ -55,19 +55,19 @@ export const SKILLS = [
 
 /* ---------------- shop ---------------- */
 export const SHOP = [
-  { id: 'pet_owl', type: 'pet', name: 'นกฮูกหิมะ', desc: 'นกฮูกที่จำทางกลับเมืองได้ · สัตว์เลี้ยงเดินตามปาร์ตี้', price: 60, sprite: 'pet_owl' },
-  { id: 'pet_drake', type: 'pet', name: 'มังกรน้อยทองคำ', desc: 'มังกรน้อยชอบประกาย แต่ยอมทิ้งของเพื่อเดินตามเพื่อน · สัตว์เลี้ยงหายาก', price: 150, sprite: 'pet_drake' },
-  { id: 'pet_cat', type: 'pet', name: 'แมวส้มขี้อ้อน', desc: 'แมวที่เลือกตักอุ่นมากกว่าหีบทอง · สัตว์เลี้ยงโตได้ 3 ร่าง', price: 60, sprite: 'pet_cat' },
-  { id: 'pet_bunny', type: 'pet', name: 'กระต่ายหิมะ', desc: 'กระต่ายที่คุ้นกับหลักพักบนเขา · สัตว์เลี้ยงโตได้ 3 ร่าง', price: 60, sprite: 'pet_bunny' },
-  { id: 'pet_turtle', type: 'pet', name: 'เต่าเหรียญทอง', desc: 'เต่าที่ค่อย ๆ เดินกลับจุดนัดพบ ไม่เคยยอมให้เหรียญบนหลังหนักเกินไป', price: 90, sprite: 'pet_turtle' },
-  { id: 'pet_piggy', type: 'pet', name: 'หมูออมสิน', desc: 'หมูที่ชอบเสียงหยอดกระปุกมากกว่าขนาดของเหรียญ · โตตามความสม่ำเสมอ', price: 90, sprite: 'pet_piggy' },
-  { id: 'pet_phoenix', type: 'pet', name: 'ฟีนิกซ์เพลิงทอง', desc: 'นกเพลิงที่ยังจำทางกลับบ้านหลังเกิดใหม่ · สัตว์เลี้ยงตำนาน', price: 250, sprite: 'pet_phoenix' },
+  { id: 'pet_owl', type: 'pet', name: 'นกฮูกหิมะ', desc: "ลูกนกจากค่ายพักภูเขาหิมะ คุ้นแสงตะเกียงคน · สัตว์เลี้ยงเดินตามปาร์ตี้", price: 60, sprite: 'pet_owl' },
+  { id: 'pet_drake', type: 'pet', name: 'มังกรน้อยทองคำ', desc: "มังกรน้อยจากสายพันธุ์ผู้เฝ้าแร่ ชอบนอนข้างเตาช่างเมือง · สัตว์เลี้ยงหายาก", price: 150, sprite: 'pet_drake' },
+  { id: 'pet_cat', type: 'pet', name: 'แมวส้มขี้อ้อน', desc: "แมวประจำโรงเตี๊ยม ชอบหลับในกระเป๋าคาราวาน · สัตว์เลี้ยงโตได้ 3 ร่าง", price: 60, sprite: 'pet_cat' },
+  { id: 'pet_bunny', type: 'pet', name: 'กระต่ายหิมะ', desc: "กระต่ายจากค่ายเยติ จำลายปมเชือกของคนเลี้ยงได้ · สัตว์เลี้ยงโตได้ 3 ร่าง", price: 60, sprite: 'pet_bunny' },
+  { id: 'pet_turtle', type: 'pet', name: 'เต่าเหรียญทอง', desc: "เต่าที่พ่อค้าพบข้างโอเอซิส เหรียญบนกระดองเป็นของฝากจากคาราวานที่เคยร่วมทาง", price: 90, sprite: 'pet_turtle' },
+  { id: 'pet_piggy', type: 'pet', name: 'หมูออมสิน', desc: "หมูเลี้ยงจากฟาร์มเมือง ชอบคาบเหรียญที่หล่นไปวางข้างกระปุก · โตตามความสม่ำเสมอ", price: 90, sprite: 'pet_piggy' },
+  { id: 'pet_phoenix', type: 'pet', name: 'ฟีนิกซ์เพลิงทอง', desc: "นกจากเผ่าที่ผลัดขนเหนือปล่องภูเขาไฟ คุ้นเพลงค้อนของช่างเมือง · สัตว์เลี้ยงตำนาน", price: 250, sprite: 'pet_phoenix' },
   ...[
     ['skin_royal', 'ชุดเกราะม่วงราชา', 80], ['skin_flame', 'ชุดเกราะกุหลาบ', 80], ['skin_ninja', 'ชุดนินจาเงา', 90], ['skin_ranger', 'ชุดพรานป่า', 90],
     ['skin_samurai', 'ชุดซามูไรแดง', 110], ['skin_scholar', 'ชุดนักปราชญ์', 110], ['skin_pirate', 'ชุดกัปตันโจรสลัด', 110], ['skin_thai', 'ชุดนักรบไทย', 100],
     ['skin_paladin', 'ชุดอัศวินทองคำ', 130], ['skin_dark', 'ชุดอัศวินรัตติกาล', 130], ['skin_nomad', 'ชุดนักเดินทางทะเลทราย', 100], ['skin_aviator', 'ชุดนักบินสตีมพังก์', 120],
     ['skin_arctic', 'ชุดนักสำรวจขั้วโลก', 120], ['skin_hood', 'ชุดนักฆ่าฮู้ดดำ', 120], ['skin_alchemist', 'ชุดนักเล่นแร่แปรธาตุ', 110], ['skin_hunter', 'ชุดนายพรานขนสัตว์', 100],
-  ].map(([id, name, price]) => ({ id, type: 'skin', name, desc: `${SKIN_PERK[id].text} · ติดตัวถาวรเมื่อซื้อ`, price, art: true })),
+  ].map(([id, name, price]) => ({ id, type: 'skin', name, desc: `${SKIN_PERK[id].text} · ติดตัวถาวรเมื่อซื้อ · งานช่างตัดเสื้อจากแบบผู้เดินทางต่างถิ่น`, price, art: true })),
 ]
 export const PET_DEFAULT = { id: 'pet_fox', name: 'จิ้งจอกมิ้นต์', sprite: 'pet_fox' }
 

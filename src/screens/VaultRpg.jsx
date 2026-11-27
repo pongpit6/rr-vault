@@ -305,7 +305,7 @@ function ShopTab({ rpg }) {
     <div className="space-y-3">
       <section className="px-card p-3.5 flex items-center gap-3">
         <Portrait sprite="npc_merchant" size={48} />
-        <div className="flex-1 text-sm"><b>พ่อค้าประจำหมู่บ้าน:</b> “ของที่นี่ขายเป็น FIAT นะ ราคาขึ้นทุกเดือนตามเงินเฟ้อ ซื้อตอนนี้คุ้มกว่า!”{rpg.town.shopDiscount ? ` · ตลาดนัดลดให้ ${rpg.town.shopDiscount}%` : ''}</div>
+        <div className="flex-1 text-sm"><b>พ่อค้าประจำหมู่บ้าน:</b> “ของจากคาราวานขายเป็น FIAT นะ ราคาเพิ่มตามเงินเฟ้อของเมืองจนถึงเพดาน ดูของที่ใช้กับแผนเดินทางก่อนเลือกได้เลย”{rpg.town.shopDiscount ? ` · ตลาดนัดลดให้ ${rpg.town.shopDiscount}%` : ''}</div>
         <div className="flex flex-col gap-1 shrink-0"><Wallet rpg={rpg} /></div>
       </section>
       {types.map(([type, label]) => (
@@ -355,7 +355,7 @@ function MapTab({ rpg, onPreview, privacy }) {
                   <div className="text-xs text-slate-500">{Number.isFinite(r.min) ? `มูลค่าสุทธิ ${money(r.min, { decimals: false })} ขึ้นไป` : 'มูลค่าสุทธิติดลบ'}{here && ' · คุณอยู่ที่นี่'}</div>
                   <div className="text-xs text-slate-600 mt-1">{REALM_INFO[r.tier]}</div>
                   {!reached && (
-                    <div className="mt-2"><Bar pct={pct} /><div className="text-[11px] text-slate-500 mt-1">อีก {privacy ? '฿•••' : money(r.min - net, { decimals: false })} จะเดินทางถึง</div></div>
+                    <div className="mt-2"><Bar pct={pct} /><div className="text-[11px] text-slate-500 mt-1">อีก {privacy ? '฿•••' : money(r.min - net, { decimals: false })} จะถึงระดับดินแดนนี้</div></div>
                   )}
                 </div>
               </div>
