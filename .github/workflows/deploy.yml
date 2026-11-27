@@ -5,6 +5,7 @@ on:
   workflow_dispatch:
 permissions:
   contents: read
+  actions: read
   pages: write
   id-token: write
 concurrency:
@@ -27,6 +28,32 @@ jobs:
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
+          name: github-pages-${{ github.run_id }}-${{ github.run_attempt }}
           path: dist
+      - name: Wait for Pages artifact metadata
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ARTIFACT_NAME: github-pages-${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          pages_ready=0
+          for attempt in $(seq 1 12); do
+            artifact_count=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/artifacts?per_page=100" \
+              --jq "[.artifacts[] | select(.name == \"$ARTIFACT_NAME\" and .expired == false)] | length") || artifact_count=0
+            if [ "$artifact_count" -gt 1 ]; then
+              echo "::error::More than one Pages artifact exists for this attempt"
+              exit 1
+            fi
+            if [ "$artifact_count" -eq 1 ]; then
+              pages_ready=$((pages_ready + 1))
+              if [ "$pages_ready" -ge 2 ]; then exit 0; fi
+            else
+              pages_ready=0
+            fi
+            sleep 5
+          done
+          echo "::error::Pages artifact metadata did not become ready"
+          exit 1
       - id: deployment
         uses: actions/deploy-pages@v4
+        with:
+          artifact_name: github-pages-${{ github.run_id }}-${{ github.run_attempt }}
