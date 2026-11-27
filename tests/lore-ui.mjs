@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { chromium } from 'playwright'
+const { chromium } = await import(process.env.LORE_PLAYWRIGHT_MODULE || 'playwright')
 import { mkdir } from 'node:fs/promises'
 
 const browser = await chromium.launch({ headless: true })
