@@ -95,7 +95,7 @@ function DaySheet({ N, ymd, onClose }) {
         <div className="flex items-center gap-3"><Stem s={c % 10} size={34} /><Branch b={c % 12} size={34} /><PxIcon name={ZODIAC_ICON[c % 12]} size={32} />
           <div className="flex-1"><div className="text-xs text-slate-500">วัน{EL[stemEl(c % 10)]}{STEM_TH[c % 10].slice(-4)} · {ZODIAC[c % 12]}</div><Chip lvl={r.lvl} /></div></div>
         {eventsOf(N, c, 'วัน').map((e, i) => <EventBox key={i} e={e} />)}
-        <div className="px-inner p-3 text-xs"><b>{GOD[r.god]} ({GOD_TH[r.god]}):</b> {GOD_TEXT[r.god].period}</div>
+        <div className="px-inner p-3 text-xs leading-relaxed whitespace-pre-line"><b>{GOD[r.god]} ({GOD_TH[r.god]}):</b> {GOD_TEXT[r.god].period}</div>
         <Why r={r} />
         <div className="font-semibold text-xs pt-1">ยามทั้ง 24 ชั่วโมง (ยามละ 2 ชั่วโมง · แตะเพื่อดูเหตุผล)</div>
         <div className="space-y-1">{hrs.map((h) => (
@@ -118,7 +118,7 @@ function RateSheet({ N, item, onClose }) {
       <div className="space-y-3 text-sm">
         <div className="flex items-center gap-3"><Stem s={item.c % 10} size={34} /><Branch b={item.c % 12} size={34} /><PxIcon name={ZODIAC_ICON[item.c % 12]} size={32} /><div className="flex-1 text-xs text-slate-500">{item.sub}</div><Chip lvl={item.r.lvl} /></div>
         {eventsOf(N, item.c, item.what || 'ปี').map((e, i) => <EventBox key={i} e={e} />)}
-        <div className="px-inner p-3 text-xs"><b>{GOD[item.r.god]} ({GOD_TH[item.r.god]}):</b> {GOD_TEXT[item.r.god].period}</div>
+        <div className="px-inner p-3 text-xs leading-relaxed whitespace-pre-line"><b>{GOD[item.r.god]} ({GOD_TH[item.r.god]}):</b> {GOD_TEXT[item.r.god].period}</div>
         <Why r={item.r} />
       </div>
     </Sheet>
@@ -171,7 +171,7 @@ export default function BaziTab({ birth, onEdit }) {
 
       <section className="px-card p-4 space-y-3" data-testid="bazi-read">
         <div className="flex items-center gap-2"><Stem s={N.dm} size={30} /><b className="text-sm">ดิถีของคุณ: {STEMS[N.dm]} {STEM_TH[N.dm]}</b></div>
-        <div className="text-sm">{DM_TEXT[N.dm]}</div>
+        <div className="text-sm leading-relaxed whitespace-pre-line">{DM_TEXT[N.dm]}</div>
         <div className="px-inner p-3 text-xs space-y-1">
           <div className="flex items-center gap-2"><b>กำลัง<T k="ดิถี" />:</b> {N.strength === 'strong' ? 'แข็ง' : N.strength === 'weak' ? 'อ่อน' : 'ค่อนข้างกลาง'} <span className="text-slate-400">(คะแนนตามสูตร {N.score})</span><button className="ui-link ml-auto" onClick={() => setShowEv(!showEv)}>{showEv ? 'ซ่อนเหตุผล' : 'ดูเหตุผล'}</button></div>
           <div>{STRENGTH_TEXT[N.strength]}</div>
@@ -216,7 +216,7 @@ export default function BaziTab({ birth, onEdit }) {
       <section className="px-card p-4 space-y-2" data-testid="bazi-today">
         <div className="flex items-center gap-2"><PxIcon name="Sun" size={20} /><b className="text-sm">วันนี้กับยามนี้</b></div>
         <button onClick={() => setDay([np.y, np.m, np.d])} className="w-full px-inner p-2 flex items-center gap-2 text-left text-xs">
-          <Stem s={todayC % 10} size={22} /><Branch b={todayC % 12} size={22} /><PxIcon name={ZODIAC_ICON[todayC % 12]} size={24} /><span className="flex-1">วันนี้ · {GOD_TH[todayR.god]}<div className="text-slate-500">{GOD_TEXT[todayR.god].period}</div></span><Chip lvl={todayR.lvl} />
+          <Stem s={todayC % 10} size={22} /><Branch b={todayC % 12} size={22} /><PxIcon name={ZODIAC_ICON[todayC % 12]} size={24} /><span className="flex-1">วันนี้ · {GOD_TH[todayR.god]}<div className="text-slate-500 whitespace-pre-line leading-relaxed">{GOD_TEXT[todayR.god].period}</div></span><Chip lvl={todayR.lvl} />
         </button>
         {hourNow && <button onClick={() => setDay([np.y, np.m, np.d])} className="w-full px-inner p-2 flex items-center gap-2 text-left text-xs" data-testid="hour-now">
           <Stem s={hourNow.c % 10} size={22} /><Branch b={hourNow.c % 12} size={22} /><PxIcon name={ZODIAC_ICON[hourNow.c % 12]} size={24} /><span className="flex-1">ยามนี้ {hourNow.label} · {GOD_TH[hourNow.god]}</span><Chip lvl={hourNow.lvl} />

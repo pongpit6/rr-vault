@@ -43,6 +43,9 @@ for (const width of [320, 390, 768, 1280]) {
       await page.getByTestId('bazi-luck').scrollIntoViewIfNeeded()
       await page.screenshot({ path: `test-results/bazi-luck-${width}.png` })
       await page.getByTestId('cal-1').click()
+      const dayReading = page.locator('.ui-sheet .whitespace-pre-line').first()
+      check(await dayReading.textContent().then(text => ['ความหมาย:', 'ลองนำไปใช้:', 'ระวัง:'].every(label => text.includes(label))), 'day reading includes meaning, action and caution')
+      check(await dayReading.evaluate(el => getComputedStyle(el).whiteSpace === 'pre-line'), 'day reading keeps paragraph breaks')
       const summary = page.getByTestId('hour-0').locator('summary')
       await summary.click()
       check(await page.getByTestId('hour-0').getAttribute('open') !== null, 'hour reading opens')
@@ -55,6 +58,9 @@ for (const width of [320, 390, 768, 1280]) {
   await fits()
 
   await load('taksa')
+  const pairReading = page.getByTestId('taksa-tab').locator('.px-inner.whitespace-pre-line').first()
+  check(await pairReading.textContent().then(text => ['ความหมาย:', 'ลองนำไปใช้:', 'ระวัง:'].every(label => text.includes(label))), 'main/sub-period explanation is complete')
+  check(await pairReading.evaluate(el => getComputedStyle(el).whiteSpace === 'pre-line' && Number(getComputedStyle(el).fontWeight) < 600), 'pair reading is spaced and not an all-bold paragraph')
   for (const text of await page.locator('[data-testid="taksa-c10"] svg text').all()) {
     check(await text.evaluate(el => el.getBBox().x >= -1), `chart axis label clipped at ${width}`)
   }
