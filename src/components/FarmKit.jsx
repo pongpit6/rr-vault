@@ -581,7 +581,7 @@ export function ShadowCard({ rpg }) {
   const f = rpg.farm, worn = f.shadowWorn || [], own = f.shadows || {}
   return (
     <Card icon={Ghost} title="SHADOW ARMY · ทหารเงา" testid="shadow-army" right={<span className="text-[11px]">ออกรบ {worn.length}/{rpg.shadowSlots}</span>}>
-      <div className="text-[11px] text-slate-500 mb-2">ตัวคุณในชุดฮีโร่ต่าง ๆ พร้อมออร่าเงา ช่วยบัพและออกโจมตีในการล่า · ช่องเปิดที่เลเวล {SHADOW_SLOT_LV.join(' / ')} · ซื้อด้วย GOLD + FIAT (ทหารเงาประจำภาษาได้ฟรีจากปริญญาตรีในหลักสูตรภาษา)</div>
+      <div className="text-[11px] text-slate-500 mb-2">ทหารเงาคือร่างเงาของฮีโร่ที่ใช้ชุดและท่าจากบันทึกวิชาของกิลด์ บางแบบมาจากผู้เดินทาง บางแบบมาจากนิทานในห้องสมุด ร่วมช่วยบัพและโจมตีในการล่า · ช่องเปิดที่เลเวล {SHADOW_SLOT_LV.join(' / ')} · ซื้อด้วย GOLD + FIAT (ทหารเงาประจำภาษาได้ฟรีจากปริญญาตรีในหลักสูตรภาษา)</div>
       <ItemGrid testid="shadow-grid" perPage={8} items={SHADOWS.map((x) => {
         const has = !!own[x.id], on = worn.includes(x.id)
         return { id: x.id, x, has, on, owned: has, testid: `shadow-${x.id}`, name: x.name,

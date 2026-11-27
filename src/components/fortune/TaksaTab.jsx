@@ -23,7 +23,7 @@ function PairSheet({ pair, onClose, birthP }) {
       <div className="space-y-3 text-sm" data-testid="pair-sheet">
         <div className="flex flex-wrap items-center gap-2"><Pl p={m} size={32} /><span className="text-slate-400">→</span><Pl p={q} size={32} /><Tone m={m} q={q} /><span className="ml-auto text-xs font-bold" style={{ color: scoreColor(pairScore(m, q, birthP)) }}>คะแนนตามสูตร {pairScore(m, q, birthP) > 0 ? '+' : ''}{pairScore(m, q, birthP)} · {scoreText(pairScore(m, q, birthP))}</span></div>
         <div className="text-xs text-slate-500">{thDT(start)} – {thDT(end)} · ระยะตามสูตร {sy.y ? `${sy.y} ปี ` : ''}{sy.m ? `${sy.m} เดือน ` : ''}{sy.d ? `${sy.d} วัน ` : ''}{sy.h ? `${sy.h} ชม.` : ''} ({POWER[m]}×{POWER[q]}÷108 ปีโหร)</div>
-        <div className="px-inner p-3 font-semibold">{PAIR_TEXT[m][q]}</div>
+        <div className="px-inner p-3 leading-relaxed whitespace-pre-line">{PAIR_TEXT[m][q]}</div>
         <div className="grid gap-2">
           {[['Briefcase', 'งาน', 'work'], ['Coins', 'เงิน', 'money'], ['HeartPulse', 'ความรัก', 'love']].map(([ic, t, k]) => (
             <div key={k} className="flex gap-2 items-start"><PxIcon name={ic} size={18} className="mt-0.5" /><div><span className="text-[11px] text-slate-500">{t}</span><div>{SUB_FOCUS[q][k]}</div></div></div>))}
@@ -74,7 +74,7 @@ export default function TaksaTab({ birth, onEdit }) {
             <div className="mt-1"><Tone m={at.main.planet} q={at.sub.planet} /></div>
           </div>
         </button>
-        <div className="px-inner p-3 text-sm font-semibold">{PAIR_TEXT[at.main.planet][at.sub.planet]}</div>
+        <div className="px-inner p-3 text-sm leading-relaxed whitespace-pre-line">{PAIR_TEXT[at.main.planet][at.sub.planet]}</div>
         <div className="grid grid-cols-2 gap-2 text-xs">
           <div className="px-inner p-2"><div className="text-slate-500">ดาวเสวย {PLANET[at.main.planet].name} ({POWER[at.main.planet]} ปี)</div><b>{thDT(at.main.start, false)} – {thDT(at.main.end, false)}</b><div className="text-slate-500">อายุ {at.main.ageFrom}–{at.main.ageTo} ปี</div></div>
           <div className="px-inner p-2"><div className="text-slate-500">ดาวแทรก {PLANET[at.sub.planet].name}</div><b>{thDT(at.sub.start)} – {thDT(at.sub.end)}</b><div className="text-slate-500">ถัดไป {PLANET[at.next.planet].name}แทรก ในอีก {left(at.sub.end)}</div></div>

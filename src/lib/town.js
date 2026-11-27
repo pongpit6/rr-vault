@@ -43,16 +43,16 @@ export const HALL = { name: 'ศาลากลาง', emoji: '🏛️', cost: 
 /* NPCs: a one-time hiring price, then a small daily wage paid when the town income is collected.
    If FIAT runs short the wage is simply skipped — NPCs keep working, nothing is lost. */
 export const NPCS = [
-  { id: 'guard', sprite: 'npc_guard', name: 'ทหารยาม', cost: [300, 0], wage: 6, perk: { happy: 12 }, perkText: 'ความสุข +12', line: "ข้าเคยฝึกเวรที่สถานีเหนือ เดี๋ยวนี้เฝ้าประตูเมืองฝั่งทุ่ง ถ้าได้ยินระฆังแต่ไม่เห็นข้าดึงเชือก อย่าเพิ่งคิดว่าเป็นสัญญาณจากกำแพง" },
-  { id: 'fisher', sprite: 'npc_fisher', name: 'ชาวประมง', cost: [350, 0], wage: 8, perk: { fiat: 35, happy: 3 }, perkText: '+35 FIAT/วัน · ความสุข +3', line: "ข้าถ่อเรือจากท่าเมืองขึ้นไปหนองบ่อย ผู้เฒ่ากิ้งก่าสอนข้าอ่านหลักน้ำ พักนี้หลักย้ายเอง ข้าเลยต้องฟังเสียงกบก่อนออกเรือด้วย" },
-  { id: 'baker', sprite: 'npc_baker', name: 'คนทำขนมปัง', cost: [400, 0], wage: 10, perk: { fiat: 45 }, perkText: '+45 FIAT/วัน', line: "แป้งมาจากทุ่งตะวันออก น้ำผึ้งมาจากรังชายป่า สูตรข้ารับจากคาราวานทะเลทราย อย่าฝากถาดไว้ริมคูเชียว เป็ดแถวนั้นรู้เวลาขนมสุกดีกว่าข้าอีก" },
-  { id: 'bard', sprite: 'npc_bard', name: 'นักกวีพเนจร', cost: [500, 0], wage: 8, perk: { happy: 18 }, perkText: 'ความสุข +18', line: "♪ ข้าเดินตามคาราวานมาครบหลายถิ่น เพลงกบทุ่งไม่มีท่อนเหมือนเพลงช่างหลอม แต่พักนี้ทั้งสองเพลงกลับสะดุดตรงจังหวะเดียวกัน ♪" },
-  { id: 'smith', sprite: 'npc_smith', name: 'ช่างตีเหล็ก', cost: [0, 6], wage: 15, perk: { discount: 15 }, perkText: 'ค่าก่อสร้าง FIAT −15%', line: "ข้าสืบวิชาจากช่างเอฟรีทที่หล่อระฆังทั้งแปด รอยตราบนเหล็กดำข้าจำได้ แต่ทำไมเสียงมันกลับมา ทั้งที่เหมืองปิดไปแล้ว" },
-  { id: 'banker', sprite: 'npc_banker', name: 'นักเวทนายธนาคาร', cost: [0, 10], wage: 20, perk: { bankBoost: 100 }, perkText: 'เพดานดอกเบี้ยธนาคาร ×2', line: "คลังเมืองเก็บทั้งเหรียญและสำเนาสัญญาคาราวาน ถ้าพ่อค้าบอกว่าค่าผ่านป่ายังถูกต้อง ขอให้เขาอ่านวันที่ด้านหลังตราด่านให้จบด้วย" },
+  { id: 'guard', sprite: 'npc_guard', name: 'ทหารยาม', cost: [300, 0], wage: 6, perk: { happy: 12 }, perkText: 'ความสุข +12', line: "ก่อนออกประตูดูว่าพกของครบหรือยัง ข้าจดเวลาขบวนไว้ให้ ถ้ากลับค่ำจะได้รู้ว่าควรเฝ้าดูทางไหน" },
+  { id: 'fisher', sprite: 'npc_fisher', name: 'ชาวประมง', cost: [350, 0], wage: 8, perk: { fiat: 35, happy: 3 }, perkText: '+35 FIAT/วัน · ความสุข +3', line: "ข้าถ่อเรือขึ้นหนองบ่อย แต่ทุกครั้งยังต้องดูหลักหิน น้ำหลากคืนเดียวก็เปลี่ยนทางที่คุ้นได้แล้ว" },
+  { id: 'baker', sprite: 'npc_baker', name: 'คนทำขนมปัง', cost: [400, 0], wage: 10, perk: { fiat: 45 }, perkText: '+45 FIAT/วัน', line: "แป้งมาจากทุ่ง น้ำผึ้งมาจากชายป่า ส่วนถาดที่ว่างเร็วผิดปกตินั่นฝีมือเป็ดริมคู ถ้าเห็นมันเดินเป็นแถวช่วยเรียกข้าที" },
+  { id: 'bard', sprite: 'npc_bard', name: 'นักกวีพเนจร', cost: [500, 0], wage: 8, perk: { happy: 18 }, perkText: 'ความสุข +18', line: "เล่าเรื่องระหว่างทางให้ฟังหน่อยสิ แล้วคนที่ช่วยอยู่ข้างหลังชื่ออะไร ข้าอยากให้เพลงมีชื่อเขาด้วย" },
+  { id: 'smith', sprite: 'npc_smith', name: 'ช่างตีเหล็ก', cost: [0, 6], wage: 15, perk: { discount: 15 }, perkText: 'ค่าก่อสร้าง FIAT −15%', line: "ลองจับด้ามดูก่อน ถ้ายังไม่ถนัดข้าจะปรับให้ ของที่ดีสำหรับมือคนหนึ่งอาจไม่พอดีกับอีกคน" },
+  { id: 'banker', sprite: 'npc_banker', name: 'นักเวทนายธนาคาร', cost: [0, 10], wage: 20, perk: { bankBoost: 100 }, perkText: 'เพดานดอกเบี้ยธนาคาร ×2', line: "ถ้ามีเรื่องบัญชีค้างอยู่เอามาเรียงบนโต๊ะได้ ข้าจะช่วยดูทีละรายการ เริ่มจากฉบับที่ลงวันที่ชัดที่สุดก่อน" },
 ]
 export const NPC_BY_ID = Object.fromEntries(NPCS.map((n) => [n.id, n]))
 // villagers who live in town for free
-export const RESIDENTS = [{ id: 'farmer', sprite: 'npc_farmer', name: 'ชาวนา', line: "ข้าเคยขนข้าวไปส่งคนงานเหมือง วันปิดงานข้าเอาระฆังกลับมาแขวนในยุ้งฉางเอง แต่เมื่อคืนเสียงแบบเดียวกันกลับดังจากใต้แปลงตะวันออก" }, { id: 'merchant', sprite: 'npc_merchant', name: 'พ่อค้า', line: "แผงข้าอยู่ข้างทางเกวียน ของจากป่ากับคาราวานทะเลทรายผ่านมือข้าทั้งนั้น ดูฟรีนะ แต่ถ้ามีอีกาเกาะถุงเหรียญ ช่วยเรียกข้าก่อนมันเลือกของหมั้น" }]
+export const RESIDENTS = [{ id: 'farmer', sprite: 'npc_farmer', name: 'ชาวนา', line: "จะออกไปทุ่งหรือ ดูกังหันข้างแปลงข้าเป็นหลักนะ ส่วนถ้าเจอสไลม์เฝ้าเมล็ดให้เว้นที่มันหน่อย ช่วงนี้กำลังเลี้ยงลูก" }, { id: 'merchant', sprite: 'npc_merchant', name: 'พ่อค้า', line: "แวะดูหรือแวะคุยก็ได้ ข้าเพิ่งได้ข่าวจากคาราวานมาอีกเรื่อง แต่ช่วยดูถุงเหรียญให้ที อีกาแถวนี้ชอบของแวววาว" }]
 
 // every decoration also shows up in the battle scene (flowers, lanterns, banner); price per happiness point stays ~30 FIAT
 export const DECOR = [

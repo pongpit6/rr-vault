@@ -20,7 +20,7 @@ export default function IslandAtlas() {
   return (
     <details className="px-card p-3 mb-3" data-testid="island-atlas">
       <PixelSummary className="py-1 text-sm font-bold">ภูมิศาสตร์และเรื่องราวของเกาะ</PixelSummary>
-      <p className="text-xs leading-relaxed text-slate-500 my-2">หมู่บ้านในหุบเขาเป็นจุดเริ่มของเส้นทางเกวียน ธารน้ำ และเรื่องจากแต่ละชุมชน แตะสถานที่เพื่ออ่านที่ตั้งและประวัติ</p>
+      <p className="text-xs leading-relaxed text-slate-500 my-2">เริ่มจากหมู่บ้านในหุบเขาทางใต้ แล้วตามทางเกวียนไปยังทุ่งและป่าทางตะวันออก เหมืองที่ปิดไปทำให้ข่าวจากถิ่นไกลขาดช่วง แตะสถานที่เพื่ออ่านว่าตั้งอยู่ตรงไหนและเกี่ยวข้องกับชุมชนอื่นอย่างไร</p>
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
         {PLACES.map((place) => (
           <button type="button" key={place.id} onClick={() => setSelected(place)} className="px-inner p-2 text-left min-w-0" data-testid={'atlas-' + place.id}>
