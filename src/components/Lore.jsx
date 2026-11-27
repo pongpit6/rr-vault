@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Sheet } from './ui'
 import { loreOf } from '../lib/worldLore'
+import PixelSummary from './PixelSummary'
 
 /** Compact optional reading inside existing details. */
 export function LoreBlock({ category, id, title = 'เรื่องราว', defaultOpen = false }) {
@@ -8,7 +9,7 @@ export function LoreBlock({ category, id, title = 'เรื่องราว',
   if (!text) return null
   return (
     <details key={category + ':' + id} open={defaultOpen || undefined} className="px-inner mt-2 p-3 text-left min-w-0" data-testid={'lore-' + category + '-' + id}>
-      <summary className="cursor-pointer text-xs font-semibold text-teal-700 py-1">{title}</summary>
+      <PixelSummary className="text-xs font-semibold text-teal-700 py-1">{title}</PixelSummary>
       <p className="mt-2 text-sm leading-relaxed text-slate-600 break-words whitespace-pre-line">{text}</p>
     </details>
   )

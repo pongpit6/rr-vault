@@ -23,7 +23,10 @@ for (const width of sizes) {
     if (width === 390) await page.evaluate(() => { document.documentElement.dataset.theme = 'pixel-night' })
   }
   const quiet = async () => check(await page.evaluate(() => window.__mutations) === 0, 'reading changed gameplay at ' + width)
-  const fits = async () => check(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'horizontal overflow at ' + width)
+  const fits = async () => {
+    check(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'horizontal overflow at ' + width)
+    check(await page.locator('.px-disclosure-content').evaluateAll(labels => labels.every(el => !el.clientWidth || el.scrollWidth <= el.clientWidth + 1)), 'disclosure text exceeds its frame at ' + width)
+  }
   const close = async () => { await page.keyboard.press('Escape'); await page.locator('.ui-sheet').waitFor({ state: 'detached' }) }
 
   await load('catalog')

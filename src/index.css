@@ -109,6 +109,14 @@ input[type=range].slider::-moz-range-thumb { width: 18px; height: 18px; border-r
 .px-chip { display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; border: 2px solid #1e293b; background: #fff; font-size: 12px; font-weight: 600; }
 .px-btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 12px; background: #fb7185; color: #fff; font-weight: 700; font-size: 13px; border: 2px solid #1e293b; box-shadow: 0 3px 0 #9f1239; transition: transform .08s; }
 .px-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 #9f1239; }
+.px-disclosure { display: flex; align-items: center; gap: 8px; min-width: 0; min-height: 40px; cursor: pointer; list-style: none; }
+.px-disclosure::-webkit-details-marker { display: none; }
+.px-disclosure::marker { content: ''; }
+.px-disclosure:focus-visible { outline: 2px solid #7c3aed; outline-offset: 3px; }
+.px-disclosure > .px-disclosure-icon { flex: 0 0 32px; width: 32px; height: 26px; padding: 0; justify-content: center; color: #fff; }
+.px-disclosure-icon > span { display: block; width: 10px; height: 12px; background: currentColor; clip-path: polygon(0 0, 100% 50%, 0 100%); }
+details[open] > .px-disclosure > .px-disclosure-icon > span { transform: rotate(90deg); }
+.px-disclosure-content { flex: 1; min-width: 0; overflow-wrap: anywhere; }
 .px-avatar { padding: 3px; background: #1e293b; }
 .px-avatar > div { border-radius: 0 !important; }
 .px-avatar img { border-radius: 0 !important; border: 0 !important; image-rendering: auto; }
