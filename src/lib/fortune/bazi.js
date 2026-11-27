@@ -203,9 +203,9 @@ export function natal(birth) {
 
 /* ---------- rating a day / hour / year / luck pillar against the chart ---------- */
 export const RATE = [
-  { th: 'ร้าย', color: '#dc2626' }, { th: 'ระวัง', color: '#f97316' }, { th: 'กลาง ๆ', color: '#94a3b8' }, { th: 'ดี', color: '#0ea5e9' }, { th: 'ดีมาก', color: '#16a34a' },
+  { th: "ควรใส่ใจมาก", color: '#dc2626' }, { th: 'ระวัง', color: '#f97316' }, { th: 'กลาง ๆ', color: '#94a3b8' }, { th: 'ดี', color: '#0ea5e9' }, { th: 'ดีมาก', color: '#16a34a' },
 ]
-const elWord = (N, e) => (N.fav.includes(e) ? 'ธาตุที่ช่วยคุณ' : N.unfav.includes(e) ? 'ธาตุที่ทำร้ายคุณ' : 'ธาตุกลาง ๆ')
+const elWord = (N, e) => (N.fav.includes(e) ? 'ธาตุที่ช่วยคุณ' : N.unfav.includes(e) ? "ธาตุที่ควรระวังตามผังนี้" : 'ธาตุกลาง ๆ')
 /** score pillar c against the chart. ctx: extra branch (e.g. the day's branch when rating an hour) */
 export function rate(N, c, { against = null, label = '' } = {}) {
   const s = c % 10, b = c % 12, why = []

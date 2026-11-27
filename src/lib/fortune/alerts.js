@@ -24,14 +24,14 @@ export function fortuneAlerts(fortune, now = Date.now()) {
     }
   }
   const h = new Date(now + 7 * 3600e3).getUTCHours()
-  if (!fortune?.tarot?.[day] && h >= 7) out.push({ key: `tr:${day}`, title: 'ยังไม่ได้จั่วไพ่วันนี้', body: 'จั่วไพ่ที่เมนูดวงชะตา › ไพ่ยิปซี ไพ่ดีช่วยเพิ่มพลังการล่าทั้งวัน' })
+  if (!fortune?.tarot?.[day] && h >= 7) out.push({ key: `tr:${day}`, title: 'ยังไม่ได้จั่วไพ่วันนี้', body: "จั่วไพ่ที่เมนูดวงชะตา › ไพ่ยิปซี เพื่ออ่านธีมประจำวันและรับโบนัสการล่าตามใบที่จั่ว" })
   return out
 }
 
 /** the 06:00 morning push: today's day pillar and rating, the biggest events, the มหาทักษา sub period, and the tarot nudge */
 export function morningDigest(fortune, now = Date.now()) {
   const b = fortune?.birth
-  if (!b?.date) return { title: 'ดวงวันนี้', body: 'ใส่ข้อมูลเกิดในเมนูดวงชะตาเพื่อรับคำทำนายตอนเช้า แล้วอย่าลืมจั่วไพ่ประจำวัน' }
+  if (!b?.date) return { title: 'ดวงวันนี้', body: "ใส่ข้อมูลเกิดในเมนูดวงชะตาเพื่ออ่านธีมตามผังตอนเช้า และจั่วไพ่ประจำวันได้" }
   const d = new Date(now + 7 * 3600e3), y = d.getUTCFullYear(), m = d.getUTCMonth() + 1, dd = d.getUTCDate()
   const N = natal(b), c = dayIdx(y, m, dd), r = rate(N, c, { label: 'วัน' })
   const ev = eventsOf(N, c, 'วัน').filter((e) => e.rank >= 5)
