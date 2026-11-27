@@ -70,7 +70,7 @@ function PillarSheet({ N, p, onClose }) {
           <div className="px-inner p-3 text-center"><Stem s={p.s} size={40} /><div className="text-xs mt-1">{STEM_PIN[p.s]} · {STEM_TH[p.s]}</div><div className="text-[11px] text-slate-500">{isDay ? 'ดิถี (ตัวคุณ)' : `${GOD[p.god]} ${GOD_TH[p.god]}`}</div></div>
           <div className="px-inner p-3 text-center"><div className="flex justify-center items-center gap-1"><Branch b={p.b} size={40} /><PxIcon name={ZODIAC_ICON[p.b]} size={32} /></div><div className="text-xs mt-1">{BRANCH_PIN[p.b]} · ปี{ZODIAC[p.b]} · ธาตุ{EL[BRANCH_EL[p.b]]}</div></div>
         </div>
-        {isDay ? <div className="px-inner p-3 text-xs">{DM_TEXT[p.s]}</div> : <div className="px-inner p-3 text-xs"><b>{GOD[p.god]} ({GOD_TH[p.god]})</b> อยู่ที่{PALACE[p.key].th}: {GOD_TEXT[p.god].chart} ในด้าน{PALACE[p.key].text}</div>}
+        {isDay ? <div className="px-inner p-3 text-xs">{DM_TEXT[p.s]}</div> : <div className="px-inner p-3 text-xs"><b>{GOD_TH[p.god]} ({GOD[p.god]})</b> พูดถึง{GOD_TEXT[p.god].chart} {PALACE[p.key].text}</div>}
         <div className="text-xs space-y-1">
           <div><b>ธาตุแฝงในกิ่ง:</b> {p.hidden.map((h, i) => <span key={i} className="mr-2"><Stem s={h.s} size={14} /> {GOD[h.god]}{i === 0 ? ' (หลัก)' : ''}</span>)}</div>
           <div><b>น่าอิน:</b> {p.nayin.zh} ({p.nayin.th})</div>
@@ -95,7 +95,7 @@ function DaySheet({ N, ymd, onClose }) {
         <div className="flex items-center gap-3"><Stem s={c % 10} size={34} /><Branch b={c % 12} size={34} /><PxIcon name={ZODIAC_ICON[c % 12]} size={32} />
           <div className="flex-1"><div className="text-xs text-slate-500">วัน{EL[stemEl(c % 10)]}{STEM_TH[c % 10].slice(-4)} · {ZODIAC[c % 12]}</div><Chip lvl={r.lvl} /></div></div>
         {eventsOf(N, c, 'วัน').map((e, i) => <EventBox key={i} e={e} />)}
-        <div className="px-inner p-3 text-xs leading-relaxed whitespace-pre-line"><b>{GOD[r.god]} ({GOD_TH[r.god]}):</b> {GOD_TEXT[r.god].period}</div>
+        <div className="px-inner p-3 text-sm leading-relaxed whitespace-pre-line" data-testid="bazi-day-reading"><b className="block mb-1">คำอ่านรายวัน · {GOD_TH[r.god]}</b>{GOD_TEXT[r.god].period}</div>
         <Why r={r} />
         <div className="font-semibold text-xs pt-1">ยามทั้ง 24 ชั่วโมง (ยามละ 2 ชั่วโมง · แตะเพื่อดูเหตุผล)</div>
         <div className="space-y-1">{hrs.map((h) => (
@@ -104,7 +104,7 @@ function DaySheet({ N, ymd, onClose }) {
               <span className="shrink-0 num">{h.label}</span><Stem s={h.c % 10} size={16} /><Branch b={h.c % 12} size={16} /><PxIcon name={ZODIAC_ICON[h.c % 12]} size={18} />
               <span className="flex-1 truncate text-slate-500">{GOD_TH[h.god]}</span>{eventsOf(N, h.c, 'ยาม').slice(0, 2).map((e, i) => <PxIcon key={i} name={e.icon} size={16} />)}{isToday && h.h === curH && <b className="text-violet-600 text-[10px]">ตอนนี้</b>}<Chip lvl={h.lvl} small />
             </span></PixelSummary>
-            <div className="pt-1.5 space-y-1">{eventsOf(N, h.c, 'ยาม').map((e, i) => <EventBox key={i} e={e} small />)}<Why r={h} />{h.late && <div className="text-[10px] text-slate-500 mt-1">หลัง 23:00 นับเป็นยามชวดของวันถัดไป (กฎวันเปลี่ยน 23:00)</div>}</div>
+            <div className="pt-1.5 space-y-1"><p className="text-xs leading-relaxed whitespace-pre-line">{GOD_TEXT[h.god].period}</p>{eventsOf(N, h.c, 'ยาม').map((e, i) => <EventBox key={i} e={e} small />)}<Why r={h} />{h.late && <div className="text-[10px] text-slate-500 mt-1">หลัง 23:00 นับเป็นยามชวดของวันถัดไป (กฎวันเปลี่ยน 23:00)</div>}</div>
           </details>))}</div>
       </div>
     </Sheet>
@@ -118,7 +118,7 @@ function RateSheet({ N, item, onClose }) {
       <div className="space-y-3 text-sm">
         <div className="flex items-center gap-3"><Stem s={item.c % 10} size={34} /><Branch b={item.c % 12} size={34} /><PxIcon name={ZODIAC_ICON[item.c % 12]} size={32} /><div className="flex-1 text-xs text-slate-500">{item.sub}</div><Chip lvl={item.r.lvl} /></div>
         {eventsOf(N, item.c, item.what || 'ปี').map((e, i) => <EventBox key={i} e={e} />)}
-        <div className="px-inner p-3 text-xs leading-relaxed whitespace-pre-line"><b>{GOD[item.r.god]} ({GOD_TH[item.r.god]}):</b> {GOD_TEXT[item.r.god].period}</div>
+        <div className="px-inner p-3 text-sm leading-relaxed whitespace-pre-line"><b className="block mb-1">{item.what || 'ปี'} · {GOD_TH[item.r.god]}</b>{GOD_TEXT[item.r.god].period}</div>
         <Why r={item.r} />
       </div>
     </Sheet>
@@ -171,7 +171,7 @@ export default function BaziTab({ birth, onEdit }) {
 
       <section className="px-card p-4 space-y-3" data-testid="bazi-read">
         <div className="flex items-center gap-2"><Stem s={N.dm} size={30} /><b className="text-sm">ดิถีของคุณ: {STEMS[N.dm]} {STEM_TH[N.dm]}</b></div>
-        <div className="text-sm leading-relaxed whitespace-pre-line">{DM_TEXT[N.dm]}</div>
+        <div className="text-sm leading-relaxed whitespace-pre-line">ดิถีคือธาตุจากวันเกิดที่ปาจื้อใช้เป็นตัวแทนของคุณในผังครับ {DM_TEXT[N.dm]}</div>
         <div className="px-inner p-3 text-xs space-y-1">
           <div className="flex items-center gap-2"><b>กำลัง<T k="ดิถี" />:</b> {N.strength === 'strong' ? 'แข็ง' : N.strength === 'weak' ? 'อ่อน' : 'ค่อนข้างกลาง'} <span className="text-slate-400">(คะแนนตามสูตร {N.score})</span><button className="ui-link ml-auto" onClick={() => setShowEv(!showEv)}>{showEv ? 'ซ่อนเหตุผล' : 'ดูเหตุผล'}</button></div>
           <div>{STRENGTH_TEXT[N.strength]}</div>
@@ -215,8 +215,9 @@ export default function BaziTab({ birth, onEdit }) {
 
       <section className="px-card p-4 space-y-2" data-testid="bazi-today">
         <div className="flex items-center gap-2"><PxIcon name="Sun" size={20} /><b className="text-sm">วันนี้กับยามนี้</b></div>
-        <button onClick={() => setDay([np.y, np.m, np.d])} className="w-full px-inner p-2 flex items-center gap-2 text-left text-xs">
-          <Stem s={todayC % 10} size={22} /><Branch b={todayC % 12} size={22} /><PxIcon name={ZODIAC_ICON[todayC % 12]} size={24} /><span className="flex-1">วันนี้ · {GOD_TH[todayR.god]}<div className="text-slate-500 whitespace-pre-line leading-relaxed">{GOD_TEXT[todayR.god].period}</div></span><Chip lvl={todayR.lvl} />
+        <button onClick={() => setDay([np.y, np.m, np.d])} className="w-full px-inner p-2 space-y-2 text-left text-xs">
+          <span className="flex flex-wrap items-center gap-2"><Stem s={todayC % 10} size={22} /><Branch b={todayC % 12} size={22} /><PxIcon name={ZODIAC_ICON[todayC % 12]} size={24} /><span className="flex-1 font-semibold">วันนี้ · {GOD_TH[todayR.god]}</span><Chip lvl={todayR.lvl} /></span>
+          <span className="block text-sm leading-relaxed whitespace-pre-line">{GOD_TEXT[todayR.god].period}</span>
         </button>
         {hourNow && <button onClick={() => setDay([np.y, np.m, np.d])} className="w-full px-inner p-2 flex items-center gap-2 text-left text-xs" data-testid="hour-now">
           <Stem s={hourNow.c % 10} size={22} /><Branch b={hourNow.c % 12} size={22} /><PxIcon name={ZODIAC_ICON[hourNow.c % 12]} size={24} /><span className="flex-1">ยามนี้ {hourNow.label} · {GOD_TH[hourNow.god]}</span><Chip lvl={hourNow.lvl} />
