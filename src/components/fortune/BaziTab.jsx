@@ -10,6 +10,8 @@ import { thDT } from './TaksaTab'
 import { natalReactions, eventsOf, upcomingEvents, TONE_COLOR } from '../../lib/fortune/baziReact'
 import { Guide, T } from './FortuneKit'
 import { BlockChart, Legend } from './FortuneChart'
+import { FortuneStatus } from './FortuneStatus'
+import PixelSummary from '../PixelSummary'
 
 const TONE_BG = { good: '#dcfce7', bad: '#fee2e2', info: '#e0e7ff' }
 const TH_D = (y, m, d) => `${d} ${['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'][m - 1]}`
@@ -43,7 +45,7 @@ const GROUPS = [['vault', 'คลัง', ['vault']], ['triad', 'ประสา
 const TZ = 7 * 3600e3
 const nowParts = () => { const d = new Date(Date.now() + TZ); return { y: d.getUTCFullYear(), m: d.getUTCMonth() + 1, d: d.getUTCDate(), h: d.getUTCHours() } }
 const TH_MONTH = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม']
-const Chip = ({ lvl, small }) => <span className={`inline-block whitespace-nowrap rounded-full ${small ? 'px-1.5 text-[10px]' : 'px-2 py-0.5 text-[11px]'} font-semibold text-white`} style={{ background: RATE[lvl].color }}>{RATE[lvl].th}</span>
+const Chip = ({ lvl, small }) => <FortuneStatus level={RATE[lvl]} small={small} />
 const ElChip = ({ e }) => <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold text-white" style={{ background: EL_COLOR[e] }}><PxIcon name={EL_ICON[e]} size={14} />{EL[e]}</span>
 const Stem = ({ s, size = 28 }) => <span className="font-bold leading-none" style={{ color: EL_COLOR[stemEl(s)], fontSize: size }}>{STEMS[s]}</span>
 const Branch = ({ b, size = 28 }) => <span className="font-bold leading-none" style={{ color: EL_COLOR[BRANCH_EL[b]], fontSize: size }}>{BRANCHES[b]}</span>
@@ -98,10 +100,10 @@ function DaySheet({ N, ymd, onClose }) {
         <div className="font-semibold text-xs pt-1">ยามทั้ง 24 ชั่วโมง (ยามละ 2 ชั่วโมง · แตะเพื่อดูเหตุผล)</div>
         <div className="space-y-1">{hrs.map((h) => (
           <details key={h.h} className={`px-inner px-2 py-1.5 ${isToday && h.h === curH ? 'ring-2 ring-violet-500' : ''}`} data-testid={`hour-${h.h}`}>
-            <summary className="flex items-center gap-2 text-xs cursor-pointer list-none">
-              <span className="w-[86px] num">{h.label}</span><Stem s={h.c % 10} size={16} /><Branch b={h.c % 12} size={16} /><PxIcon name={ZODIAC_ICON[h.c % 12]} size={18} />
+            <PixelSummary className="text-xs"><span className="flex flex-wrap items-center gap-1.5">
+              <span className="shrink-0 num">{h.label}</span><Stem s={h.c % 10} size={16} /><Branch b={h.c % 12} size={16} /><PxIcon name={ZODIAC_ICON[h.c % 12]} size={18} />
               <span className="flex-1 truncate text-slate-500">{GOD_TH[h.god]}</span>{eventsOf(N, h.c, 'ยาม').slice(0, 2).map((e, i) => <PxIcon key={i} name={e.icon} size={16} />)}{isToday && h.h === curH && <b className="text-violet-600 text-[10px]">ตอนนี้</b>}<Chip lvl={h.lvl} small />
-            </summary>
+            </span></PixelSummary>
             <div className="pt-1.5 space-y-1">{eventsOf(N, h.c, 'ยาม').map((e, i) => <EventBox key={i} e={e} small />)}<Why r={h} />{h.late && <div className="text-[10px] text-slate-500 mt-1">หลัง 23:00 นับเป็นยามชวดของวันถัดไป (กฎวันเปลี่ยน 23:00)</div>}</div>
           </details>))}</div>
       </div>
@@ -253,7 +255,7 @@ export default function BaziTab({ birth, onEdit }) {
         {!luck ? <div className="text-xs text-slate-500">{!N.known ? 'ต้องทราบเวลาเกิดจึงคำนวณอายุเริ่มเสาโชคได้' : 'ใส่เพศในข้อมูลเกิดเพื่อหาทิศเดินเสาโชค (ตามสูตรดั้งเดิม)'} <button className="ui-link" onClick={onEdit}>แก้ข้อมูลเกิด</button></div> : <>
           <div className="text-[11px] text-slate-500">เดิน{luck.fwd ? 'หน้า' : 'ถอยหลัง'} · เริ่มเสาแรกอายุ {luck.start.y} ปี {luck.start.m} เดือน {luck.start.d} วัน ({thDT(luck.start.ms, false)})</div>
           <BlockChart testid="bazi-cluck" levels={RATE} items={luck.list.map((l) => ({ v: l.score, lvl: l.lvl, title: `เสาโชค ${pillarName(l.c)} อายุ ${l.age}–${l.age + 10}`, sub: `${thDT(l.from, false)} – ${thDT(l.to, false)}`, text: `${GOD_TH[l.god]}: ${GOD_TEXT[l.god].period}`, icon: ZODIAC_ICON[l.c % 12], bottom: `อายุ ${l.age}`, now: l === curLuck, onOpen: () => setItem({ title: `เสาโชค ${pillarName(l.c)} อายุ ${l.age}–${l.age + 10}`, c: l.c, r: l, what: 'เสาโชค', sub: `${thDT(l.from, false)} – ${thDT(l.to, false)}` }) }))} />
-          <div className="flex gap-1.5 overflow-x-auto pb-1">{luck.list.map((l) => (
+          <div className="flex gap-1.5 overflow-x-auto pb-1" data-testid="bazi-luck-cards">{luck.list.map((l) => (
             <button key={l.k} onClick={() => setItem({ title: `เสาโชค ${pillarName(l.c)} อายุ ${l.age}–${l.age + 10}`, c: l.c, r: l, what: 'เสาโชค', sub: `${thDT(l.from, false)} – ${thDT(l.to, false)}` })} className={`px-inner p-1.5 text-center shrink-0 w-14 ${l === curLuck ? 'ring-2 ring-violet-500' : ''}`}>
               <div className="text-[9px] text-slate-500">{l.age}+</div><Stem s={l.c % 10} size={20} /><br /><Branch b={l.c % 12} size={20} /><div className="mt-0.5"><Chip lvl={l.lvl} small /></div>
             </button>))}</div>

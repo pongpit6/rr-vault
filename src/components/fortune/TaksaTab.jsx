@@ -21,7 +21,7 @@ function PairSheet({ pair, onClose, birthP }) {
   return (
     <Sheet open onClose={onClose} title={`${PLANET[m].name}เสวย · ${PLANET[q].name}แทรก`}>
       <div className="space-y-3 text-sm" data-testid="pair-sheet">
-        <div className="flex items-center gap-2"><Pl p={m} size={32} /><span className="text-slate-400">→</span><Pl p={q} size={32} /><Tone m={m} q={q} /><span className="ml-auto text-xs font-bold" style={{ color: scoreColor(pairScore(m, q, birthP)) }}>คะแนนตามสูตร {pairScore(m, q, birthP) > 0 ? '+' : ''}{pairScore(m, q, birthP)} · {scoreText(pairScore(m, q, birthP))}</span></div>
+        <div className="flex flex-wrap items-center gap-2"><Pl p={m} size={32} /><span className="text-slate-400">→</span><Pl p={q} size={32} /><Tone m={m} q={q} /><span className="ml-auto text-xs font-bold" style={{ color: scoreColor(pairScore(m, q, birthP)) }}>คะแนนตามสูตร {pairScore(m, q, birthP) > 0 ? '+' : ''}{pairScore(m, q, birthP)} · {scoreText(pairScore(m, q, birthP))}</span></div>
         <div className="text-xs text-slate-500">{thDT(start)} – {thDT(end)} · ระยะตามสูตร {sy.y ? `${sy.y} ปี ` : ''}{sy.m ? `${sy.m} เดือน ` : ''}{sy.d ? `${sy.d} วัน ` : ''}{sy.h ? `${sy.h} ชม.` : ''} ({POWER[m]}×{POWER[q]}÷108 ปีโหร)</div>
         <div className="px-inner p-3 font-semibold">{PAIR_TEXT[m][q]}</div>
         <div className="grid gap-2">

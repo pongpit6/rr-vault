@@ -11,6 +11,10 @@ import { MEMBERS, SKILLS } from '../src/lib/party'
 import { outfitOf } from '../src/lib/hero'
 import { WORLD_LORE } from '../src/lib/worldLore'
 import IslandAtlas from '../src/components/IslandAtlas'
+import BaziTab from '../src/components/fortune/BaziTab'
+import TaksaTab from '../src/components/fortune/TaksaTab'
+import { FortuneStatus } from '../src/components/fortune/FortuneStatus'
+import { RATE } from '../src/lib/fortune/bazi'
 
 const mutation = () => { window.__mutations += 1; return true }
 window.__mutations = 0
@@ -32,7 +36,12 @@ const rpg = {
 function Preview() {
   const mode = new URLSearchParams(location.search).get('panel') || 'catalog'
   const [plot, setPlot] = useState(null)
+  const query = new URLSearchParams(location.search)
+  const birth = { date: query.get('date') || '1992-03-11', time: '09:30', sex: query.get('sex') || 'm', unknownTime: query.has('unknown') }
   const panels = {
+    bazi: <BaziTab birth={birth} onEdit={mutation} />,
+    taksa: <TaksaTab birth={birth} onEdit={mutation} />,
+    statuses: <div className="flex gap-1.5 overflow-x-auto">{RATE.map(level => <div key={level.th} className="px-inner p-1.5 shrink-0 w-14 text-center" data-testid="status-card"><FortuneStatus level={level} small /></div>)}</div>,
     hero: <HeroCard rpg={rpg} />, party: <PartyTab rpg={rpg} />, gear: <GearList rpg={rpg} />,
     skills: <SkillsTab rpg={rpg} />, tree: <SkillTree rpg={rpg} />, shadows: <ShadowCard rpg={rpg} />,
     shop: <ShopTab rpg={rpg} />, map: <MapTab rpg={rpg} onPreview={mutation} privacy={false} />,

@@ -1,5 +1,6 @@
 import ItemGrid, { DetailHead } from './ItemGrid'
 import { LoreBlock } from './Lore'
+import PixelSummary from './PixelSummary'
 import { Emo, EmoText, PxIcon } from './px'
 import { useState, useEffect , useRef} from 'react'
 import TownFull from './TownFull'
@@ -448,14 +449,14 @@ function FestivalCalendar({ T }) {
           const e = EVENTS[id], d = piece(id)
           return (
             <details key={id} className="px-inner px-2 py-1">
-              <summary className="cursor-pointer flex items-center gap-2"><Emo e={e.emoji} size={16} /><b className="flex-1">{e.name}</b><span className="text-slate-500">{when}</span></summary>
+              <PixelSummary><span className="flex flex-wrap items-center gap-2"><Emo e={e.emoji} size={16} /><b className="flex-1">{e.name}</b><span className="text-slate-500">{when}</span></span></PixelSummary>
               <div className="text-[10px] text-slate-500 mt-1">{e.bonus}<EmoText size={12} text={d ? ` · ของเฉพาะเทศกาล: ${d.emoji} ${d.name}${T.decor.includes(d.id) ? ' ✓ มีแล้ว' : ''}` : ''} /></div>
               <LoreBlock category="festivals" id={id} />
             </details>
           )
         })}
         <details className="px-inner px-2 py-1">
-          <summary className="cursor-pointer flex items-center gap-2"><PxIcon name="ShoppingBag" size={16} /><b className="flex-1">วันเลขเบิ้ล</b><span className="text-slate-500">1.1 ถึง 12.12</span></summary>
+          <PixelSummary><span className="flex flex-wrap items-center gap-2"><PxIcon name="ShoppingBag" size={16} /><b className="flex-1">วันเลขเบิ้ล</b><span className="text-slate-500">1.1 ถึง 12.12</span></span></PixelSummary>
           <div><div className="text-[10px] text-slate-500 mt-1">ร้านในเมืองลด 10–30% (11.11 ลดมากสุด) · ไม่ใช้เงินในวันนั้นรับ +1 GOLD · ของเฉพาะ: <PxIcon name="em_sign" size={12} /> ป้าย “ไม่ช้อปก็รวยได้”</div></div>
           <LoreBlock category="festivals" id="sale" />
         </details>

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Sheet } from './ui'
 import { LoreBlock } from './Lore'
+import PixelSummary from './PixelSummary'
 
 const PLACES = [
   { id: 'town', name: 'หมู่บ้านเริ่มต้น', location: 'หุบเขาตอนใต้', image: 'town_bg_morning' },
@@ -18,7 +19,7 @@ export default function IslandAtlas() {
   const [selected, setSelected] = useState(null)
   return (
     <details className="px-card p-3 mb-3" data-testid="island-atlas">
-      <summary className="cursor-pointer py-1 text-sm font-bold">ภูมิศาสตร์และเรื่องราวของเกาะ</summary>
+      <PixelSummary className="py-1 text-sm font-bold">ภูมิศาสตร์และเรื่องราวของเกาะ</PixelSummary>
       <p className="text-xs leading-relaxed text-slate-500 my-2">หมู่บ้านในหุบเขาเป็นจุดเริ่มของเส้นทางเกวียน ธารน้ำ และเรื่องจากแต่ละชุมชน แตะสถานที่เพื่ออ่านที่ตั้งและประวัติ</p>
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
         {PLACES.map((place) => (

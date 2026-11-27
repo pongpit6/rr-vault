@@ -1,6 +1,7 @@
 import { Emo, EmoText, PxIcon } from '../components/px'
 import { LoreBlock, LoreButton } from '../components/Lore'
 import IslandAtlas from '../components/IslandAtlas'
+import PixelSummary from '../components/PixelSummary'
 import { useState } from 'react'
 import { Flame, Swords, Check, Lock, Trophy, ScrollText, Sparkles, MapPin, Backpack, Users, Shield, Store, Map as MapIcon, BookOpen, Eye, Castle, Gem } from '../components/px'
 import { ItemSprite, AssetIcon } from '../components/Logos'
@@ -285,7 +286,7 @@ function GearList({ rpg }) {
               {st && <button className="px-btn w-full justify-center" disabled={(bag.mcrystal || 0) < st.c || rpg.fiat < st.fiat} onClick={() => { const r = rpg.enhance(g.slot); if (r) showToast(r.ok ? `สำเร็จ! ${g.name} +${r.to}` : `ไม่สำเร็จ${r.to < r.from ? ` ลดเหลือ +${r.to}` : ''}`) }} data-testid="enh-go">ตีบวก</button>}
             </div>
             <LoreBlock category="gear" id={`${g.slot}:${g.tier}`} />
-            <details className="mt-2 text-xs"><summary className="cursor-pointer py-2 text-slate-500">ที่มาของอุปกรณ์ขั้นอื่น</summary>
+            <details className="mt-2 text-xs"><PixelSummary className="py-2 text-slate-500">ที่มาของอุปกรณ์ขั้นอื่น</PixelSummary>
               {GEAR_TIERS.map((tier, index) => index !== g.tier && <LoreBlock key={tier.name} category="gear" id={`${g.slot}:${index}`} title={g.names[index]} />)}
             </details>
           </div>

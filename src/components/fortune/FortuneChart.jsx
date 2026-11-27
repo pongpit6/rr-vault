@@ -1,5 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { PxIcon } from '../px'
+import { FortuneStatus } from './FortuneStatus'
+import { compactStatus } from './statusText'
 
 // Shared fortune charts. Hover (mouse) shows a tooltip; click/tap selects and fills the detail box under the chart,
 // whose "อ่านเต็ม" button opens the full reading. On phones, dragging a finger across the chart scrubs through it.
@@ -23,7 +25,7 @@ function useWidth() {
   return [ref, w]
 }
 
-const Chip = ({ l }) => <span className="inline-block rounded-full px-2 py-0.5 text-[11px] font-semibold text-white" style={{ background: l.color }}>{l.th}</span>
+const Chip = ({ l }) => <FortuneStatus level={l} />
 
 function Tip({ tip, w }) {
   if (!tip) return null
@@ -41,7 +43,7 @@ function Detail({ it, l, onPrev, onNext, testid }) {
   if (!it) return null
   return (
     <div className="px-inner p-2 text-xs space-y-1" data-testid={testid}>
-      <div className="flex items-center gap-1.5">
+      <div className="flex flex-wrap items-center gap-1.5">
         <button className="px-btn shrink-0 !px-2.5 !py-1 text-xs" onClick={onPrev} aria-label="ก่อนหน้า" data-testid={testid && `${testid}-prev`}>◀</button>
         {it.icon && <PxIcon name={it.icon} size={18} />}
         <b className="flex-1 min-w-0 truncate">{it.title}</b>
@@ -95,7 +97,7 @@ export function TimeChart({ items, levels = TAKSA_LEVELS, x0, x1, ticks = [], no
           onPointerMove={(e) => { const { k, px } = pick(e); if (e.pointerType === 'mouse') setTip({ it: items[k], l: levelOf(levels, items[k].v), x: px, y: Math.max(0, Yv(items[k].v) - 70) }); else if (e.buttons) setSel(k) }}
           onPointerLeave={() => setTip(null)}
           onPointerDown={(e) => { const { k } = pick(e); setSel(k); if (e.pointerType !== 'mouse') setTip(null) }}>
-          {bands.map(({ l, top, bot }) => bot > top && <g key={l.th}><rect x={L} y={top} width={iw} height={bot - top} fill={l.color} opacity={0.1} /><text x={L - 5} y={(top + bot) / 2 + 3} textAnchor="end" fontSize="10" fill={l.color} fontWeight="700">{l.th}</text></g>)}
+          {bands.map(({ l, top, bot }) => bot > top && <g key={l.th}><rect x={L} y={top} width={iw} height={bot - top} fill={l.color} opacity={0.1} /><text x={L - 5} y={(top + bot) / 2 + 3} textAnchor="end" fontSize="10" fill={l.color} fontWeight="700"><title>{l.th}</title>{compactStatus(l.th)}</text></g>)}
           <line x1={L} x2={L + iw} y1={Yv(0)} y2={Yv(0)} stroke="#94a3b8" strokeDasharray="2 3" />
           {s && <rect x={X(Math.max(s.from, x0))} y={T} width={Math.max(2, X(Math.min(s.to, x1)) - X(Math.max(s.from, x0)))} height={ih} fill="#64748b" opacity={0.14} />}
           <path d={path} fill="none" stroke="#334155" strokeWidth="2" strokeLinejoin="round" />
