@@ -46,7 +46,7 @@ for (const width of sizes) {
   check(await page.evaluate(() => document.body.style.overflow) !== 'hidden', 'reader releases scroll')
 
   await load('hero')
-  for (const name of ['ชุดเดินทางผ้าฝ้าย', 'ชุดหนังนักผจญภัย', 'ชุดนักสะสม', 'ชุดพ่อค้าเดินทาง', 'ชุดขุนนางนักเดินทาง', 'ชุดเจ้าครองเกาะ']) {
+  for (const name of ['ชุดเดินทางผ้าฝ้าย', 'ชุดหนังนักผจญภัย', 'ชุดนักสะสม', 'ชุดพ่อค้าเดินทาง', 'ชุดขุนนางนักเดินทาง', 'ชุดผู้พิทักษ์เส้นทาง']) {
     await page.getByRole('button', { name: 'อ่านเรื่องราว: ' + name, exact: true }).click()
     check(await page.locator('.ui-sheet details[open] p').isVisible(), 'outfit readable: ' + name)
     await fits(); await quiet(); await close()
