@@ -1,4 +1,5 @@
 import ItemGrid, { DetailHead } from './ItemGrid'
+import { LoreBlock } from './Lore'
 import { Emo, EmoText, PxIcon } from './px'
 import { useState, useEffect , useRef} from 'react'
 import TownFull from './TownFull'
@@ -96,6 +97,7 @@ function TownStory({ rpg }) {
         </div>
         {st.arrived && <button className={`${btn} bg-white`} onClick={() => setOpen(!open)} data-testid="story-toggle">{open ? 'ปิด' : 'อ่าน'}</button>}
       </div>
+      {st.arrived && <LoreBlock category="npcs" id="apprentice" title="รู้จักปิ่น" />}
       {open && (
         <div className="mt-3 space-y-2.5" data-testid="story-chapters">
           {st.chapters.map((c) => (
@@ -229,6 +231,7 @@ export default function TownTab({ rpg }) {
               {(res || hired) && <div className="italic text-slate-600">“{townLines(rpg).find((l) => l.id === n.id)?.text || n.line || ''}”</div>}
               {!res && !hired && <button className={`${btn} w-full bg-violet-500 text-white flex items-center justify-center gap-1 [&_span]:!text-white`} disabled={T.npcs.length >= T.npcSlots || !rpg.afford(p)} onClick={() => { ok(rpg.hire(n.id), `${n.name}ย้ายเข้าเมืองแล้ว!`); close() }} data-testid="npc-hire">จ้าง <Price p={p} rpg={rpg} /></button>}
               {!res && !hired && T.npcs.length >= T.npcSlots && <div className="text-slate-500">{T.npcSlots ? 'ที่พักเต็มแล้ว ขยายโรงเตี๊ยมเพื่อเพิ่มที่' : 'ต้องสร้างโรงเตี๊ยมก่อน'}</div>}
+              <LoreBlock category="npcs" id={n.id} />
             </div>
           )
         }} />
@@ -258,6 +261,7 @@ export default function TownTab({ rpg }) {
                     : d.craft ? <div className="text-xs text-slate-600">สร้างจากวัสดุมอนสเตอร์ที่แท็บชาวเมือง (ล่า → ชาวเมือง) ไม่มีขายในร้าน</div>
                     : !onSale ? <div className="text-xs text-slate-600">รอเทศกาลรอบหน้า</div>
                     : <button className={`${btn} w-full bg-white`} disabled={!rpg.afford(p)} onClick={() => { ok(rpg.buyDecor(d.id), `ติดตั้ง${d.name}แล้ว`); close() }} data-testid="decor-buy">ซื้อและติดตั้ง <Price p={p} rpg={rpg} /></button>}
+                  <LoreBlock category="decor" id={d.id} />
                 </div>
               )
             }} />
@@ -307,6 +311,7 @@ function PlotSheet({ rpg, sel, onClose, ok }) {
             <div className="mt-2 flex items-center justify-between"><Price p={p} rpg={rpg} /><button className={`${btn} bg-teal-500 text-white`} disabled={!rpg.afford(p)} onClick={() => { ok(rpg.upgradeHall(), 'ขยายศาลากลางแล้ว!'); close() }}><ArrowUpCircle size={13} className="inline -mt-0.5" /> อัปเกรด</button></div>
           </div>
         ) : <div className="mt-3 text-sm text-teal-700 font-semibold">ระดับสูงสุดแล้ว 👑</div>}
+        <LoreBlock category="buildings" id="hall" />
       </Sheet>
     )
   }
@@ -327,6 +332,7 @@ function PlotSheet({ rpg, sel, onClose, ok }) {
                   <div className="text-[11px] text-slate-500">{B.desc}</div>
                   <div className="text-[11px] text-teal-700">{B.perkText(B.perk[0])}</div>
                   {locked && <div className="text-[11px] text-amber-700"><PxIcon name="Lock" size={12} /> ต้อง: {B.reqText}</div>}
+                  <LoreBlock category="buildings" id={type} />
                 </div>
                 <div className="flex flex-col items-end gap-1"><Price p={p} rpg={rpg} />
                   <button className={`${btn} bg-teal-500 text-white`} disabled={full || locked || !rpg.afford(p)} onClick={() => { ok(rpg.build(sel, type), `สร้าง${B.name}แล้ว!`); close() }}>{full ? 'ครบแล้ว' : 'สร้าง'}</button>
@@ -359,6 +365,7 @@ function PlotSheet({ rpg, sel, onClose, ok }) {
       <button className="mt-4 text-xs text-rose flex items-center gap-1" onClick={() => { if (!confirm) return setConfirm(true); ok(rpg.demolish(sel), `รื้อ${B.name}แล้ว`); close() }}>
         <Trash2 size={13} /> {confirm ? 'แตะอีกครั้งเพื่อยืนยันการรื้อ (ได้คืน 30% ของค่าสร้างระดับ 1)' : 'รื้อถอน'}
       </button>
+      <LoreBlock category="buildings" id={b.type} />
     </Sheet>
   )
 }
@@ -443,14 +450,18 @@ function FestivalCalendar({ T }) {
             <details key={id} className="px-inner px-2 py-1">
               <summary className="cursor-pointer flex items-center gap-2"><Emo e={e.emoji} size={16} /><b className="flex-1">{e.name}</b><span className="text-slate-500">{when}</span></summary>
               <div className="text-[10px] text-slate-500 mt-1">{e.bonus}<EmoText size={12} text={d ? ` · ของเฉพาะเทศกาล: ${d.emoji} ${d.name}${T.decor.includes(d.id) ? ' ✓ มีแล้ว' : ''}` : ''} /></div>
+              <LoreBlock category="festivals" id={id} />
             </details>
           )
         })}
         <details className="px-inner px-2 py-1">
           <summary className="cursor-pointer flex items-center gap-2"><PxIcon name="ShoppingBag" size={16} /><b className="flex-1">วันเลขเบิ้ล</b><span className="text-slate-500">1.1 ถึง 12.12</span></summary>
           <div><div className="text-[10px] text-slate-500 mt-1">ร้านในเมืองลด 10–30% (11.11 ลดมากสุด) · ไม่ใช้เงินในวันนั้นรับ +1 GOLD · ของเฉพาะ: <PxIcon name="em_sign" size={12} /> ป้าย “ไม่ช้อปก็รวยได้”</div></div>
+          <LoreBlock category="festivals" id="sale" />
         </details>
       </div>
     </Section>
   )
 }
+
+export { PlotSheet, FestivalCalendar }

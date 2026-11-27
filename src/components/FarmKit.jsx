@@ -17,6 +17,7 @@ import { MAP_LORE, MON_LORE, STORY, STORY_STEPS } from '../lib/farmLore'
 import { TROPHY_LORE, MAT_LORE } from '../lib/itemLore'
 import BagGrid from './BagGrid'
 import { Sheet } from './ui'
+import { LoreBlock, LoreButton } from './Lore'
 import { todOf, isFullMoon, NIGHT } from '../lib/timeOfDay'
 import { MON_GLOW_LORE, MAP_NIGHT, MOON_LEGEND } from '../lib/glowLore'
 const NIGHT_BG = ['meadow', 'forest', 'swamp', 'desert', 'snow', 'volcano'] // maps with a painted night backdrop
@@ -289,6 +290,7 @@ function Craft({ rpg }) {
         return (
           <section key={npc} className="px-card p-4" data-testid={`npc-${npc}`}>
             <div className="flex items-center gap-3 mb-2"><Portrait sprite={npc} size={44} /><div><div className="font-bold text-sm">{info.name}</div><div className="text-[11px] text-slate-500">“{info.line}”</div></div></div>
+            <LoreBlock category="npcs" id={npc} />
             <div className="space-y-1.5">
               {rel.map((r) => {
                 const t = (rpg.farm.relics || {})[r.id] || 0, need = r.need[t], worn = (rpg.farm.worn || []).includes(r.id)
@@ -299,6 +301,7 @@ function Craft({ rpg }) {
                     <div className="flex-1 min-w-0 text-xs">
                       <div className="font-semibold text-sm">{r.name} {t ? <span className="text-amber-600">{'★'.repeat(t)}</span> : null}{worn && <span className="text-[10px] text-amber-700"> · สวมอยู่</span>}</div>
                       <div className="text-slate-600">{t ? r.text(r.eff[t - 1]) : `ระดับ 1: ${r.text(r.eff[0])}`}{t && t < 3 ? ` → ระดับ ${t + 1}: ${r.text(r.eff[t])}` : ''}</div>
+                      <LoreButton category="relics" id={r.id} title={r.name} art={<Emo k={r.id} size={56} />} />
                       {need && <div>{Object.entries(need).map(([k, v]) => <span key={k} className={`mr-2 ${(bag[k] || 0) >= v ? 'text-emerald-700' : 'text-rose-500'}`}>{MATS[k].name} {bag[k] || 0}/{v}</span>)}</div>}
                     </div>
                     {need ? <button className="px-btn !py-1 text-xs shrink-0" disabled={!ok} onClick={() => showToast(rpg.makeRelic(r.id) ? (t ? `อัป ${r.name} เป็นระดับ ${t + 1}` : `ได้ ${r.name}`) : 'วัสดุไม่พอ')}>{t ? 'อัป' : 'ส่งของ'}</button> : <span className="text-[10px] text-amber-700 shrink-0">สูงสุด</span>}
@@ -311,6 +314,7 @@ function Craft({ rpg }) {
                   <div key={r.id} className="px-inner p-2 flex items-center gap-2" data-testid={`recipe-${r.id}`}>
                     {r.art ? <img src={`./sprites/${r.art}.png`} alt="" width={28} height={28} style={{ imageRendering: 'pixelated' }} /> : <Emo k={hasPx(r.id) ? r.id : r.icon} size={28} />}
                     <div className="flex-1 min-w-0 text-xs"><div className="font-semibold text-sm">{r.name}</div><div className="text-slate-500">{r.gives}</div>
+                      <LoreButton category={r.decor ? 'decor' : 'recipes'} id={r.id} title={r.name} />
                       <div>{Object.entries(r.need).map(([k, v]) => <span key={k} className={`mr-2 ${(bag[k] || 0) >= v ? 'text-emerald-700' : 'text-rose-500'}`}>{MATS[k].name} {bag[k] || 0}/{v}</span>)}</div></div>
                     <button className="px-btn !py-1 text-xs shrink-0" disabled={!ok || done} onClick={() => showToast(rpg.craft(r.id) ? `ได้ “${r.name}” แล้ว` : 'วัสดุไม่พอ')}>{done ? 'มีแล้ว' : 'ส่งของ'}</button>
                   </div>
@@ -528,7 +532,9 @@ export function SkillTree({ rpg }) {
             <div key={t.id} className={`px-inner p-2 flex items-center gap-2 ${member?.joined ? '' : 'opacity-60'}`}>
               <Emo k={t.icon} size={30} />
               <div className="flex-1 min-w-0 text-xs"><div className="font-semibold text-sm">{t.name} <span className="text-slate-400 font-normal">{member?.name} · {t.kind === 'chance' ? `ทำงานเองตามโอกาส · ใช้ ${t.mana} มานาเมื่อทำงาน` : 'ทำงานตลอด'}</span></div>
-                <div className="text-slate-600">{r ? t.text(r) : `ขั้น 1: ${t.text(1)}`}</div>
+                <div className="flex flex-wrap items-center gap-x-2"><div className="text-slate-600">{r ? t.text(r) : `ขั้น 1: ${t.text(1)}`}</div>
+                  <LoreButton category="skills" id={t.id} title={t.name} art={<Emo k={t.icon} size={56} />} description={r ? t.text(r) : `ขั้น 1: ${t.text(1)}`} label="ที่มาวิชา" />
+                </div>
                 <div className="flex gap-0.5 mt-0.5">{[1, 2, 3, 4, 5].map((n) => <span key={n} className={`w-4 h-1.5 ${n <= r ? 'bg-amber-400' : 'bg-slate-200'}`} />)}</div></div>
               {r < 5 && <button className="px-btn !py-1 text-xs shrink-0" disabled={rpg.skillPts < c.pts || (c.page && (bag.page || 0) < c.page) || (c.ink && (bag.ink || 0) < c.ink) || (c.star && (bag.star || 0) < c.star)}
                 onClick={() => showToast(rpg.rankUp(t.id) ? `${t.name} ขั้น ${r + 1}` : 'แต้มหรือวัสดุไม่พอ')}>+ ({c.pts}{c.page ? ` · คัมภีร์ ${c.page} · หมึก ${c.ink}` : ''}{c.star ? ' · ดาว 1' : ''})</button>}
@@ -588,6 +594,7 @@ export function ShadowCard({ rpg }) {
           ]} />
           {has ? <button className="px-btn w-full justify-center" onClick={() => { if (!rpg.wearShadow(x.id)) showToast('ช่องเต็มแล้ว'); else close() }}>{on ? 'ให้พัก' : 'ส่งออกรบ'}</button>
             : !x.deg && <button className="px-btn w-full justify-center" disabled={rpg.gold < x.gold || rpg.fiat < x.fiat} onClick={() => { showToast(rpg.buyShadow(x.id) ? `${x.name} เข้าร่วมทีม` : 'GOLD หรือ FIAT ไม่พอ'); close() }}>ซื้อ {x.gold} GOLD + {x.fiat.toLocaleString()} FIAT</button>}
+          <LoreBlock category="shadows" id={x.id} />
         </div>
       )} />
     </Card>
