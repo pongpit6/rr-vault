@@ -24,7 +24,7 @@ const rpg = {
   fiat: 10000, gold: 1000, skillPts: 20, shadowSlots: 3,
   owned: { grad_en: true, bday_30: true }, realmNet: 0, realm: { tier: 1 }, vault: { summary: { net: 0 } },
   town: { skinPerk: {}, shopDiscount: 0, town: { hall: 1 }, plots: [{ type: 'farm', lv: 1 }, null], plotCount: 6, count: () => 0 },
-  shopPrice: () => [10, 0], afford: () => true, hallPrice: () => [10, 1], buildPrice: () => [10, 0],
+  shopPrice: () => ({ fiat: 10, gold: 0 }), afford: () => true, hallPrice: () => ({ fiat: 10, gold: 1 }), buildPrice: () => ({ fiat: 10, gold: 0 }),
   habits: { by: { exercise: { best: 0 } }, medMin: 0, learnt: 0 },
   buy: mutation, setEquip: mutation, enhance: mutation, rankUp: mutation, wearShadow: mutation, buyShadow: mutation,
   build: mutation, upgrade: mutation, upgradeHall: mutation, demolish: mutation,

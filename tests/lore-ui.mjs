@@ -20,6 +20,7 @@ for (const width of sizes) {
   const load = async panel => {
     await page.goto('http://127.0.0.1:4173/tests/lore-preview.html?panel=' + panel)
     await page.getByTestId('lore-preview').waitFor()
+    if (width === 390) await page.evaluate(() => { document.documentElement.dataset.theme = 'pixel-night' })
   }
   const quiet = async () => check(await page.evaluate(() => window.__mutations) === 0, 'reading changed gameplay at ' + width)
   const fits = async () => check(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'horizontal overflow at ' + width)
@@ -97,6 +98,13 @@ for (const width of sizes) {
   await load('shop')
   await page.getByTestId('shop-pet').locator('button').first().click()
   await page.getByTestId('lore-pets-pet_fox').locator('summary').click()
+  await fits(); await quiet(); await close()
+  await page.getByRole('button', { name: /นกฮูกหิมะ/ }).click()
+  const buy = page.getByRole('button', { name: /^ซื้อ / })
+  const priceBefore = await buy.textContent()
+  check(priceBefore.includes('10'), 'purchase price is visible')
+  await page.getByTestId('lore-pets-pet_owl').locator('summary').click()
+  check(await buy.textContent() === priceBefore, 'reading keeps price unchanged')
   await fits(); await quiet(); await close()
   await page.getByRole('button', { name: /ชุดวันเกิดอายุ 30/ }).click()
   await page.getByTestId('lore-skins-bday_30').locator('summary').click()
