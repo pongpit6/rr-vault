@@ -39,7 +39,7 @@ const loggedDay = (t) => localDate(t.createdAt) || t.date
 
 export const TITLES = [
   [1, 'ผู้ฝึกหัด', 'Novice'], [5, 'นักผจญภัย', 'Adventurer'], [10, 'นักสะสม', 'Collector'],
-  [20, 'พ่อค้าผู้มั่งคั่ง', 'Merchant'], [30, 'ขุนนาง', 'Noble'], [50, 'เจ้าครองเกาะ', 'Island Lord'],
+  [20, 'พ่อค้าผู้มั่งคั่ง', 'Merchant'], [30, 'ขุนนาง', 'Noble'], [50, 'ผู้พิทักษ์เส้นทาง', 'Road Warden'],
 ]
 export const REALMS = [
   { min: -Infinity, name: 'แดนหมอกหนี้', en: 'Debt Mire', tier: 0 },
@@ -100,7 +100,7 @@ export const ACHIEVEMENTS = [
   { id: 'txn100', name: 'นักบันทึก', desc: 'บันทึกครบ 100 รายการ', icon: 'book' },
   { id: 'free_land', name: 'พ้นแดนหมอก', desc: 'มูลค่าสุทธิเป็นบวก', icon: 'home' },
   { id: 'nw100k', name: 'ปราสาทแรก', desc: 'มูลค่าสุทธิถึง 100,000', icon: 'building' },
-  { id: 'nw1m', name: 'ราชาแห่งเกาะ', desc: 'มูลค่าสุทธิถึง 1,000,000', icon: 'gem' },
+  { id: 'nw1m', name: 'เจ้าคลังทอง', desc: 'มูลค่าสุทธิถึง 1,000,000', icon: 'gem' },
   // the hunt, cards, crafting (game side)
   { id: 'hunt_first', name: 'นักล่าหน้าใหม่', desc: 'ล่ามอนสเตอร์ตัวแรก', px: 'Swords', group: 'game' },
   { id: 'hunt100', name: 'นักล่าร้อยตัว', desc: 'ล่ามอนสเตอร์รวม 100 ตัว', px: 'Swords', group: 'game' },

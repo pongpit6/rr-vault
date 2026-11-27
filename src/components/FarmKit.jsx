@@ -499,7 +499,7 @@ function Story({ rpg }) {
               {STORY[m.id].map((text, i) => (
                 <div key={i} className={`px-inner p-2.5 ${open[i] ? '' : 'opacity-60'}`}>
                   <div className="text-[11px] font-bold mb-1">บทที่ {i + 1} {open[i] ? '' : <>· <PxIcon name="Lock" size={11} /> {i === 0 ? 'ปลดล็อกแผนที่ก่อน' : STORY_STEPS[i]}</>}</div>
-                  {open[i] ? <div className="text-sm">{text}</div> : <div className="text-sm text-slate-400">…</div>}
+                  {open[i] ? <div className="text-sm whitespace-pre-line">{text}</div> : <div className="text-sm text-slate-400">…</div>}
                   <div className="flex flex-wrap gap-1 mt-1.5">{cast(i).map((x) => <div key={x.id} title={x.name}><Portrait sprite={`mon_${x.id}`} size={i === 2 ? 48 : 30} dim={!open[i] || !f.dex?.[x.id]} /></div>)}</div>
                 </div>
               ))}

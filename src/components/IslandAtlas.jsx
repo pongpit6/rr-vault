@@ -19,8 +19,8 @@ export default function IslandAtlas() {
   const [selected, setSelected] = useState(null)
   return (
     <details className="px-card p-3 mb-3" data-testid="island-atlas">
-      <PixelSummary className="py-1 text-sm font-bold">ภูมิศาสตร์และเรื่องราวของเกาะ</PixelSummary>
-      <p className="text-xs leading-relaxed text-slate-500 my-2">เริ่มจากหมู่บ้านในหุบเขาทางใต้ แล้วตามทางเกวียนไปยังทุ่งและป่าทางตะวันออก เหมืองที่ปิดไปทำให้ข่าวจากถิ่นไกลขาดช่วง แตะสถานที่เพื่ออ่านว่าตั้งอยู่ตรงไหนและเกี่ยวข้องกับชุมชนอื่นอย่างไร</p>
+      <PixelSummary className="py-1 text-sm font-bold">ภูมิศาสตร์และเส้นทางบนทวีป</PixelSummary>
+      <p className="text-xs leading-relaxed text-slate-500 my-2">แผนที่ฉบับนี้เริ่มจากหมู่บ้านทางใต้ของทวีป แล้วตามทางเกวียนไปยังทุ่งและป่าทางตะวันออก แตะสถานที่เพื่ออ่านเรื่องของแต่ละชุมชน เส้นทางนอกขอบแผนที่ยังรอรายงานจากผู้เดินทาง</p>
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
         {PLACES.map((place) => (
           <button type="button" key={place.id} onClick={() => setSelected(place)} className="px-inner p-2 text-left min-w-0" data-testid={'atlas-' + place.id}>
@@ -30,7 +30,7 @@ export default function IslandAtlas() {
           </button>
         ))}
       </div>
-      <p className="text-[11px] leading-relaxed text-slate-500 mt-3">ด้านล่างคือระดับดินแดนตามฐานะของเมือง ส่วนสถานที่บนเกาะเป็นถิ่นของเรื่องราวและการล่า</p>
+      <p className="text-[11px] leading-relaxed text-slate-500 mt-3">ด้านล่างคือระดับดินแดนตามฐานะของเมือง ส่วนแผนที่นี้รวบรวมถิ่นที่กิลด์สำรวจได้แล้ว</p>
       {selected && <Sheet open onClose={() => setSelected(null)} title={selected.name}>
         <img src={'./sprites/' + (selected.image || 'map_' + selected.id) + '.png'} alt={selected.name} className="w-full h-32 object-cover border-2 border-slate-800 mb-3" style={{ imageRendering: 'pixelated' }} />
         <div className="text-xs text-slate-500">{selected.location}</div>

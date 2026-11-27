@@ -10,7 +10,7 @@ export const OUTFITS = [
   { lv: 10, name: 'ชุดนักสะสม', look: "เสื้อแจ็กเก็ตหลายกระเป๋า ผ้าคลุมสั้น · ช่องแยกตัวอย่างตามแบบกิลด์", art: 'multi-pocket explorer jacket, short cape', hue: 0 },
   { lv: 20, name: 'ชุดพ่อค้าเดินทาง', look: "เสื้อคลุมยาวปักลาย ผ้าคาดเอว · ลายปมจากคาราวานทะเลทราย", art: 'long embroidered travel coat, sash', hue: 0 },
   { lv: 30, name: 'ชุดขุนนางนักเดินทาง', look: "เกราะเบาสลักลาย เสื้อคลุมกำมะหยี่ · งานพิธีรับผู้แทนที่ศาลากลาง", art: 'light engraved armor, velvet cloak', hue: 0 },
-  { lv: 50, name: 'ชุดเจ้าครองเกาะ', look: "เสื้อคลุมขลิบทอง มงกุฎใบไม้ · ใบไม้ตามข้อตกลงร่วมกับเผ่าป่า", art: 'long gold-trimmed royal coat, laurel circlet', hue: 0 },
+  { lv: 50, name: 'ชุดผู้พิทักษ์เส้นทาง', look: "เสื้อคลุมขลิบทอง มงกุฎใบไม้ · ใบไม้ตามข้อตกลงร่วมกับเผ่าป่า", art: 'long gold-trimmed royal coat, laurel circlet', hue: 0 },
 ]
 export function outfitOf(level) {
   let i = 0

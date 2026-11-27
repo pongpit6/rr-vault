@@ -238,7 +238,7 @@ function buildLog({ txns, accById, catById, pm, gearBy, has, data, privacy, avgD
 const ACH_NAMES = {
   first_step: 'ก้าวแรก', streak7: 'วินัยเหล็ก', streak30: 'ตำนานแห่งวินัย', first_strike: 'ดาบแรก', boss_slayer: 'ผู้ปราบบอส', shield_wall: 'กำแพงโล่',
   saver20: 'นักออม', investor: 'นักลงทุนฝึกหัด', first_loot: 'นักล่าสมบัติ', diversified: 'คลังหลากหลาย', profit10: 'มือทอง', goal_done: 'ผู้พิชิตเป้าหมาย',
-  planner: 'นักวางแผน', txn100: 'นักบันทึก', free_land: 'พ้นแดนหมอก', nw100k: 'ปราสาทแรก', nw1m: 'ราชาแห่งเกาะ',
+  planner: 'นักวางแผน', txn100: 'นักบันทึก', free_land: 'พ้นแดนหมอก', nw100k: 'ปราสาทแรก', nw1m: 'เจ้าคลังทอง',
 }
 
 /** One-line status for under the battle scene, when nothing new is happening. */
