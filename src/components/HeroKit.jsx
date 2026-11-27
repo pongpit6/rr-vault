@@ -1,4 +1,5 @@
 import { Emo } from './px'
+import { LoreBlock, LoreButton } from './Lore'
 import { useMemo, useState } from 'react'
 import { Shirt, Ghost, Images, Cake, Flag, SLOT_ICON } from './px'
 import { Portrait } from './RpgBits'
@@ -31,6 +32,7 @@ const mkLabel = (mk) => `${MONTHS_TH[+mk.slice(5, 7) - 1]} ${(+mk.slice(0, 4) + 
 /* ---------------- the hero (you): outfit, parts, condition ---------------- */
 export function HeroCard({ rpg }) {
   const o = rpg.outfit, c = rpg.condition
+  const [viewOutfit, setViewOutfit] = useState(null)
   return (
     <Section icon={Shirt} title="HERO · ตัวคุณในเกม" testid="hero-card">
       <div className="flex gap-3">
@@ -44,11 +46,20 @@ export function HeroCard({ rpg }) {
         </div>
       </div>
       <div className="grid grid-cols-6 gap-1 mt-3" data-testid="outfit-strip">{OUTFITS.map((x, i) => (
-        <div key={i} className={`text-center px-inner py-1 ${i + 1 === o.stage ? 'ring-2 ring-emerald-500' : ''}`} title={`${x.name} · เลเวล ${x.lv}`}>
+        <button type="button" key={i} onClick={() => setViewOutfit({ ...x, stage: i + 1 })} className={`text-center px-inner py-1 ${i + 1 === o.stage ? 'ring-2 ring-emerald-500' : ''}`} aria-label={`อ่านเรื่องราว: ${x.name}`} title={`${x.name} · เลเวล ${x.lv}`}>
           <div className="mx-auto w-fit"><Portrait sprite={`hero${i + 1}`} size={36} dim={i + 1 > o.stage} /></div>
           <div className="text-[9px] text-slate-500">Lv.{x.lv}</div>
-        </div>
+        </button>
       ))}</div>
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1">
+        <span className="text-[10px] text-slate-500">แตะชุดแต่ละขั้นเพื่ออ่านที่มา</span>
+        {rpg.skin && <LoreButton category="skins" id={rpg.skin.id} title={rpg.skin.name} />}
+      </div>
+      {viewOutfit && <Sheet open onClose={() => setViewOutfit(null)} title={viewOutfit.name}>
+        <div className="mx-auto w-fit px-inner p-3"><Portrait sprite={`hero${viewOutfit.stage}`} size={72} dim={viewOutfit.stage > o.stage} /></div>
+        <div className="text-xs text-slate-500 mt-2">ชุดตามยศ · เลเวล {viewOutfit.lv}{viewOutfit.stage > o.stage ? ' · ยังไม่ถึงขั้นนี้' : ''}</div>
+        <LoreBlock category="outfits" id={viewOutfit.lv} defaultOpen />
+      </Sheet>}
       {c && (
         <div className="mt-3 px-inner p-2.5 text-xs flex items-start gap-2" data-testid="hero-condition">
           <Emo k={c.id === 'rest' ? 'hb_rest' : `cd_${c.id}`} e={c.emoji} size={28} />

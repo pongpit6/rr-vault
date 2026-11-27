@@ -1,4 +1,6 @@
 import { Emo, EmoText, PxIcon } from '../components/px'
+import { LoreBlock, LoreButton } from '../components/Lore'
+import IslandAtlas from '../components/IslandAtlas'
 import { useState } from 'react'
 import { Flame, Swords, Check, Lock, Trophy, ScrollText, Sparkles, MapPin, Backpack, Users, Shield, Store, Map as MapIcon, BookOpen, Eye, Castle, Gem } from '../components/px'
 import { ItemSprite, AssetIcon } from '../components/Logos'
@@ -190,6 +192,8 @@ function PartyTab({ rpg }) {
           <div className="flex-1 min-w-0 text-sm"><b>{rpg.pet.name}</b> <span className="px-font text-[8px] text-amber-600">{'★'.repeat(rpg.growth.pet.stage)}{'☆'.repeat(3 - rpg.growth.pet.stage)}</span>
             <div className="flex gap-1.5 my-1">{[1, 2, 3].map((n) => <div key={n} className={`px-inner p-0.5 ${n === rpg.growth.pet.stage ? 'ring-2 ring-amber-400' : ''}`}><Portrait sprite={`${rpg.pet.sprite}_${n}`} size={30} dim={n > rpg.growth.pet.stage} /></div>)}</div>
             <div className="text-[11px] text-slate-500">โตตามความสม่ำเสมอ: ทำนิสัยมาแล้ว {rpg.growth.pet.days} วัน{rpg.growth.pet.nextAt ? ` · โตขั้นถัดไปที่ ${rpg.growth.pet.nextAt} วัน` : ' · โตเต็มวัยแล้ว'}</div>
+            <LoreBlock category="pets" id={rpg.pet.id} />
+            <LoreBlock category="petStages" id={`${rpg.pet.id}:${rpg.growth.pet.stage}`} title="เรื่องของร่างปัจจุบัน" />
           </div>
         </section>
       )}
@@ -225,6 +229,7 @@ function PartyGrid({ rpg }) {
             <div className="flex flex-wrap gap-1.5">
               {rpg.skills.filter((k) => k.member === m.id).map((k) => <span key={k.id} className={`text-[11px] px-2 py-1 border ${k.unlocked ? 'border-slate-800 bg-white' : 'border-slate-200 text-slate-400'}`}><Emo k={`sk_${k.id}`} e={k.icon} size={16} /> {k.name}{!k.unlocked && ` · ${k.lockText}`}</span>)}
             </div>
+            <LoreBlock category="party" id={m.id} />
           </div>
         </Sheet>
       )}
@@ -279,6 +284,10 @@ function GearList({ rpg }) {
               <div className="text-[10px] text-slate-500">ไม่มีแตก · ตั้งแต่ +5 ถ้าพลาดจะลด 1 ขั้น</div>
               {st && <button className="px-btn w-full justify-center" disabled={(bag.mcrystal || 0) < st.c || rpg.fiat < st.fiat} onClick={() => { const r = rpg.enhance(g.slot); if (r) showToast(r.ok ? `สำเร็จ! ${g.name} +${r.to}` : `ไม่สำเร็จ${r.to < r.from ? ` ลดเหลือ +${r.to}` : ''}`) }} data-testid="enh-go">ตีบวก</button>}
             </div>
+            <LoreBlock category="gear" id={`${g.slot}:${g.tier}`} />
+            <details className="mt-2 text-xs"><summary className="cursor-pointer py-2 text-slate-500">ที่มาของอุปกรณ์ขั้นอื่น</summary>
+              {GEAR_TIERS.map((tier, index) => index !== g.tier && <LoreBlock key={tier.name} category="gear" id={`${g.slot}:${index}`} title={g.names[index]} />)}
+            </details>
           </div>
         </Sheet>
       )}
@@ -292,7 +301,10 @@ function SkillsTab({ rpg }) {
     <div className="space-y-3">
       <SkillTree rpg={rpg} />
       <div className="text-[11px] text-slate-500 px-1">สกิลจากชีวิตจริง (ทำงานเองเมื่อทำเรื่องจริง และวันนั้นได้โบนัสการล่า: จ่ายหนี้ → พลังทีม +10%, ออม/ลงทุน → ดรอปวัสดุ +10%)</div>
-      <section className="px-card p-4" data-testid="real-skills"><div className="flex flex-wrap gap-1.5">{rpg.skills.filter((k) => k.unlocked).map((k) => <span key={k.id} className="px-inner px-2 py-1 text-[11px]" title={`เมื่อคุณ ${k.how} → ${k.does}`}><Emo k={`sk_${k.id}`} e={k.icon} size={14} /> {k.name}</span>)}</div></section>
+      <section className="px-card p-4" data-testid="real-skills"><div className="flex flex-wrap gap-1.5">{rpg.skills.filter((k) => k.unlocked).map((k) => <div key={k.id} className="px-inner px-2 py-1 text-[11px]">
+          <div title={`เมื่อคุณ ${k.how} → ${k.does}`}><Emo k={`sk_${k.id}`} e={k.icon} size={14} /> {k.name}</div>
+          <LoreButton category="lifeSkills" id={k.id} title={k.name} description={`เมื่อคุณ ${k.how} → ${k.does}`} label="รายละเอียดและที่มา" />
+        </div>)}</div></section>
     </div>
   )
 }
@@ -327,6 +339,7 @@ function ShopTab({ rpg }) {
               <DetailHead art={x.big} lines={[x.desc]} />
               {x.owned ? <button className={`w-full py-2 text-sm font-semibold border-2 border-slate-800 ${x.on ? 'bg-teal-500 text-white' : 'bg-white'}`} onClick={() => { x.use(); close() }}>{x.on ? (x.id === 'rank' || x.id === 'pet_fox' ? 'ใช้อยู่ ✓' : 'ใช้อยู่ ✓ · แตะเพื่อถอด') : 'ใช้'}</button>
                 : <button onClick={() => { x.buy(); close() }} disabled={!rpg.afford(x.price)} className="w-full py-2 text-sm font-semibold border-2 border-slate-800 bg-violet-500 text-white disabled:bg-slate-200 disabled:border-slate-300 flex items-center justify-center gap-1 [&_span]:!text-white disabled:[&_span]:!text-slate-500">ซื้อ <Price p={x.price} rpg={rpg} /></button>}
+              <LoreBlock category={type === 'pet' ? 'pets' : x.id === 'rank' ? 'outfits' : 'skins'} id={x.id === 'rank' ? rpg.outfit.lv : x.id} />
             </div>
           )} />
         </Section>
@@ -339,6 +352,7 @@ function MapTab({ rpg, onPreview, privacy }) {
   const net = rpg.realmNet ?? rpg.vault.summary.net
   return (
     <div className="space-y-0">
+      <IslandAtlas />
       <div className="text-[11px] text-slate-500 mb-2 px-1">ดินแดนนับจากมูลค่าสุทธิสูงสุดที่คุณเคยทำได้ ตลาดลงชั่วคราวจะไม่ทำให้ถอยกลับ · ทุกดินแดนเปลี่ยนตามเวลาจริง (เช้า กลางวัน เย็น กลางคืน) พร้อมสัตว์ประจำถิ่น</div>
       {[...REALMS].reverse().map((r, i, arr) => {
         const here = r.tier === rpg.realm.tier
@@ -354,6 +368,7 @@ function MapTab({ rpg, onPreview, privacy }) {
                   <div className="flex items-center gap-2"><span className="font-bold">{r.name}</span><span className="px-font text-[8px] text-slate-400">{r.en.toUpperCase()}</span></div>
                   <div className="text-xs text-slate-500">{Number.isFinite(r.min) ? `มูลค่าสุทธิ ${money(r.min, { decimals: false })} ขึ้นไป` : 'มูลค่าสุทธิติดลบ'}{here && ' · คุณอยู่ที่นี่'}</div>
                   <div className="text-xs text-slate-600 mt-1">{REALM_INFO[r.tier]}</div>
+                  <LoreBlock category="realms" id={r.tier} />
                   {!reached && (
                     <div className="mt-2"><Bar pct={pct} /><div className="text-[11px] text-slate-500 mt-1">อีก {privacy ? '฿•••' : money(r.min - net, { decimals: false })} จะถึงระดับดินแดนนี้</div></div>
                   )}
@@ -548,3 +563,6 @@ function RankCard({ rpg }) {
     </div>
   )
 }
+
+// Presentation panels are also used by the isolated UI checks.
+export { PartyTab, GearList, SkillsTab, ShopTab, MapTab }
