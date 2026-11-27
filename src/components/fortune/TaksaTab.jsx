@@ -66,7 +66,7 @@ export default function TaksaTab({ birth, onEdit }) {
       </section>
 
       <section className="px-card p-4 space-y-3" data-testid="taksa-now">
-        <div className="text-xs text-slate-500"><T k="ดาวเสวย" /> · <T k="ดาวแทรก" /> · ตอนนี้ (อายุ {Math.floor((now - birthMs) / (365.2425 * 864e5))} ปี)</div>
+        <div className="text-xs text-slate-500"><T k="ดาวเสวย" /> คือภาพรวมช่วงยาว · <T k="ดาวแทรก" /> คือเรื่องที่เด่นในช่วงย่อย (อายุ {Math.floor((now - birthMs) / (365.2425 * 864e5))} ปี)</div>
         <button onClick={() => setPair(at.sub)} className="w-full text-left flex items-center gap-3" data-testid="taksa-current">
           <div className="flex items-center"><Pl p={at.main.planet} size={48} /><Pl p={at.sub.planet} size={30} /></div>
           <div className="flex-1 min-w-0">

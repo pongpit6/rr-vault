@@ -80,7 +80,7 @@ export function townChats(rpg) {
     }
     if (tod === 'night') {
       const sp = by0('guard', 'smith', 'farmer'); if (sp) add(2, [sp], [[sp, `คืนนี้มอนสเตอร์แกร่งขึ้น ${Math.round((NIGHT.monPow - 1) * 100)}% ระวังตัวด้วยนะ`], ['hero', 'ทีมล่าให้อยู่แล้ว ข้าไปนอนก่อนนะ'], [sp, 'ดีแล้ว พักผ่อนให้พอ พรุ่งนี้ค่อยดูของที่ได้']])
-      const s2 = by0('bard', 'merchant', 'farmer'); if (s2) add(1, [s2], [[s2, `ว่ากันว่ากลางคืนจะมีมอนสเตอร์เรืองแสงโผล่มา ราว ${glowP}% เลยนะ`], ['hero', 'ถ้วยรางวัลมันได้สองเท่าใช่ไหม'], [s2, 'ใช่! ขายได้ราคาดีด้วย']])
+      const s2 = by0('bard', 'merchant', 'farmer'); if (s2) add(1, [s2], [[s2, `กลางคืนมีโอกาสเจอร่างเรืองแสงราว ${glowP}% บางตัวรับมานาจากผลึกจนแสงออกมาจากในตัว`], ['hero', 'ต้องระวังต่างจากร่างปกติยังไงบ้าง'], [s2, 'ตัวที่เคยหนีอาจหันมาไล่ อย่าเดินเข้าใกล้เพียงเพราะอยากเห็นแสงชัด ๆ']])
       if (moon) { const s3 = by0('fisher', 'farmer', 'guard'); if (s3) add(3, [s3], [[s3, 'คืนนี้พระจันทร์เต็มดวง! มอนสเตอร์เรืองแสงออกมาเยอะเป็นสองเท่า'], ['hero', 'ของแรร์ก็ดรอปง่ายขึ้นอีกใช่ไหม'], [s3, 'ใช่ ดูแสงได้แล้วไปพักเถอะ พรุ่งนี้ค่อยเปิดบันทึกของที่ทีมล่าได้']]) }
     }
     // collector cards and the Sunday card merchant
@@ -99,7 +99,7 @@ export function townChats(rpg) {
     if (dec.includes('dc_bookstall')) { const sp = by0('apprentice', 'bard'); if (sp) add(2, [sp], [[sp, 'ซุ้มหนังสือหน้าบ้านมีเล่มใหม่มาอีกแล้ว'], ['hero', 'อ่านวันละนิด สะสมไปเรื่อย ๆ']]) }
     if (dec.includes('dc_piggy')) { const sp = by0('banker', 'merchant'); if (sp) add(2, [sp], [[sp, 'รูปปั้นกระปุกออมสินกลางเมือง เตือนใจทุกคนให้เก็บเงินเลยนะ'], ['hero', 'ตั้งใจไว้แบบนั้นแหละ']]) }
     if (dec.length >= 12) { const sp = by0('bard', 'farmer'); if (sp) add(1, [sp], [[sp, `เมืองเราสวยขึ้นมาก มีของแต่งตั้ง ${dec.length} ชิ้นแล้ว`], ['hero', 'ทุกคนช่วยกันดูแลนะ']]) }
-    if (glowMon) { const sp = by0('merchant', 'banker', 'farmer'); if (sp) add(3, [sp], [[sp, `ได้ยินว่าท่านล่า${glowMon.name}ตัวเรืองแสงได้ด้วย!`], ['hero', 'โชคดีน่ะ มันโผล่มาตอนกลางคืน'], [sp, `${glowMon.trophy}จากตัวเรืองแสง เอามาขายข้าได้เลยนะ`]]) }
+    if (glowMon) { const sp = by0('merchant', 'banker', 'farmer'); if (sp) add(3, [sp], [[sp, `ได้ยินว่าท่านล่า${glowMon.name}ตัวเรืองแสงได้ด้วย!`], ['hero', 'เห็นแสงจากตัวมันก่อน แล้วมันก็เข้ามาไล่เร็วกว่าที่คิด'], [sp, `${glowMon.trophy}จากตัวเรืองแสง เอามาขายข้าได้เลยนะ`]]) }
   }
 
   // ---------- your real day ----------

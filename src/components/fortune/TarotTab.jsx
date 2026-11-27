@@ -37,20 +37,14 @@ function Effect({ id, rev }) {
 /** the reading of one card in one orientation */
 function Reading({ id, rev }) {
   const c = CARD_BY_ID[id]
-  const row = (icon, t, v) => <div className="flex gap-2"><PxIcon name={icon} size={18} className="mt-0.5" /><div><div className="text-[11px] text-slate-500">{t}</div><div className="text-sm">{v}</div></div></div>
   return (
-    <div className="space-y-2.5">
-      {row('ft_ball', 'ธีมวันนี้', c.theme)}
-      {rev ? <>
-        {row('RotateCcw', 'มุมพิจารณาเมื่อไพ่กลับหัว', c.rev)}
-        {row('AlertTriangle', 'อีกด้านที่ควรระวัง', c.shadow)}
-        {row('Target', 'ลองทำวันนี้', c.action)}
-      </> : <>
-        {row('Sparkles', 'มุมที่นำมาใช้ได้', c.light)}
-        {row('AlertTriangle', 'จุดที่ควรระวัง', c.shadow)}
-        {row('Target', 'ลองทำวันนี้', c.action)}
+    <div className="px-inner p-3 space-y-2 text-sm leading-relaxed" data-testid="tarot-reading">
+      <div className="font-semibold">{c.theme}</div>
+      {rev ? <p>{c.rev}</p> : <>
+        <p>{c.light}</p>
+        <p>{c.shadow} {c.action}</p>
       </>}
-      {row('Moon', 'ก่อนนอนถามตัวเอง', c.q)}
+      <p className="text-slate-600"><b>ก่อนนอนลองถามตัวเอง</b> {c.q}</p>
     </div>
   )
 }
@@ -121,7 +115,7 @@ export default function TarotTab() {
         {!d && phase === 'idle' && (
           <div className="text-center space-y-3">
             <div className="flex justify-center -space-x-12 py-2">{[0, 1, 2, 3, 4].map((i) => <div key={i} style={{ transform: `rotate(${(i - 2) * 7}deg) translateY(${Math.abs(i - 2) * 4}px)` }}><TarotCard back w={84} /></div>)}</div>
-            <div className="text-xs text-slate-500">ตั้งคำถามว่า “วันนี้ฉันควรใส่ใจเรื่องอะไร?” แล้วจั่ววันละหนึ่งใบ อ่านธีมและเลือกคำแนะนำที่ตรงกับสถานการณ์จริง ไพ่กลับหัวชวนดูอีกมุม ไม่ได้แปลว่าร้ายเสมอ ป้ายโบนัสบอกพลังในเกม ไม่ใช่คะแนนดวงของชีวิตจริง</div>
+            <div className="text-xs text-slate-500">ก่อนจั่วลองถามตัวเองว่า “วันนี้อยากใส่ใจเรื่องอะไร?” พอเปิดไพ่แล้ว ลองดูว่าภาพบนไพ่ชวนให้นึกถึงเรื่องไหนในชีวิตคุณ ไพ่กลับหัวจะชวนมองอีกมุม ส่วนป้ายโบนัสบอกพลังที่ได้ในเกมครับ</div>
             <button className="px-btn mx-auto" onClick={draw} data-testid="tarot-draw"><PxIcon name="Sparkles" size={18} /> สับไพ่แล้วจั่ว</button>
           </div>
         )}
@@ -140,14 +134,13 @@ export default function TarotTab() {
                 <div className="text-lg font-bold leading-tight">{CARD_BY_ID[d.id].en}</div>
                 <div className="text-sm text-slate-600">{CARD_BY_ID[d.id].th} · {d.rev ? 'กลับหัว' : 'ตั้งตรง'}</div>
                 <Luck id={d.id} rev={d.rev} />
-                <div className="text-sm font-semibold mt-1">{CARD_BY_ID[d.id].theme}</div>
                 <button className="text-xs ui-link" onClick={() => setSheet({ id: d.id, rev: d.rev, day: today })}>ดูคำอธิบายเต็ม</button>
               </div>
             </div>
             <Reading id={d.id} rev={d.rev} />
             <Effect id={d.id} rev={d.rev} />
             <div className="px-inner p-3 space-y-2" data-testid="tarot-review">
-              <div className="text-xs font-semibold">ทบทวนตอนเย็น: ธีมนี้เกี่ยวข้องกับวันนี้อย่างไร?</div>
+              <div className="text-xs font-semibold">วันนี้คำอ่านตรงกับเรื่องที่เจอแค่ไหน?</div>
               <textarea className="field w-full text-sm" rows={2} placeholder="อะไรเกี่ยวข้อง อะไรไม่เกี่ยว และฉันได้ลองทำอะไรบ้าง (ไม่บังคับ)" value={note} onChange={(e) => setNote(e.target.value)} />
               <div className="flex gap-2">{REVIEW.map(([v, t, col]) => <button key={v} onClick={() => review(v)} className="px-btn flex-1 justify-center text-xs" style={d.review?.v === v ? { background: col, color: '#fff' } : undefined} data-testid={`review-${v}`}>{t}</button>)}</div>
             </div>

@@ -1,5 +1,8 @@
 import assert from 'node:assert/strict'
-import { mkdir } from 'node:fs/promises'
+import { mkdir, readFile } from 'node:fs/promises'
+import { GOD_TEXT } from '../src/lib/fortune/baziText.js'
+import { PAIR_TEXT } from '../src/lib/fortune/taksaText.js'
+const tarotCards = JSON.parse(await readFile(new URL('../src/lib/fortune/tarotCards.json', import.meta.url), 'utf8'))
 const { chromium } = await import(process.env.LORE_PLAYWRIGHT_MODULE || 'playwright')
 const browser = await chromium.launch({ headless: true })
 let assertions = 0
@@ -43,13 +46,14 @@ for (const width of [320, 390, 768, 1280]) {
       await page.getByTestId('bazi-luck').scrollIntoViewIfNeeded()
       await page.screenshot({ path: `test-results/bazi-luck-${width}.png` })
       await page.getByTestId('cal-1').click()
-      const dayReading = page.locator('.ui-sheet .whitespace-pre-line').first()
-      check(await dayReading.textContent().then(text => ['ความหมาย:', 'ลองนำไปใช้:', 'ระวัง:'].every(label => text.includes(label))), 'day reading includes meaning, action and caution')
+      const dayReading = page.getByTestId('bazi-day-reading')
+      check(await dayReading.textContent().then(text => GOD_TEXT.some(role => text.includes(role.period))), 'day reading shows the full role explanation and advice')
       check(await dayReading.evaluate(el => getComputedStyle(el).whiteSpace === 'pre-line'), 'day reading keeps paragraph breaks')
       const summary = page.getByTestId('hour-0').locator('summary')
       await summary.click()
       check(await page.getByTestId('hour-0').getAttribute('open') !== null, 'hour reading opens')
       check(await summary.locator('.px-disclosure-icon').isVisible(), 'hour uses pixel disclosure')
+      check(await page.getByTestId('hour-0').locator('p').textContent().then(text => GOD_TEXT.some(role => text === role.period)), 'hour detail shows the role advice')
       await fits(); await page.keyboard.press('Escape')
     }
   }
@@ -59,7 +63,8 @@ for (const width of [320, 390, 768, 1280]) {
 
   await load('taksa')
   const pairReading = page.getByTestId('taksa-tab').locator('.px-inner.whitespace-pre-line').first()
-  check(await pairReading.textContent().then(text => ['ความหมาย:', 'ลองนำไปใช้:', 'ระวัง:'].every(label => text.includes(label))), 'main/sub-period explanation is complete')
+  check(await pairReading.textContent().then(text => Object.values(PAIR_TEXT).some(row => Object.values(row).includes(text))), 'main/sub-period explanation is complete')
+  check(await page.getByTestId('taksa-now').textContent().then(text => text.includes('ภาพรวมช่วงยาว') && text.includes('เรื่องที่เด่นในช่วงย่อย')), 'main and sub-period roles are explained up front')
   check(await pairReading.evaluate(el => getComputedStyle(el).whiteSpace === 'pre-line' && Number(getComputedStyle(el).fontWeight) < 600), 'pair reading is spaced and not an all-bold paragraph')
   for (const text of await page.locator('[data-testid="taksa-c10"] svg text').all()) {
     check(await text.evaluate(el => el.getBBox().x >= -1), `chart axis label clipped at ${width}`)
@@ -70,6 +75,24 @@ for (const width of [320, 390, 768, 1280]) {
   await page.getByTestId('taksa-current').click()
   await page.locator('.ui-sheet').waitFor(); await fits()
   await page.keyboard.press('Escape')
+
+  await load('tarot')
+  const tarotSheet = page.getByTestId('tarot-sheet')
+  const reading = tarotSheet.getByTestId('tarot-reading')
+  const upright = tarotSheet.getByRole('button', { name: 'ตั้งตรง', exact: true })
+  const reversed = tarotSheet.getByRole('button', { name: 'กลับหัว', exact: true })
+  const cases = width === 390 ? tarotCards : tarotCards.slice(0, 1)
+  for (const [index, card] of cases.entries()) {
+    await upright.click()
+    check(await reading.textContent().then(text => [card.theme, card.light, card.shadow, card.action, card.q].every(part => text.includes(part))), 'complete upright reading: ' + card.id)
+    await reversed.click()
+    check(await reading.textContent().then(text => text.includes(card.rev) && text.includes(card.q) && !text.includes(card.action)), 'reversed advice is specific to its orientation: ' + card.id)
+    await fits()
+    if (index < cases.length - 1) await tarotSheet.getByTestId('tarot-next').click()
+  }
+  check(await tarotSheet.getByTestId('tarot-effect').isVisible(), 'game bonus remains available')
+  check(await tarotSheet.getByTestId('tarot-lore').isVisible(), 'card lore remains available')
+  await page.screenshot({ path: `test-results/tarot-reading-${width}.png` })
 
   await load('atlas')
   const disclosure = page.getByTestId('island-atlas').locator(':scope > summary')

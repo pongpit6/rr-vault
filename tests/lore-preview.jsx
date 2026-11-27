@@ -13,6 +13,7 @@ import { WORLD_LORE } from '../src/lib/worldLore'
 import IslandAtlas from '../src/components/IslandAtlas'
 import BaziTab from '../src/components/fortune/BaziTab'
 import TaksaTab from '../src/components/fortune/TaksaTab'
+import { CardSheet } from '../src/components/fortune/TarotTab'
 import { FortuneStatus } from '../src/components/fortune/FortuneStatus'
 import { RATE } from '../src/lib/fortune/bazi'
 
@@ -41,6 +42,7 @@ function Preview() {
   const panels = {
     bazi: <BaziTab birth={birth} onEdit={mutation} />,
     taksa: <TaksaTab birth={birth} onEdit={mutation} />,
+    tarot: <CardSheet open id="maj_00" both onClose={() => {}} />,
     statuses: <div className="flex gap-1.5 overflow-x-auto">{RATE.map(level => <div key={level.th} className="px-inner p-1.5 shrink-0 w-14 text-center" data-testid="status-card"><FortuneStatus level={level} small /></div>)}</div>,
     hero: <HeroCard rpg={rpg} />, party: <PartyTab rpg={rpg} />, gear: <GearList rpg={rpg} />,
     skills: <SkillsTab rpg={rpg} />, tree: <SkillTree rpg={rpg} />, shadows: <ShadowCard rpg={rpg} />,
