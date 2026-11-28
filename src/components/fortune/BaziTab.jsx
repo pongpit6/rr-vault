@@ -12,6 +12,8 @@ import { Guide, T } from './FortuneKit'
 import { BlockChart, Legend } from './FortuneChart'
 import { FortuneStatus } from './FortuneStatus'
 import PixelSummary from '../PixelSummary'
+import ReadingTopics from './ReadingTopics'
+import { baziTopics } from '../../lib/fortune/baziTopics'
 
 const TONE_BG = { good: '#dcfce7', bad: '#fee2e2', info: '#e0e7ff' }
 const TH_D = (y, m, d) => `${d} ${['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'][m - 1]}`
@@ -84,6 +86,23 @@ function PillarSheet({ N, p, onClose }) {
   )
 }
 
+function PeriodReading({ N, r, c, period, title, testid }) {
+  return <div className="px-inner space-y-2 p-3" data-testid={testid}>
+    <div className="flex flex-wrap items-center gap-2 text-xs"><b className="flex-1">{title}</b><Chip lvl={r.lvl} /></div>
+    <ReadingTopics rows={baziTopics(N, r, c, eventsOf(N, c, period), period)} />
+  </div>
+}
+
+function PeriodEvidence({ events, r, small }) {
+  return <details className="px-inner p-2">
+    <PixelSummary className="text-xs font-semibold">ปฏิกิริยาและเหตุผลของคะแนน</PixelSummary>
+    <div className="space-y-2 pt-2">
+      {events.map((e, i) => <EventBox key={i} e={e} small={small} />)}
+      <Why r={r} />
+    </div>
+  </details>
+}
+
 /** a day: rating, reasons and its 12 hours */
 function DaySheet({ N, ymd, onClose }) {
   if (!ymd) return null
@@ -93,10 +112,9 @@ function DaySheet({ N, ymd, onClose }) {
     <Sheet open onClose={onClose} title={`${d} ${TH_MONTH[m - 1]} ${y + 543}`}>
       <div className="space-y-3 text-sm" data-testid="day-sheet">
         <div className="flex items-center gap-3"><Stem s={c % 10} size={34} /><Branch b={c % 12} size={34} /><PxIcon name={ZODIAC_ICON[c % 12]} size={32} />
-          <div className="flex-1"><div className="text-xs text-slate-500">วัน{EL[stemEl(c % 10)]}{STEM_TH[c % 10].slice(-4)} · {ZODIAC[c % 12]}</div><Chip lvl={r.lvl} /></div></div>
-        {eventsOf(N, c, 'วัน').map((e, i) => <EventBox key={i} e={e} />)}
-        <div className="px-inner p-3 text-sm leading-relaxed whitespace-pre-line" data-testid="bazi-day-reading"><b className="block mb-1">คำอ่านรายวัน · {GOD_TH[r.god]}</b>{GOD_TEXT[r.god].period}</div>
-        <Why r={r} />
+          <div className="flex-1 text-xs text-slate-500">วัน{EL[stemEl(c % 10)]}{STEM_TH[c % 10].slice(-4)} · {ZODIAC[c % 12]}</div></div>
+        <PeriodReading N={N} r={r} c={c} period="วัน" title="คำอ่านรายวัน" testid="bazi-day-reading" />
+        <PeriodEvidence events={eventsOf(N, c, 'วัน')} r={r} />
         <div className="font-semibold text-xs pt-1">ยามทั้ง 24 ชั่วโมง (ยามละ 2 ชั่วโมง · แตะเพื่อดูเหตุผล)</div>
         <div className="space-y-1">{hrs.map((h) => (
           <details key={h.h} className={`px-inner px-2 py-1.5 ${isToday && h.h === curH ? 'ring-2 ring-violet-500' : ''}`} data-testid={`hour-${h.h}`}>
@@ -104,7 +122,11 @@ function DaySheet({ N, ymd, onClose }) {
               <span className="shrink-0 num">{h.label}</span><Stem s={h.c % 10} size={16} /><Branch b={h.c % 12} size={16} /><PxIcon name={ZODIAC_ICON[h.c % 12]} size={18} />
               <span className="flex-1 truncate text-slate-500">{GOD_TH[h.god]}</span>{eventsOf(N, h.c, 'ยาม').slice(0, 2).map((e, i) => <PxIcon key={i} name={e.icon} size={16} />)}{isToday && h.h === curH && <b className="text-violet-600 text-[10px]">ตอนนี้</b>}<Chip lvl={h.lvl} small />
             </span></PixelSummary>
-            <div className="pt-1.5 space-y-1"><p className="text-xs leading-relaxed whitespace-pre-line">{GOD_TEXT[h.god].period}</p>{eventsOf(N, h.c, 'ยาม').map((e, i) => <EventBox key={i} e={e} small />)}<Why r={h} />{h.late && <div className="text-[10px] text-slate-500 mt-1">หลัง 23:00 นับเป็นยามชวดของวันถัดไป (กฎวันเปลี่ยน 23:00)</div>}</div>
+            <div className="pt-1.5 space-y-2">
+              <PeriodReading N={N} r={h} c={h.c} period="ยาม" title={h.label} testid="bazi-hour-reading" />
+              <PeriodEvidence events={eventsOf(N, h.c, 'ยาม')} r={h} small />
+              {h.late && <div className="text-[10px] text-slate-500 mt-1">หลัง 23:00 นับเป็นยามชวดของวันถัดไป (กฎวันเปลี่ยน 23:00)</div>}
+            </div>
           </details>))}</div>
       </div>
     </Sheet>
@@ -113,13 +135,13 @@ function DaySheet({ N, ymd, onClose }) {
 
 function RateSheet({ N, item, onClose }) {
   if (!item) return null
+  const period = item.what || 'ปี'
   return (
     <Sheet open onClose={onClose} title={item.title}>
       <div className="space-y-3 text-sm">
-        <div className="flex items-center gap-3"><Stem s={item.c % 10} size={34} /><Branch b={item.c % 12} size={34} /><PxIcon name={ZODIAC_ICON[item.c % 12]} size={32} /><div className="flex-1 text-xs text-slate-500">{item.sub}</div><Chip lvl={item.r.lvl} /></div>
-        {eventsOf(N, item.c, item.what || 'ปี').map((e, i) => <EventBox key={i} e={e} />)}
-        <div className="px-inner p-3 text-sm leading-relaxed whitespace-pre-line"><b className="block mb-1">{item.what || 'ปี'} · {GOD_TH[item.r.god]}</b>{GOD_TEXT[item.r.god].period}</div>
-        <Why r={item.r} />
+        <div className="flex items-center gap-3"><Stem s={item.c % 10} size={34} /><Branch b={item.c % 12} size={34} /><PxIcon name={ZODIAC_ICON[item.c % 12]} size={32} /><div className="flex-1 text-xs text-slate-500">{item.sub}</div></div>
+        <PeriodReading N={N} r={item.r} c={item.c} period={period} title={period === 'เสาโชค' ? 'คำอ่านเสาโชค' : `คำอ่านราย${period}`} testid="bazi-period-reading" />
+        <PeriodEvidence events={eventsOf(N, item.c, period)} r={item.r} />
       </div>
     </Sheet>
   )
@@ -129,6 +151,7 @@ export default function BaziTab({ birth, onEdit }) {
   const N = useMemo(() => natal(birth), [birth])
   const np = nowParts()
   const [ym, setYm] = useState([np.y, np.m])
+  const [focus, setFocus] = useState('day')
   const [pil, setPil] = useState(null), [day, setDay] = useState(null), [item, setItem] = useState(null), [showEv, setShowEv] = useState(false)
   const luck = useMemo(() => luckPillars(N, birth.sex), [N, birth.sex])
   const todayC = dayIdx(np.y, np.m, np.d), todayR = rate(N, todayC, { label: 'วัน' })
@@ -140,6 +163,14 @@ export default function BaziTab({ birth, onEdit }) {
   }, [N, ym])
   const lichunNow = Date.now() >= lichun(np.y) ? np.y : np.y - 1
   const years = [lichunNow, lichunNow + 1].map((y) => ({ y, c: yearPillar(y), r: rate(N, yearPillar(y), { label: 'ปี' }), from: lichun(y), to: lichun(y + 1) }))
+  const yearItem = (x) => ({ title: `ปี ${pillarName(x.c)} (${x.y + 543})`, c: x.c, r: x.r, what: 'ปี', sub: `${thDT(x.from)} – ${thDT(x.to)}` })
+  const hourItem = (h) => ({ title: `${h.label} · ยาม${ZODIAC[h.c % 12]}`, c: h.c, r: h, what: 'ยาม', sub: `เสายาม ${pillarName(h.c)}${h.late ? ' · นับเป็นวันถัดไป' : ''}` })
+  const currentYear = years[0]
+  const overview = {
+    day: { c: todayC, r: todayR, period: 'วัน', title: `วันนี้ · ${TH_D(np.y, np.m, np.d)}`, open: () => setDay([np.y, np.m, np.d]), more: 'ดูปฏิกิริยาและยามของวันนี้' },
+    year: { c: currentYear.c, r: currentYear.r, period: 'ปี', title: `ปีนี้ · พ.ศ. ${currentYear.y + 543}`, open: () => setItem(yearItem(currentYear)), more: 'ดูปฏิกิริยาและช่วงวันที่ของปีนี้' },
+    hour: { c: hourNow.c, r: hourNow, period: 'ยาม', title: `ยามนี้ · ${hourNow.label}`, open: () => setItem(hourItem(hourNow)), more: 'ดูปฏิกิริยาของยามนี้' },
+  }[focus]
   const curLuck = luck?.list.find((l) => l.from <= Date.now() && Date.now() < l.to)
   const reacts = useMemo(() => natalReactions(N), [N])
   const [grp, setGrp] = useState('vault')
@@ -147,11 +178,20 @@ export default function BaziTab({ birth, onEdit }) {
   const upcoming = useMemo(() => upcomingEvents(N, dayIdx, Date.now(), 30), [N])
   const nextDay = (b) => { const k = ((b - (todayC % 12)) % 12 + 12) % 12, d = new Date(Date.UTC(np.y, np.m - 1, np.d + k)); return { y: d.getUTCFullYear(), m: d.getUTCMonth() + 1, d: d.getUTCDate() } }
   const nextYear = (b) => lichunNow + ((b - (yearPillar(lichunNow) % 12)) % 12 + 12) % 12
-  const yearBars = Array.from({ length: 12 }, (_, i) => { const y = lichunNow + i, c = yearPillar(y), r = rate(N, c, { label: 'ปี' }); return { y, c, r } })
+  const yearBars = Array.from({ length: 12 }, (_, i) => { const y = lichunNow + i, c = yearPillar(y), r = rate(N, c, { label: 'ปี' }); return { y, c, r, from: lichun(y), to: lichun(y + 1) } })
   const shiftM = (k) => setYm(([y, m]) => { const t = (y * 12 + m - 1) + k; return [Math.floor(t / 12), (t % 12) + 1] })
   const order = ['hour', 'day', 'month', 'year'] // traditional right-to-left reading: year on the right
   return (
     <div className="space-y-4" data-testid="bazi-tab">
+      <section className="px-card p-3 space-y-2" data-testid="bazi-overview">
+        <div className="grid grid-cols-3 gap-1.5" role="group" aria-label="ช่วงคำอ่านปาจื้อ">
+          {[['day', 'วันนี้'], ['year', 'ปีนี้'], ['hour', 'ยามนี้']].map(([id, label]) => (
+            <button key={id} type="button" onClick={() => setFocus(id)} aria-pressed={id === focus} className={`px-tab justify-center ${id === focus ? 'on' : ''}`}>{label}</button>
+          ))}
+        </div>
+        <PeriodReading N={N} {...overview} testid="bazi-overview-reading" />
+        <button type="button" className="text-xs ui-link" onClick={overview.open}>{overview.more}</button>
+      </section>
       <section className="px-card p-3 space-y-2" data-testid="bazi-alert">
         <div className="flex items-center gap-2"><PxIcon name="ev_alert" size={22} /><b className="text-sm flex-1">แจ้งเตือนวันนี้</b><Guide which="bazi" /></div>
         {todayEv.length ? todayEv.map((e, i) => <EventBox key={i} e={e} />) : <div className="text-xs text-slate-500">วันนี้ไม่มีปฏิกิริยาพิเศษกับดวงของคุณ ดูภาพรวมที่สีของวันในปฏิทิน</div>}
@@ -209,21 +249,14 @@ export default function BaziTab({ birth, onEdit }) {
 
       <section className="px-card p-4 space-y-2" data-testid="bazi-chart-years">
         <div className="flex items-center gap-2"><PxIcon name="ev_chart" size={20} /><b className="text-sm">กราฟดวงรายปี 12 ปีข้างหน้า</b></div>
-        <BlockChart testid="bazi-c12" levels={RATE} items={yearBars.map((x, i) => ({ v: x.r.score, lvl: x.r.lvl, title: `ปี ${pillarName(x.c)} (${x.y + 543})`, sub: `ปี${ZODIAC[x.c % 12]} · ${thDT(lichun(x.y), false)} – ${thDT(lichun(x.y + 1), false)}`, text: `${GOD_TH[x.r.god]}: ${GOD_TEXT[x.r.god].period}`, icon: ZODIAC_ICON[x.c % 12], bottom: String(x.y + 543), now: i === 0, onOpen: () => setItem({ title: `ปี ${pillarName(x.c)} (${x.y + 543})`, c: x.c, r: x.r, what: 'ปี', sub: `${thDT(lichun(x.y))} – ${thDT(lichun(x.y + 1))}` }) }))} />
+        <BlockChart testid="bazi-c12" levels={RATE} items={yearBars.map((x, i) => ({ v: x.r.score, lvl: x.r.lvl, title: `ปี ${pillarName(x.c)} (${x.y + 543})`, sub: `ปี${ZODIAC[x.c % 12]} · ${thDT(lichun(x.y), false)} – ${thDT(lichun(x.y + 1), false)}`, text: `${GOD_TH[x.r.god]}: ${GOD_TEXT[x.r.god].period}`, icon: ZODIAC_ICON[x.c % 12], bottom: String(x.y + 543), now: i === 0, onOpen: () => setItem(yearItem(x)) }))} />
         <Legend levels={RATE.map((r) => ({ ...r }))} />
       </section>
 
       <section className="px-card p-4 space-y-2" data-testid="bazi-today">
-        <div className="flex items-center gap-2"><PxIcon name="Sun" size={20} /><b className="text-sm">วันนี้กับยามนี้</b></div>
-        <button onClick={() => setDay([np.y, np.m, np.d])} className="w-full px-inner p-2 space-y-2 text-left text-xs">
-          <span className="flex flex-wrap items-center gap-2"><Stem s={todayC % 10} size={22} /><Branch b={todayC % 12} size={22} /><PxIcon name={ZODIAC_ICON[todayC % 12]} size={24} /><span className="flex-1 font-semibold">วันนี้ · {GOD_TH[todayR.god]}</span><Chip lvl={todayR.lvl} /></span>
-          <span className="block text-sm leading-relaxed whitespace-pre-line">{GOD_TEXT[todayR.god].period}</span>
-        </button>
-        {hourNow && <button onClick={() => setDay([np.y, np.m, np.d])} className="w-full px-inner p-2 flex items-center gap-2 text-left text-xs" data-testid="hour-now">
-          <Stem s={hourNow.c % 10} size={22} /><Branch b={hourNow.c % 12} size={22} /><PxIcon name={ZODIAC_ICON[hourNow.c % 12]} size={24} /><span className="flex-1">ยามนี้ {hourNow.label} · {GOD_TH[hourNow.god]}</span><Chip lvl={hourNow.lvl} />
-        </button>}
+        <div className="flex items-center gap-2"><PxIcon name="Sun" size={20} /><b className="text-sm">กราฟยามวันนี้</b></div>
         <div className="text-[11px] text-slate-500">ยามทั้งวัน (แตะหรือลากนิ้วเพื่อดูแต่ละยาม)</div>
-        <BlockChart compact testid="bazi-chours" levels={RATE} items={hrsToday.map((h) => ({ v: h.score, lvl: h.lvl, title: `${h.label} · ยาม${ZODIAC[h.c % 12]}`, sub: `เสายาม ${pillarName(h.c)}${h.late ? ' (นับเป็นวันถัดไป)' : ''}`, text: `${GOD_TH[h.god]}: ${GOD_TEXT[h.god].period}`, icon: ZODIAC_ICON[h.c % 12], bottom: h.late ? '23' : h.label.slice(0, 2), now: h.h === curH, onOpen: () => setDay([np.y, np.m, np.d]) }))} />
+        <BlockChart compact testid="bazi-chours" levels={RATE} items={hrsToday.map((h) => ({ v: h.score, lvl: h.lvl, title: `${h.label} · ยาม${ZODIAC[h.c % 12]}`, sub: `เสายาม ${pillarName(h.c)}${h.late ? ' (นับเป็นวันถัดไป)' : ''}`, text: `${GOD_TH[h.god]}: ${GOD_TEXT[h.god].period}`, icon: ZODIAC_ICON[h.c % 12], bottom: h.late ? '23' : h.label.slice(0, 2), now: h.h === curH, onOpen: () => setItem(hourItem(h)) }))} />
       </section>
 
       <section className="px-card p-4" data-testid="bazi-cal">
@@ -246,7 +279,7 @@ export default function BaziTab({ birth, onEdit }) {
       <section className="px-card p-4 space-y-2" data-testid="bazi-years">
         <div className="flex items-center gap-2"><PxIcon name="Star" size={20} /><b className="text-sm">ปีนี้และปีหน้า (เปลี่ยนปีที่ลิบชุน)</b></div>
         {years.map((x) => (
-          <button key={x.y} onClick={() => setItem({ title: `ปี ${pillarName(x.c)} (${x.y + 543})`, c: x.c, r: x.r, sub: `${thDT(x.from)} – ${thDT(x.to)}` })} className="w-full px-inner p-2 flex items-center gap-2 text-left text-xs">
+          <button key={x.y} onClick={() => setItem(yearItem(x))} className="w-full px-inner p-2 flex items-center gap-2 text-left text-xs">
             <Stem s={x.c % 10} size={22} /><Branch b={x.c % 12} size={22} /><PxIcon name={ZODIAC_ICON[x.c % 12]} size={24} /><span className="flex-1">พ.ศ. {x.y + 543} ปี{ZODIAC[x.c % 12]} · {GOD_TH[x.r.god]}<div className="text-slate-500">เริ่ม {thDT(x.from)}</div></span><Chip lvl={x.r.lvl} />
           </button>))}
       </section>

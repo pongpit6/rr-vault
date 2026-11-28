@@ -1,7 +1,7 @@
 /* BaZi reactions: storages (庫), triads (三合 / 半合 / 拱), seasonal sets (三會), punishments (三刑), pairs (六合 / 沖 / 害 / 破 / 五合),
    stars (神煞), void (空亡) and repeats (伏吟 / 反吟) — what the chart has, what is missing, and the days / hours / years that complete or hit them.
    Rule names and groups follow BaZi_ZiPing_Complete_Handbook_TH ch.16, 22, 23, 25; good / careful labels are this app's reading. */
-import { STEMS, BRANCHES, ZODIAC, EL, roleOf, branchRel, starsOn, voidOf } from './bazi'
+import { STEMS, BRANCHES, ZODIAC, EL, roleOf, branchRel, starsOn, voidOf } from './bazi.js'
 
 const mod = (a, n) => ((a % n) + n) % n
 export const ROLE_NAME = ['เพื่อน', 'ผลงาน', 'ทรัพย์', 'อำนาจ', 'ผู้หนุน']
@@ -101,17 +101,17 @@ const EV = {
 /** events of pillar c (a day, hour, month, year or luck pillar) against the chart. what: 'วัน' | 'ยาม' | 'ปี' | 'เสาโชค' */
 export function eventsOf(N, c, what = 'วัน') {
   const s = c % 10, b = c % 12, B = N.pillars.map((p) => p.b), has = (x) => B.includes(x), out = []
-  const push = (k, title, text, rank, icon) => out.push({ k, ...EV[k], ...(icon ? { icon } : {}), title, text, rank })
+  const push = (k, title, text, rank, extra) => out.push({ k, ...EV[k], title, text, rank, ...extra })
   for (const [g, e] of SANHE) if (g.includes(b) && !has(b) && g.filter(has).length === 2) {
     const r = roleOf(N.dmEl, e)
-    push('triad', `ครบสามประสาน${EL[e]}`, `${what}นี้นำ ${BRANCHES[b]} มาเติม ${bs(g)} ครบ ระบบจึงเน้นบทบาท${ROLE_NAME[r]}:${r === 2 ? ' ทบทวนรายรับ รายจ่าย และข้อเสนอ' : r === 3 ? ' ทบทวนหน้าที่และขอบเขตความรับผิดชอบ' : r === 4 ? ' ทบทวนแหล่งเรียนรู้และคำปรึกษาที่ต้องการ' : r === 1 ? ' เลือกความคิดที่จะนำไปทำเป็นผลงาน' : ' ทบทวนบทบาทและส่วนแบ่งในกลุ่ม'}`, 9)
+    push('triad', `ครบสามประสาน${EL[e]}`, `${what}นี้นำ ${BRANCHES[b]} มาเติม ${bs(g)} ครบ ระบบจึงเน้นบทบาท${ROLE_NAME[r]}:${r === 2 ? ' ทบทวนรายรับ รายจ่าย และข้อเสนอ' : r === 3 ? ' ทบทวนหน้าที่และขอบเขตความรับผิดชอบ' : r === 4 ? ' ทบทวนแหล่งเรียนรู้และคำปรึกษาที่ต้องการ' : r === 1 ? ' เลือกความคิดที่จะนำไปทำเป็นผลงาน' : ' ทบทวนบทบาทและส่วนแบ่งในกลุ่ม'}`, 9, { role: r, element: e })
   }
-  for (const [g, e] of SANHUI) if (g.includes(b) && !has(b) && g.filter(has).length === 2) push('season', `ครบรวมทิศ${EL[e]}`, `${what}นี้เติม ${BRANCHES[b]} ครบกลุ่ม ${bs(g)} ธาตุ${EL[e]} (${ROLE_NAME[roleOf(N.dmEl, e)]}ของคุณ) เป็นธีมเด่นตามเกณฑ์กลุ่มฤดู`, 8)
+  for (const [g, e] of SANHUI) if (g.includes(b) && !has(b) && g.filter(has).length === 2) push('season', `ครบรวมทิศ${EL[e]}`, `${what}นี้เติม ${BRANCHES[b]} ครบกลุ่ม ${bs(g)} ธาตุ${EL[e]} (${ROLE_NAME[roleOf(N.dmEl, e)]}ของคุณ) เป็นธีมเด่นตามเกณฑ์กลุ่มฤดู`, 8, { role: roleOf(N.dmEl, e), element: e })
   for (const g of XING3) if (g.includes(b) && !has(b) && g.filter(has).length === 2) push('punish3', 'ครบลงโทษสามตัว', `${what}นี้ ${BRANCHES[b]} มาครบ ${bs(g)} แนวอ่านชวนตรวจเอกสาร ข้อตกลง และวิธีตอบโต้ ไม่ได้ยืนยันเหตุร้าย`, 9)
   for (const r of [2, 3, 4]) {
     const sb = STORE_OF_EL[mod(N.dmEl + r, 5)]
-    if (has(sb) && mod(b - sb, 12) === 6) push('vaultOpen', `เปิดคลัง${ROLE_NAME[r]}`, `${what}${ZODIAC[b]}ชง ${BRANCHES[sb]} ระบบนับว่าเปิดคลัง${ROLE_NAME[r]}ตามเกณฑ์ความสัมพันธ์ ${r === 2 ? 'เหมาะตรวจเงินที่สะสมและแผนรับจ่าย ไม่ได้รับรองเงินก้อน' : 'ใช้ทบทวนเรื่องที่สะสมไว้และความพร้อมนำมาใช้'}`, r === 2 ? 8 : 5)
-    else if (!has(sb) && b === sb && r === 2) push('vaultVisit', 'คลังทรัพย์มาเยือน', `${what}${ZODIAC[b]}เพิ่มรูปแบบคลังทรัพย์ที่ไม่พบในผังเดิม ใช้เป็นจังหวะทบทวนแผนเงิน ไม่ใช่คำรับรองว่าจะมีทรัพย์เข้ามา`, 4)
+    if (has(sb) && mod(b - sb, 12) === 6) push('vaultOpen', `เปิดคลัง${ROLE_NAME[r]}`, `${what}${ZODIAC[b]}ชง ${BRANCHES[sb]} ระบบนับว่าเปิดคลัง${ROLE_NAME[r]}ตามเกณฑ์ความสัมพันธ์ ${r === 2 ? 'เหมาะตรวจเงินที่สะสมและแผนรับจ่าย ไม่ได้รับรองเงินก้อน' : 'ใช้ทบทวนเรื่องที่สะสมไว้และความพร้อมนำมาใช้'}`, r === 2 ? 8 : 5, { role: r })
+    else if (!has(sb) && b === sb && r === 2) push('vaultVisit', 'คลังทรัพย์มาเยือน', `${what}${ZODIAC[b]}เพิ่มรูปแบบคลังทรัพย์ที่ไม่พบในผังเดิม ใช้เป็นจังหวะทบทวนแผนเงิน ไม่ใช่คำรับรองว่าจะมีทรัพย์เข้ามา`, 4, { role: r })
   }
   for (const p of N.pillars) for (const r of branchRel(b, p.b)) {
     if (r.zh === '沖' && (p.key === 'day' || p.key === 'year')) push(p.key === 'day' ? 'clashDay' : 'clashYear', `ชงกิ่ง${p.th}เกิด`, `${BRANCHES[b]}ชง${BRANCHES[p.b]} ${p.key === 'day' ? 'แนวอ่านเน้นการปรับความสัมพันธ์ใกล้ชิดหรือพื้นที่ส่วนตัว ตรวจสิ่งที่ต้องตกลงร่วมกัน ไม่ใช่คำวินิจฉัยสุขภาพ' : 'สัมพันธ์แบบชงกับปีเกิด ใช้ทบทวนความคาดหวังจากครอบครัวหรือสังคม ไม่ได้ยืนยันว่าจะขัดแย้ง'}`, p.key === 'day' ? 8 : 6)
@@ -120,7 +120,7 @@ export function eventsOf(N, c, what = 'วัน') {
   if (STEM_HE[key2(s, N.dm)] != null) push('dmHe', 'ก้านรวมดิถี', `${STEMS[s]}รวมกับดิถี ${STEMS[N.dm]} แนวอ่านเน้นความร่วมมือ ใช้ทบทวนเงื่อนไขก่อนเจรจาหรือตกลง ไม่รับรองว่าจะมีข้อเสนอเข้ามา`, 5)
   for (const st of starsOn(N.dm, N.dayB, b)) {
     if (st.zh === '羊刃') push('blade', 'ดาบคมมาเยือน', `${what}นี้มีสัญลักษณ์ดาบคม แนวอ่านเน้นแรงผลักกับความใจร้อน ลองเว้นจังหวะตรวจความพร้อมก่อนเร่ง`, 5)
-    else if (['天乙貴人', '文昌', '桃花', '驛馬', '祿'].includes(st.zh)) push('star', `${st.th}`, `${what}นี้มี${st.th} (${st.zh}): ${STAR_TEXT[st.zh]}`, st.zh === '天乙貴人' ? 6 : 3, { 天乙貴人: 'ev_noble', 文昌: 'ev_study', 桃花: 'ev_peach', 驛馬: 'ev_travel', 祿: 'ev_vault' }[st.zh])
+    else if (['天乙貴人', '文昌', '桃花', '驛馬', '祿'].includes(st.zh)) push('star', `${st.th}`, `${what}นี้มี${st.th} (${st.zh}): ${STAR_TEXT[st.zh]}`, st.zh === '天乙貴人' ? 6 : 3, { symbol: st.zh, icon: { 天乙貴人: 'ev_noble', 文昌: 'ev_study', 桃花: 'ev_peach', 驛馬: 'ev_travel', 祿: 'ev_vault' }[st.zh] })
   }
   if (what === 'วัน' && voidOf(N.P.day).includes(b)) push('void', 'วันว่าง (空亡)', 'วันว่างเป็นชื่อเกณฑ์ในผัง ใช้ทบทวนรายละเอียดที่ยังไม่ครบ การเริ่มงานหรือเซ็นสัญญาควรดูข้อมูลและกำหนดจริง ไม่ต้องงดเพราะชื่อวัน', 3)
   if (what !== 'ยาม') {

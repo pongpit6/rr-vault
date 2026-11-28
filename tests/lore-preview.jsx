@@ -13,12 +13,21 @@ import { WORLD_LORE } from '../src/lib/worldLore'
 import IslandAtlas from '../src/components/IslandAtlas'
 import BaziTab from '../src/components/fortune/BaziTab'
 import TaksaTab from '../src/components/fortune/TaksaTab'
-import { CardSheet } from '../src/components/fortune/TarotTab'
+import TarotTab, { CardSheet } from '../src/components/fortune/TarotTab'
 import { FortuneStatus } from '../src/components/fortune/FortuneStatus'
 import { RATE } from '../src/lib/fortune/bazi'
+import { bkkDate } from '../src/lib/fortune/tarot'
+import { useStore } from '../src/store'
 
 const mutation = () => { window.__mutations += 1; return true }
 window.__mutations = 0
+if (new URLSearchParams(location.search).get('panel') === 'tarot-today') {
+  const id = 'fortune'
+  useStore.setState({
+    items: { [id]: { id, kind: id, rev: 1, data: { id, tarot: { [bkkDate()]: { id: 'pentacles_02', rev: true } } } } },
+    put: mutation,
+  })
+}
 const party = MEMBERS.map((p, i) => ({ ...p, joined: i !== 2, lv: 4, pct: 0.4, nextText: 'ข้อมูลขั้นถัดไป', color: p.color }))
 const gear = ['weapon', 'armor', 'boots', 'satchel', 'ring'].map((slot) => ({ slot, tier: 1, name: slot, label: slot, tierName: 'เหล็ก', names: ['ไม้', 'เหล็ก', 'เงิน', 'ทองคำ', 'ตำนาน'], how: 'เกณฑ์เดิม', valueText: '10', nextName: 'เงิน', toNext: '20', pct: 0.4 }))
 const rpg = {
@@ -43,6 +52,7 @@ function Preview() {
     bazi: <BaziTab birth={birth} onEdit={mutation} />,
     taksa: <TaksaTab birth={birth} onEdit={mutation} />,
     tarot: <CardSheet open id="maj_00" both onClose={() => {}} />,
+    'tarot-today': <TarotTab />,
     statuses: <div className="flex gap-1.5 overflow-x-auto">{RATE.map(level => <div key={level.th} className="px-inner p-1.5 shrink-0 w-14 text-center" data-testid="status-card"><FortuneStatus level={level} small /></div>)}</div>,
     hero: <HeroCard rpg={rpg} />, party: <PartyTab rpg={rpg} />, gear: <GearList rpg={rpg} />,
     skills: <SkillsTab rpg={rpg} />, tree: <SkillTree rpg={rpg} />, shadows: <ShadowCard rpg={rpg} />,

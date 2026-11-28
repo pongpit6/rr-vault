@@ -1,10 +1,14 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useStore } from '../../store'
 import { Sheet } from '../ui'
 import { PxIcon } from '../px'
 import { useFortune, saveFortune } from './FortuneKit'
 import { TAROT_LORE } from '../../lib/fortune/tarotLore'
 import { CARDS, CARD_BY_ID, SUITS, suitOf, cardArt, drawCard, bkkDate, effectOf, effectLines, LUCK_TEXT, LUCK_COLOR } from '../../lib/fortune/tarot'
+import TAROT_TOPICS from '../../lib/fortune/tarotTopics.json'
+import { topicRows } from '../../lib/fortune/readingTopics'
+import ReadingTopics from './ReadingTopics'
+import PixelSummary from '../PixelSummary'
 
 const BACK = './sprites/tarot/back.png'
 const thDay = (d) => { const [y, m, dd] = d.split('-'); return `${+dd}/${+m}/${(+y + 543) % 100}` }
@@ -37,14 +41,20 @@ function Effect({ id, rev }) {
 /** the reading of one card in one orientation */
 function Reading({ id, rev }) {
   const c = CARD_BY_ID[id]
+  const rows = topicRows(TAROT_TOPICS[id][rev ? 'reversed' : 'upright'])
   return (
-    <div className="px-inner p-3 space-y-2 text-sm leading-relaxed" data-testid="tarot-reading">
-      <div className="font-semibold">{c.theme}</div>
-      {rev ? <p>{c.rev}</p> : <>
-        <p>{c.light}</p>
-        <p>{c.shadow} {c.action}</p>
-      </>}
-      <p className="text-slate-600"><b>ก่อนนอนลองถามตัวเอง</b> {c.q}</p>
+    <div className="space-y-2 text-sm leading-relaxed" data-testid="tarot-reading">
+      <div className="px-inner p-3"><ReadingTopics rows={rows} testid="tarot-topic-reading" /></div>
+      <details className="px-inner px-3 py-2">
+        <PixelSummary className="text-xs font-semibold">ที่มาของคำอ่านและคำถามก่อนนอน</PixelSummary>
+        <div className="space-y-2 pt-2">
+          {rev ? <p>{c.rev}</p> : <>
+            <p><b>{c.theme}</b> {c.light}</p>
+            <p>{c.shadow} {c.action}</p>
+          </>}
+          <p><b>ก่อนนอนลองถามตัวเอง</b> {c.q}</p>
+        </div>
+      </details>
     </div>
   )
 }
@@ -115,7 +125,7 @@ export default function TarotTab() {
         {!d && phase === 'idle' && (
           <div className="text-center space-y-3">
             <div className="flex justify-center -space-x-12 py-2">{[0, 1, 2, 3, 4].map((i) => <div key={i} style={{ transform: `rotate(${(i - 2) * 7}deg) translateY(${Math.abs(i - 2) * 4}px)` }}><TarotCard back w={84} /></div>)}</div>
-            <div className="text-xs text-slate-500">ก่อนจั่วลองถามตัวเองว่า “วันนี้อยากใส่ใจเรื่องอะไร?” พอเปิดไพ่แล้ว ลองดูว่าภาพบนไพ่ชวนให้นึกถึงเรื่องไหนในชีวิตคุณ ไพ่กลับหัวจะชวนมองอีกมุม ส่วนป้ายโบนัสบอกพลังที่ได้ในเกมครับ</div>
+            <div className="text-xs text-slate-500">จั่วไพ่หนึ่งใบเพื่อดูคำแนะนำวันนี้เรื่องงาน เงิน ความรัก และสุขภาพ ส่วนป้ายโบนัสบอกพลังที่ได้ในเกมครับ</div>
             <button className="px-btn mx-auto" onClick={draw} data-testid="tarot-draw"><PxIcon name="Sparkles" size={18} /> สับไพ่แล้วจั่ว</button>
           </div>
         )}
