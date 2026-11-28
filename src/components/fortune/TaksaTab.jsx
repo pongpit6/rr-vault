@@ -4,7 +4,10 @@ import { PxIcon } from '../px'
 import { saveFortune, Guide, T } from './FortuneKit'
 import { TimeChart, Legend, TAKSA_LEVELS } from './FortuneChart'
 import { PLANET, POWER, bkkMs, bkkParts, birthPlanet, possiblePlanets, taksaAt, taksaRange, subPeriods, symbolic, bhumiOf, pairTags, toneOf, TONE, pairScore, scoreColor, scoreText } from '../../lib/fortune/taksa'
-import { MAIN_TEXT, SUB_FOCUS, PAIR_TEXT } from '../../lib/fortune/taksaText'
+import { MAIN_TEXT, PAIR_TEXT } from '../../lib/fortune/taksaText'
+import { taksaMainTopics, taksaTopics } from '../../lib/fortune/taksaTopics'
+import ReadingTopics from './ReadingTopics'
+import PixelSummary from '../PixelSummary'
 
 const TH_M = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.']
 const WD = ['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์', 'เสาร์']
@@ -23,16 +26,16 @@ function PairSheet({ pair, onClose, birthP }) {
       <div className="space-y-3 text-sm" data-testid="pair-sheet">
         <div className="flex flex-wrap items-center gap-2"><Pl p={m} size={32} /><span className="text-slate-400">→</span><Pl p={q} size={32} /><Tone m={m} q={q} /><span className="ml-auto text-xs font-bold" style={{ color: scoreColor(pairScore(m, q, birthP)) }}>คะแนนตามสูตร {pairScore(m, q, birthP) > 0 ? '+' : ''}{pairScore(m, q, birthP)} · {scoreText(pairScore(m, q, birthP))}</span></div>
         <div className="text-xs text-slate-500">{thDT(start)} – {thDT(end)} · ระยะตามสูตร {sy.y ? `${sy.y} ปี ` : ''}{sy.m ? `${sy.m} เดือน ` : ''}{sy.d ? `${sy.d} วัน ` : ''}{sy.h ? `${sy.h} ชม.` : ''} ({POWER[m]}×{POWER[q]}÷108 ปีโหร)</div>
-        <div className="px-inner p-3 leading-relaxed whitespace-pre-line">{PAIR_TEXT[m][q]}</div>
-        <div className="grid gap-2">
-          {[['Briefcase', 'งาน', 'work'], ['Coins', 'เงิน', 'money'], ['HeartPulse', 'ความรัก', 'love']].map(([ic, t, k]) => (
-            <div key={k} className="flex gap-2 items-start"><PxIcon name={ic} size={18} className="mt-0.5" /><div><span className="text-[11px] text-slate-500">{t}</span><div>{SUB_FOCUS[q][k]}</div></div></div>))}
-        </div>
-        <div className="text-xs text-slate-600 space-y-1">
-          <div><b>ภาพรวมช่วงนี้:</b> {MAIN_TEXT[m]}</div>
-          {tags.length > 0 && <div><b>ประเภทคู่ดาว:</b> {tags.map((t) => `คู่${t}`).join(' · ')}</div>}
-          {bh && <div><b>ในดวงกำเนิด</b> {PLANET[q].name}อยู่ภูมิ <b>{bh.name}</b> ({bh.text})</div>}
-        </div>
+        <div className="px-inner p-3"><ReadingTopics rows={taksaTopics(m, q, birthP)} testid="taksa-pair-reading" /></div>
+        <details className="px-inner p-3 text-xs text-slate-600">
+          <PixelSummary className="font-semibold">ที่มาของคำอ่านและคะแนน</PixelSummary>
+          <div className="space-y-2 pt-2">
+            <p className="leading-relaxed whitespace-pre-line">{PAIR_TEXT[m][q]}</p>
+            <div>{MAIN_TEXT[m]}</div>
+            {tags.length > 0 && <div><b>ประเภทคู่ดาว:</b> {tags.map((t) => `คู่${t}`).join(' · ')}</div>}
+            {bh && <div><b>ในดวงกำเนิด</b> {PLANET[q].name}อยู่ภูมิ <b>{bh.name}</b> ({bh.text})</div>}
+          </div>
+        </details>
       </div>
     </Sheet>
   )
@@ -74,12 +77,12 @@ export default function TaksaTab({ birth, onEdit }) {
             <div className="mt-1"><Tone m={at.main.planet} q={at.sub.planet} /></div>
           </div>
         </button>
-        <div className="px-inner p-3 text-sm leading-relaxed whitespace-pre-line">{PAIR_TEXT[at.main.planet][at.sub.planet]}</div>
         <div className="grid grid-cols-2 gap-2 text-xs">
           <div className="px-inner p-2"><div className="text-slate-500">ดาวเสวย {PLANET[at.main.planet].name} ({POWER[at.main.planet]} ปี)</div><b>{thDT(at.main.start, false)} – {thDT(at.main.end, false)}</b><div className="text-slate-500">อายุ {at.main.ageFrom}–{at.main.ageTo} ปี</div></div>
           <div className="px-inner p-2"><div className="text-slate-500">ดาวแทรก {PLANET[at.sub.planet].name}</div><b>{thDT(at.sub.start)} – {thDT(at.sub.end)}</b><div className="text-slate-500">ถัดไป {PLANET[at.next.planet].name}แทรก ในอีก {left(at.sub.end)}</div></div>
         </div>
-        <button className="text-xs ui-link" onClick={() => setPair(at.sub)}>อ่านคำทำนายเต็ม</button>
+        <div className="px-inner p-3"><ReadingTopics rows={taksaTopics(at.main.planet, at.sub.planet, bp)} testid="taksa-current-reading" /></div>
+        <button className="text-xs ui-link" onClick={() => setPair(at.sub)}>ดูที่มาของคำอ่าน</button>
       </section>
 
       <section className="px-card p-4 space-y-2" data-testid="taksa-chart10">
@@ -133,8 +136,8 @@ export default function TaksaTab({ birth, onEdit }) {
       {mainOpen && (
         <Sheet open onClose={() => setMainOpen(null)} title={`${PLANET[mainOpen.planet].name}เสวยอายุ ${mainOpen.ageFrom}–${mainOpen.ageTo} ปี`}>
           <div className="space-y-2 text-sm">
-            <div className="text-xs text-slate-600">{MAIN_TEXT[mainOpen.planet]}</div>
             <div className="text-xs text-slate-500">{thDT(mainOpen.start, false)} – {thDT(mainOpen.end, false)}</div>
+            <div className="px-inner p-3"><ReadingTopics rows={taksaMainTopics(mainOpen.planet)} testid="taksa-main-reading" /></div>
             {subPeriods(mainOpen).map((s) => (
               <button key={s.planet} onClick={() => setPair(s)} className={`w-full flex items-center gap-2 px-inner p-2 text-left text-xs ${s.start <= now && now < s.end ? 'ring-2 ring-violet-500' : ''}`}>
                 <Pl p={s.planet} size={20} /><span className="flex-1"><b>{PLANET[s.planet].name}แทรก</b><br />{thDT(s.start, false)} – {thDT(s.end, false)}</span><Tone m={s.main} q={s.planet} />

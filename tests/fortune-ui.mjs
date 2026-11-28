@@ -1,8 +1,9 @@
 import assert from 'node:assert/strict'
 import { mkdir, readFile } from 'node:fs/promises'
-import { GOD_TEXT } from '../src/lib/fortune/baziText.js'
 import { PAIR_TEXT } from '../src/lib/fortune/taksaText.js'
 const tarotCards = JSON.parse(await readFile(new URL('../src/lib/fortune/tarotCards.json', import.meta.url), 'utf8'))
+const tarotTopics = JSON.parse(await readFile(new URL('../src/lib/fortune/tarotTopics.json', import.meta.url), 'utf8'))
+const topics = ['work', 'money', 'love', 'health']
 const { chromium } = await import(process.env.LORE_PLAYWRIGHT_MODULE || 'playwright')
 const browser = await chromium.launch({ headless: true })
 let assertions = 0
@@ -12,6 +13,7 @@ for (const width of [320, 390, 768, 1280]) {
   const context = await browser.newContext({ viewport: { width, height: 850 }, isMobile: width < 768, hasTouch: width < 768 })
   await context.route('**/*', route => ['localhost', '127.0.0.1'].includes(new URL(route.request().url()).hostname) ? route.continue() : route.abort())
   const page = await context.newPage()
+  await page.clock.setFixedTime(new Date('2026-11-28T10:12:00+07:00'))
   const errors = []
   page.on('pageerror', error => errors.push(error.message))
   const load = async panel => {
@@ -22,6 +24,13 @@ for (const width of [320, 390, 768, 1280]) {
   const fits = async () => {
     check(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), `page overflow at ${width}`)
     check(await page.evaluate(() => window.__mutations === 0), 'reading changed saved data')
+  }
+  const hasTopics = async (reading, label) => {
+    const rows = reading.locator('[data-topic]')
+    check(await rows.count() === 4, label + ' includes all four topics')
+    for (const [index, id] of topics.entries()) {
+      check(await rows.nth(index).getAttribute('data-topic') === id && await rows.nth(index).locator('dt').isVisible(), label + ' shows ' + id)
+    }
   }
   const chipsFit = async selector => check(await page.locator(selector).evaluateAll(cards => cards.every(card => {
     const chip = card.querySelector('.fortune-status'), box = card.getBoundingClientRect(), badge = chip?.getBoundingClientRect()
@@ -41,19 +50,40 @@ for (const width of [320, 390, 768, 1280]) {
     await chipsFit('[data-testid="bazi-luck-cards"] > button'); await fits()
     await cards.last().click()
     await page.locator('.ui-sheet').waitFor()
+    await hasTopics(page.getByTestId('bazi-period-reading'), 'luck pillar')
     await fits(); await page.keyboard.press('Escape')
     if (birth.startsWith('1992')) {
       await page.getByTestId('bazi-luck').scrollIntoViewIfNeeded()
       await page.screenshot({ path: `test-results/bazi-luck-${width}.png` })
+      const overview = page.getByTestId('bazi-overview')
+      const overviewReading = overview.getByTestId('bazi-overview-reading')
+      const texts = []
+      for (const [label, more] of [
+        ['วันนี้', 'ดูปฏิกิริยาและยามของวันนี้'],
+        ['ปีนี้', 'ดูปฏิกิริยาและช่วงวันที่ของปีนี้'],
+        ['ยามนี้', 'ดูปฏิกิริยาของยามนี้'],
+      ]) {
+        await overview.getByRole('button', { name: label, exact: true }).click()
+        await hasTopics(overviewReading, label)
+        texts.push(await overviewReading.getByTestId('reading-topics').textContent())
+        await overview.getByRole('button', { name: more }).click()
+        const period = page.getByTestId(label === 'วันนี้' ? 'bazi-day-reading' : 'bazi-period-reading')
+        await hasTopics(period, label + ' detail')
+        check(await period.getByTestId('reading-topics').textContent() === texts.at(-1), label + ' agrees with its detail')
+        await page.keyboard.press('Escape')
+      }
+      check(new Set(texts).size === 3, 'day, year and current hour use their own readings')
       await page.getByTestId('cal-1').click()
       const dayReading = page.getByTestId('bazi-day-reading')
-      check(await dayReading.textContent().then(text => GOD_TEXT.some(role => text.includes(role.period))), 'day reading shows the full role explanation and advice')
-      check(await dayReading.evaluate(el => getComputedStyle(el).whiteSpace === 'pre-line'), 'day reading keeps paragraph breaks')
-      const summary = page.getByTestId('hour-0').locator('summary')
+      await hasTopics(dayReading, 'calendar day')
+      const summary = page.getByTestId('hour-0').locator(':scope > summary')
       await summary.click()
       check(await page.getByTestId('hour-0').getAttribute('open') !== null, 'hour reading opens')
       check(await summary.locator('.px-disclosure-icon').isVisible(), 'hour uses pixel disclosure')
-      check(await page.getByTestId('hour-0').locator('p').textContent().then(text => GOD_TEXT.some(role => text === role.period)), 'hour detail shows the role advice')
+      await hasTopics(page.getByTestId('hour-0').getByTestId('bazi-hour-reading'), 'selected hour')
+      const lateHour = page.getByTestId('hour-12')
+      await lateHour.locator(':scope > summary').click()
+      await hasTopics(lateHour.getByTestId('bazi-hour-reading'), 'last hour')
       await fits(); await page.keyboard.press('Escape')
     }
   }
@@ -62,10 +92,9 @@ for (const width of [320, 390, 768, 1280]) {
   await fits()
 
   await load('taksa')
-  const pairReading = page.getByTestId('taksa-tab').locator('.px-inner.whitespace-pre-line').first()
-  check(await pairReading.textContent().then(text => Object.values(PAIR_TEXT).some(row => Object.values(row).includes(text))), 'main/sub-period explanation is complete')
-  check(await page.getByTestId('taksa-now').textContent().then(text => text.includes('ภาพรวมช่วงยาว') && text.includes('เรื่องที่เด่นในช่วงย่อย')), 'main and sub-period roles are explained up front')
-  check(await pairReading.evaluate(el => getComputedStyle(el).whiteSpace === 'pre-line' && Number(getComputedStyle(el).fontWeight) < 600), 'pair reading is spaced and not an all-bold paragraph')
+  const current = page.getByTestId('taksa-current-reading')
+  await hasTopics(current, 'current pair')
+  check(await current.textContent().then(text => text.includes('เสวย') && text.includes('แทรก')), 'each area explains the role of the pair')
   for (const text of await page.locator('[data-testid="taksa-c10"] svg text').all()) {
     check(await text.evaluate(el => el.getBBox().x >= -1), `chart axis label clipped at ${width}`)
   }
@@ -74,25 +103,41 @@ for (const width of [320, 390, 768, 1280]) {
   await page.screenshot({ path: `test-results/taksa-chart-${width}.png` })
   await page.getByTestId('taksa-current').click()
   await page.locator('.ui-sheet').waitFor(); await fits()
+  const pair = page.getByTestId('taksa-pair-reading')
+  await hasTopics(pair, 'pair detail')
+  check(await current.textContent() === await pair.textContent(), 'current and full pair readings agree')
+  await page.getByText('ที่มาของคำอ่านและคะแนน', { exact: true }).click()
+  const explanation = page.getByTestId('pair-sheet').locator('p.whitespace-pre-line')
+  check(await explanation.isVisible() && await explanation.textContent().then(text => Object.values(PAIR_TEXT).some(row => Object.values(row).includes(text))), 'pair explanation still available')
   await page.keyboard.press('Escape')
 
   await load('tarot')
   const tarotSheet = page.getByTestId('tarot-sheet')
   const reading = tarotSheet.getByTestId('tarot-reading')
+  const areas = tarotSheet.getByTestId('tarot-topic-reading')
   const upright = tarotSheet.getByRole('button', { name: 'ตั้งตรง', exact: true })
   const reversed = tarotSheet.getByRole('button', { name: 'กลับหัว', exact: true })
   const cases = width === 390 ? tarotCards : tarotCards.slice(0, 1)
   for (const [index, card] of cases.entries()) {
-    await upright.click()
-    check(await reading.textContent().then(text => [card.theme, card.light, card.shadow, card.action, card.q].every(part => text.includes(part))), 'complete upright reading: ' + card.id)
-    await reversed.click()
-    check(await reading.textContent().then(text => text.includes(card.rev) && text.includes(card.q) && !text.includes(card.action)), 'reversed advice is specific to its orientation: ' + card.id)
+    for (const [orientation, button] of [['upright', upright], ['reversed', reversed]]) {
+      await button.click()
+      const text = await areas.textContent()
+      check(tarotTopics[card.id][orientation].flat().every(part => text.includes(part)), orientation + ' advice for all four topics: ' + card.id)
+      check(await areas.locator('[data-topic]').count() === 4, orientation + ' has four topic rows')
+    }
     await fits()
     if (index < cases.length - 1) await tarotSheet.getByTestId('tarot-next').click()
   }
   check(await tarotSheet.getByTestId('tarot-effect').isVisible(), 'game bonus remains available')
   check(await tarotSheet.getByTestId('tarot-lore').isVisible(), 'card lore remains available')
+  await reading.getByText('ที่มาของคำอ่านและคำถามก่อนนอน', { exact: true }).click()
+  check(await reading.getByText('ก่อนนอนลองถามตัวเอง', { exact: true }).isVisible(), 'reflection remains available')
   await page.screenshot({ path: `test-results/tarot-reading-${width}.png` })
+  await load('tarot-today')
+  const savedDraw = page.getByTestId('tarot-topic-reading')
+  await hasTopics(savedDraw, 'saved daily draw')
+  check(await savedDraw.textContent().then(text => tarotTopics.pentacles_02.reversed.flat().every(part => text.includes(part))), 'saved reversed draw uses the new advice')
+  await fits()
 
   await load('atlas')
   const disclosure = page.getByTestId('island-atlas').locator(':scope > summary')
