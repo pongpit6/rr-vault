@@ -38,7 +38,7 @@ function ReactionCard({ c, nextDay, nextYear }) {
           <div className="flex items-center justify-center gap-0.5"><Branch b={x.b} size={16} /><PxIcon name={ZODIAC_ICON[x.b]} size={16} />{!x.on && <b className="text-slate-400 text-xs">?</b>}</div>
           <div className="text-[9px] text-slate-500">{x.label}</div></div>))}</div>}
       <div className="text-xs text-slate-700">{c.text}</div>
-      {wantB.length > 0 && <div className="text-[11px] text-violet-700">จะมาเมื่อ: {wantB.map((b) => { const d = nextDay(b); return `${ZODIAC[b]} → วันที่ ${TH_D(d.y, d.m, d.d)} · ปี ${nextYear(b) + 543}` }).join(' | ')}</div>}
+      {wantB.length > 0 && <div className="text-[11px] text-violet-700">กิ่งนี้พบอีก: {wantB.map((b) => { const d = nextDay(b); return `${ZODIAC[b]} → วันที่ ${TH_D(d.y, d.m, d.d)} · ปี ${nextYear(b) + 543}` }).join(' | ')}</div>}
     </div>
   )
 }
@@ -72,18 +72,26 @@ function PillarSheet({ N, p, onClose }) {
           <div className="px-inner p-3 text-center"><Stem s={p.s} size={40} /><div className="text-xs mt-1">{STEM_PIN[p.s]} · {STEM_TH[p.s]}</div><div className="text-[11px] text-slate-500">{isDay ? 'ดิถี (ตัวคุณ)' : `${GOD[p.god]} ${GOD_TH[p.god]}`}</div></div>
           <div className="px-inner p-3 text-center"><div className="flex justify-center items-center gap-1"><Branch b={p.b} size={40} /><PxIcon name={ZODIAC_ICON[p.b]} size={32} /></div><div className="text-xs mt-1">{BRANCH_PIN[p.b]} · ปี{ZODIAC[p.b]} · ธาตุ{EL[BRANCH_EL[p.b]]}</div></div>
         </div>
-        {isDay ? <div className="px-inner p-3 text-xs">{DM_TEXT[p.s]}</div> : <div className="px-inner p-3 text-xs"><b>{GOD_TH[p.god]} ({GOD[p.god]})</b> พูดถึง{GOD_TEXT[p.god].chart} {PALACE[p.key].text}</div>}
+        {isDay ? <div className="px-inner p-3 text-xs">{DM_TEXT[p.s]}</div> : <div className="px-inner p-3 text-xs"><b>{GOD_TH[p.god]} ({GOD[p.god]})</b> เกี่ยวกับ{GOD_TEXT[p.god].chart} {PALACE[p.key].text}</div>}
         <div className="text-xs space-y-1">
           <div><b>ธาตุแฝงในกิ่ง:</b> {p.hidden.map((h, i) => <span key={i} className="mr-2"><Stem s={h.s} size={14} /> {GOD[h.god]}{i === 0 ? ' (หลัก)' : ''}</span>)}</div>
           <div><b>น่าอิน:</b> {p.nayin.zh} ({p.nayin.th})</div>
           <div><b>ดิถีที่กิ่งนี้:</b> {p.stage.zh} · {p.stage.th}</div>
           {p.stars.length > 0 && <div><b>ดาวเสริม:</b> {p.stars.map((s) => `${s.th} (${s.zh})`).join(' · ')}</div>}
-          {p.void && <div><b>ว่าง (空亡):</b> กิ่งนี้อยู่ในช่องว่างของเสาวัน เรื่องของเสานี้มักมาช้าหรือไม่เต็มที่</div>}
+          {p.void && <div><b>ว่าง (空亡):</b> กิ่งนี้เข้าเกณฑ์ว่างเมื่อเทียบกับเสาวัน ถ้าเรื่องของเสานี้ยังรอข้อมูลหรือคำตอบ ให้เผื่อเวลาไว้</div>}
           {rels.length > 0 && <div><b>ความสัมพันธ์:</b> {rels.map((r) => `${r.lv}${r.txt}`).join(' · ')}</div>}
         </div>
       </div>
     </Sheet>
   )
+}
+
+function chartReading(N, r, c, period) {
+  const rows = baziTopics(N, r, c, eventsOf(N, c, period), period)
+  const lead = rows.find(row => row.headline.startsWith('ระวัง') && row.reason?.startsWith('จุดที่เห็นในผัง'))
+    ?? rows.find(row => row.reason?.startsWith('จุดที่เห็นในผัง'))
+    ?? rows[0]
+  return `${lead.label} — ${lead.headline} ${lead.advice}`
 }
 
 function PeriodReading({ N, r, c, period, title, testid }) {
@@ -194,7 +202,7 @@ export default function BaziTab({ birth, onEdit }) {
       </section>
       <section className="px-card p-3 space-y-2" data-testid="bazi-alert">
         <div className="flex items-center gap-2"><PxIcon name="ev_alert" size={22} /><b className="text-sm flex-1">แจ้งเตือนวันนี้</b><Guide which="bazi" /></div>
-        {todayEv.length ? todayEv.map((e, i) => <EventBox key={i} e={e} />) : <div className="text-xs text-slate-500">วันนี้ไม่มีปฏิกิริยาพิเศษกับดวงของคุณ ดูภาพรวมที่สีของวันในปฏิทิน</div>}
+        {todayEv.length ? todayEv.map((e, i) => <EventBox key={i} e={e} />) : <div className="text-xs text-slate-500">วันนี้ไม่พบปฏิกิริยาพิเศษในผัง ดูคำอ่านวันนี้ด้านบนเพื่อดูว่าควรโฟกัสเรื่องไหน</div>}
       </section>
       <section className="px-card p-4" data-testid="bazi-chart">
         <div className="flex items-center gap-2 mb-3"><PxIcon name="ft_yinyang" size={22} /><b className="text-sm">ดวงสี่เสา</b><span className="ml-auto text-[11px] text-slate-500">แตะเสาเพื่อดูคำอธิบาย</span></div>
@@ -211,7 +219,7 @@ export default function BaziTab({ birth, onEdit }) {
 
       <section className="px-card p-4 space-y-3" data-testid="bazi-read">
         <div className="flex items-center gap-2"><Stem s={N.dm} size={30} /><b className="text-sm">ดิถีของคุณ: {STEMS[N.dm]} {STEM_TH[N.dm]}</b></div>
-        <div className="text-sm leading-relaxed whitespace-pre-line">ดิถีคือธาตุจากวันเกิดที่ปาจื้อใช้เป็นตัวแทนของคุณในผังครับ {DM_TEXT[N.dm]}</div>
+        <div className="text-sm leading-relaxed whitespace-pre-line">{DM_TEXT[N.dm]} ดิถีคือธาตุที่ปาจื้อใช้แทนคุณในผัง</div>
         <div className="px-inner p-3 text-xs space-y-1">
           <div className="flex items-center gap-2"><b>กำลัง<T k="ดิถี" />:</b> {N.strength === 'strong' ? 'แข็ง' : N.strength === 'weak' ? 'อ่อน' : 'ค่อนข้างกลาง'} <span className="text-slate-400">(คะแนนตามสูตร {N.score})</span><button className="ui-link ml-auto" onClick={() => setShowEv(!showEv)}>{showEv ? 'ซ่อนเหตุผล' : 'ดูเหตุผล'}</button></div>
           <div>{STRENGTH_TEXT[N.strength]}</div>
@@ -219,8 +227,8 @@ export default function BaziTab({ birth, onEdit }) {
         </div>
         <div className="space-y-1.5 text-xs">
           <div className="flex flex-wrap items-center gap-1.5"><b><T k="ธาตุที่ช่วย">ธาตุที่ช่วยคุณ</T>:</b>{N.fav.map((e) => <ElChip key={e} e={e} />)}</div>
-          <div className="flex flex-wrap items-center gap-1.5"><b>ธาตุที่ควรระวังตามผังนี้:</b>{N.unfav.map((e) => <ElChip key={e} e={e} />)}</div>
-          {N.cold && <div className="text-slate-500">เกิดฤดูหนาว ไฟช่วยให้ดวงอุ่นขึ้น</div>}{N.hot && <div className="text-slate-500">เกิดฤดูร้อน น้ำช่วยให้ดวงชุ่มชื้นขึ้น</div>}
+          <div className="flex flex-wrap items-center gap-1.5"><b>ธาตุที่ควรอ่านอย่างระวัง:</b>{N.unfav.map((e) => <ElChip key={e} e={e} />)}</div>
+          {N.cold && <div className="text-slate-500">เกิดช่วงฤดูหนาว สูตรจึงนับไฟเป็นธาตุช่วยปรับสมดุล</div>}{N.hot && <div className="text-slate-500">เกิดช่วงฤดูร้อน สูตรจึงนับน้ำเป็นธาตุช่วยปรับสมดุล</div>}
         </div>
         <div className="grid gap-1.5">{N.fav.map((e) => (
           <div key={e} className="px-inner p-2 text-[11px] flex gap-2"><PxIcon name={EL_ICON[e]} size={20} /><div><b>เสริมธาตุ{EL[e]}:</b> สี{EL_ADVICE[e].color} · ทิศ{EL_ADVICE[e].dir} · งาน{EL_ADVICE[e].work}<div className="text-slate-500">{EL_ADVICE[e].act}</div></div></div>))}</div>
@@ -249,14 +257,14 @@ export default function BaziTab({ birth, onEdit }) {
 
       <section className="px-card p-4 space-y-2" data-testid="bazi-chart-years">
         <div className="flex items-center gap-2"><PxIcon name="ev_chart" size={20} /><b className="text-sm">กราฟดวงรายปี 12 ปีข้างหน้า</b></div>
-        <BlockChart testid="bazi-c12" levels={RATE} items={yearBars.map((x, i) => ({ v: x.r.score, lvl: x.r.lvl, title: `ปี ${pillarName(x.c)} (${x.y + 543})`, sub: `ปี${ZODIAC[x.c % 12]} · ${thDT(lichun(x.y), false)} – ${thDT(lichun(x.y + 1), false)}`, text: `${GOD_TH[x.r.god]}: ${GOD_TEXT[x.r.god].period}`, icon: ZODIAC_ICON[x.c % 12], bottom: String(x.y + 543), now: i === 0, onOpen: () => setItem(yearItem(x)) }))} />
+        <BlockChart testid="bazi-c12" levels={RATE} items={yearBars.map((x, i) => ({ v: x.r.score, lvl: x.r.lvl, title: `ปี ${pillarName(x.c)} (${x.y + 543})`, sub: `ปี${ZODIAC[x.c % 12]} · ${thDT(lichun(x.y), false)} – ${thDT(lichun(x.y + 1), false)}`, text: chartReading(N, x.r, x.c, 'ปี'), icon: ZODIAC_ICON[x.c % 12], bottom: String(x.y + 543), now: i === 0, onOpen: () => setItem(yearItem(x)) }))} />
         <Legend levels={RATE.map((r) => ({ ...r }))} />
       </section>
 
       <section className="px-card p-4 space-y-2" data-testid="bazi-today">
         <div className="flex items-center gap-2"><PxIcon name="Sun" size={20} /><b className="text-sm">กราฟยามวันนี้</b></div>
         <div className="text-[11px] text-slate-500">ยามทั้งวัน (แตะหรือลากนิ้วเพื่อดูแต่ละยาม)</div>
-        <BlockChart compact testid="bazi-chours" levels={RATE} items={hrsToday.map((h) => ({ v: h.score, lvl: h.lvl, title: `${h.label} · ยาม${ZODIAC[h.c % 12]}`, sub: `เสายาม ${pillarName(h.c)}${h.late ? ' (นับเป็นวันถัดไป)' : ''}`, text: `${GOD_TH[h.god]}: ${GOD_TEXT[h.god].period}`, icon: ZODIAC_ICON[h.c % 12], bottom: h.late ? '23' : h.label.slice(0, 2), now: h.h === curH, onOpen: () => setItem(hourItem(h)) }))} />
+        <BlockChart compact testid="bazi-chours" levels={RATE} items={hrsToday.map((h) => ({ v: h.score, lvl: h.lvl, title: `${h.label} · ยาม${ZODIAC[h.c % 12]}`, sub: `เสายาม ${pillarName(h.c)}${h.late ? ' (นับเป็นวันถัดไป)' : ''}`, text: chartReading(N, h, h.c, 'ยาม'), icon: ZODIAC_ICON[h.c % 12], bottom: h.late ? '23' : h.label.slice(0, 2), now: h.h === curH, onOpen: () => setItem(hourItem(h)) }))} />
       </section>
 
       <section className="px-card p-4" data-testid="bazi-cal">
@@ -288,7 +296,7 @@ export default function BaziTab({ birth, onEdit }) {
         <div className="flex items-center gap-2"><PxIcon name="History" size={20} /><b className="text-sm"><T k="เสาโชค">เสาโชค 10 ปี (大運)</T></b></div>
         {!luck ? <div className="text-xs text-slate-500">{!N.known ? 'ต้องทราบเวลาเกิดจึงคำนวณอายุเริ่มเสาโชคได้' : 'ใส่เพศในข้อมูลเกิดเพื่อหาทิศเดินเสาโชค (ตามสูตรดั้งเดิม)'} <button className="ui-link" onClick={onEdit}>แก้ข้อมูลเกิด</button></div> : <>
           <div className="text-[11px] text-slate-500">เดิน{luck.fwd ? 'หน้า' : 'ถอยหลัง'} · เริ่มเสาแรกอายุ {luck.start.y} ปี {luck.start.m} เดือน {luck.start.d} วัน ({thDT(luck.start.ms, false)})</div>
-          <BlockChart testid="bazi-cluck" levels={RATE} items={luck.list.map((l) => ({ v: l.score, lvl: l.lvl, title: `เสาโชค ${pillarName(l.c)} อายุ ${l.age}–${l.age + 10}`, sub: `${thDT(l.from, false)} – ${thDT(l.to, false)}`, text: `${GOD_TH[l.god]}: ${GOD_TEXT[l.god].period}`, icon: ZODIAC_ICON[l.c % 12], bottom: `อายุ ${l.age}`, now: l === curLuck, onOpen: () => setItem({ title: `เสาโชค ${pillarName(l.c)} อายุ ${l.age}–${l.age + 10}`, c: l.c, r: l, what: 'เสาโชค', sub: `${thDT(l.from, false)} – ${thDT(l.to, false)}` }) }))} />
+          <BlockChart testid="bazi-cluck" levels={RATE} items={luck.list.map((l) => ({ v: l.score, lvl: l.lvl, title: `เสาโชค ${pillarName(l.c)} อายุ ${l.age}–${l.age + 10}`, sub: `${thDT(l.from, false)} – ${thDT(l.to, false)}`, text: chartReading(N, l, l.c, 'เสาโชค'), icon: ZODIAC_ICON[l.c % 12], bottom: `อายุ ${l.age}`, now: l === curLuck, onOpen: () => setItem({ title: `เสาโชค ${pillarName(l.c)} อายุ ${l.age}–${l.age + 10}`, c: l.c, r: l, what: 'เสาโชค', sub: `${thDT(l.from, false)} – ${thDT(l.to, false)}` }) }))} />
           <div className="flex gap-1.5 overflow-x-auto pb-1" data-testid="bazi-luck-cards">{luck.list.map((l) => (
             <button key={l.k} onClick={() => setItem({ title: `เสาโชค ${pillarName(l.c)} อายุ ${l.age}–${l.age + 10}`, c: l.c, r: l, what: 'เสาโชค', sub: `${thDT(l.from, false)} – ${thDT(l.to, false)}` })} className={`px-inner p-1.5 text-center shrink-0 w-14 ${l === curLuck ? 'ring-2 ring-violet-500' : ''}`}>
               <div className="text-[9px] text-slate-500">{l.age}+</div><Stem s={l.c % 10} size={20} /><br /><Branch b={l.c % 12} size={20} /><div className="mt-0.5"><Chip lvl={l.lvl} small /></div>

@@ -205,24 +205,24 @@ export function natal(birth) {
 export const RATE = [
   { th: "ควรใส่ใจมาก", color: '#dc2626' }, { th: 'ระวัง', color: '#f97316' }, { th: 'กลาง ๆ', color: '#94a3b8' }, { th: 'ดี', color: '#0ea5e9' }, { th: 'ดีมาก', color: '#16a34a' },
 ]
-const elWord = (N, e) => (N.fav.includes(e) ? 'ธาตุที่ช่วยคุณ' : N.unfav.includes(e) ? "ธาตุที่ควรระวังตามผังนี้" : 'ธาตุกลาง ๆ')
+const elWord = (N, e) => (N.fav.includes(e) ? 'หนุนผัง' : N.unfav.includes(e) ? 'เพิ่มแรงกดให้ผัง' : 'ไม่เพิ่มหรือลดคะแนนส่วนนี้')
 /** score pillar c against the chart. ctx: extra branch (e.g. the day's branch when rating an hour) */
 export function rate(N, c, { against = null, label = '' } = {}) {
   const s = c % 10, b = c % 12, why = []
   let sc = 0
   const se = stemEl(s), be = BRANCH_EL[b]
   const ws = N.fav.includes(se) ? 2 : N.unfav.includes(se) ? -2 : 0
-  sc += ws; why.push({ w: ws, t: `ก้าน${label} ${STEMS[s]} ธาตุ${EL[se]} เทียบกับดิถีแล้วเป็น ${GOD[godOf(N.dm, s)]} (${GOD_TH[godOf(N.dm, s)]}) · ${elWord(N, se)}` })
+  sc += ws; why.push({ w: ws, t: `${GOD_TH[godOf(N.dm, s)]} (${GOD[godOf(N.dm, s)]}) เป็นบทบาทของก้าน${label} ${STEMS[s]} และธาตุ${EL[se]}${elWord(N, se)}` })
   const wb = N.fav.includes(be) ? 1.5 : N.unfav.includes(be) ? -1.5 : 0
-  sc += wb; why.push({ w: wb, t: `กิ่ง${label} ${BRANCHES[b]} (${ZODIAC[b]}) มีธาตุหลักเป็น${EL[be]} · ${elWord(N, be)}` })
+  sc += wb; why.push({ w: wb, t: `ธาตุ${EL[be]}${elWord(N, be)} มาจากกิ่ง${label} ${BRANCHES[b]} (${ZODIAC[b]})` })
   const targets = [...N.pillars.map((p) => ({ b: p.b, th: `กิ่ง${p.th}เกิด`, k: p.key })), ...(against != null ? [{ b: against, th: 'กิ่งของวันนั้น', k: 'ctx' }] : [])]
   for (const t of targets) for (const r of branchRel(b, t.b)) {
     const w = r.w * (t.k === 'day' ? 1.2 : t.k === 'ctx' ? 0.6 : t.k === 'year' ? 0.8 : 0.5)
-    sc += w; why.push({ w, t: `เทียบ ${BRANCHES[b]} กับ ${BRANCHES[t.b]} ใน${t.th}: ${r.t}` })
+    sc += w; why.push({ w, t: `${r.t} เมื่อเทียบกิ่ง ${BRANCHES[b]} กับ ${BRANCHES[t.b]} ใน${t.th}` })
   }
   const dms = stemRel(s, N.dm)
-  for (const r of dms) { sc += r.w * 0.8; why.push({ w: r.w * 0.8, t: `เทียบอักษรบน ${STEMS[s]} กับดิถี ${STEMS[N.dm]}: ${r.t}` }) }
-  for (const st of starsOn(N.dm, N.dayB, b)) if (st.w) { sc += st.w; why.push({ w: st.w, t: `ตามเกณฑ์ดาวเสริม ${BRANCHES[b]} จัดเป็น${st.th} (${st.zh})` }) }
+  for (const r of dms) { sc += r.w * 0.8; why.push({ w: r.w * 0.8, t: `${r.t} ระหว่างอักษรบน ${STEMS[s]} กับดิถี ${STEMS[N.dm]}` }) }
+  for (const st of starsOn(N.dm, N.dayB, b)) if (st.w) { sc += st.w; why.push({ w: st.w, t: `${st.th} (${st.zh}) ขึ้นจากกิ่ง ${BRANCHES[b]}` }) }
   sc = Math.round(sc * 10) / 10
   const lvl = sc >= 3.8 ? 4 : sc >= 1.5 ? 3 : sc > -1 ? 2 : sc > -2.8 ? 1 : 0
   return { score: sc, lvl, why: why.filter((x) => x.w !== 0 || x.t.includes('ก้าน')), god: godOf(N.dm, s) }

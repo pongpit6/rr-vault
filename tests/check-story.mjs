@@ -62,7 +62,7 @@ for (const birth of [{ date: '1992-03-11', time: '09:30' }, { date: '1990-01-01'
     const rows = baziTopics(N, rate(N, c, { label: period }), c, events, period)
     assert.deepEqual(rows.map(row => row.id), topicKeys)
     assert.ok(rows.every(row => row.headline && row.advice))
-    for (const row of rows) if (row.reason?.startsWith('จาก')) assert.ok(events.some(e => row.reason.includes(e.title)))
+    for (const row of rows) if (row.reason?.startsWith('จุดที่เห็นในผัง: ')) assert.ok(events.some(e => row.reason.includes(e.title)))
     readings.push({ events, rows })
   }
 }
